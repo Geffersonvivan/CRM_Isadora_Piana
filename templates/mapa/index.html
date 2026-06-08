@@ -399,9 +399,7 @@
                     <button class="mode-btn" data-mode="demandas">Demandas</button>
                     <button class="mode-btn" data-mode="roteiros">Roteiros</button>
                     <button class="mode-btn" data-mode="estrategico">Estratégico</button>
-                    <button class="mode-btn" data-mode="rede_pl">Rede PL</button>
-                    <button class="mode-btn" data-mode="zonas">Zonas Eleitorais</button>
-                    <button class="mode-btn" data-mode="transferencia">Transferência</button>
+<button class="mode-btn" data-mode="transferencia">Transferência</button>
                     <button class="mode-btn" data-mode="deputados">Dep. Aliados</button>
                     <button class="mode-btn" data-mode="doacoes">Doações</button>
                     <button class="mode-btn" data-mode="concorrencia">Concorrência</button>
@@ -443,6 +441,76 @@
             <div id="competicaoChips" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:5px;"></div>
             <div id="competicaoInfo" style="margin-top:9px;font-size:.72rem;color:#64748b;min-height:1em;"></div>
         </div>
+
+        <!-- Painel Perfil Ideológico -->
+        <div id="perfilPanel" style="display:none;position:absolute;top:14px;left:14px;z-index:500;background:rgba(255,255,255,.97);backdrop-filter:blur(2px);border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;box-shadow:0 6px 20px rgba(15,23,42,.12);width:280px;font-size:.8rem;max-height:calc(100% - 28px);overflow-y:auto;">
+            <!-- Presets -->
+            <div style="font-size:.66rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Cenários</div>
+            <div id="perfilPresets" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;">
+                <button class="preset-btn" data-preset="base" style="font-size:.68rem;padding:4px 8px;border:1px solid #cbd5e1;border-radius:5px;background:#f8fafc;color:#334155;cursor:pointer;transition:all .15s;" title="Cidades ultra conservadoras com alta pop.">Base garantida</button>
+                <button class="preset-btn" data-preset="investir" style="font-size:.68rem;padding:4px 8px;border:1px solid #cbd5e1;border-radius:5px;background:#f8fafc;color:#334155;cursor:pointer;transition:all .15s;" title="Moderadas com pop. alta e poucos apoiadores">Onde investir</button>
+                <button class="preset-btn" data-preset="disputar" style="font-size:.68rem;padding:4px 8px;border:1px solid #cbd5e1;border-radius:5px;background:#f8fafc;color:#334155;cursor:pointer;transition:all .15s;" title="Menos conservadoras - requer estratégia">A disputar</button>
+                <button class="preset-btn" data-preset="completo" style="font-size:.68rem;padding:4px 8px;border:1px solid #cbd5e1;border-radius:5px;background:#f8fafc;color:#334155;cursor:pointer;transition:all .15s;" title="Todos os dados, peso igual">Visão completa</button>
+                <button class="preset-btn" data-preset="limpar" style="font-size:.68rem;padding:4px 8px;border:1px solid #cbd5e1;border-radius:5px;background:#f8fafc;color:#94a3b8;cursor:pointer;transition:all .15s;" title="Desmarcar tudo">Limpar</button>
+            </div>
+            <div style="border-top:1px solid #e2e8f0;margin-bottom:10px;"></div>
+            <!-- Checkboxes eleitorais -->
+            <div style="font-size:.66rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Dados Eleitorais</div>
+            <div id="perfilElectoralChecks">
+                <div style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="governador_1t" data-group="eleitoral" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">Governador 1º turno</label></div>
+                <div style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="governador_2t" data-group="eleitoral" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">Governador 2º turno</label></div>
+                <div style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="senador_1t" data-group="eleitoral" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">Senador</label></div>
+            </div>
+            <!-- Checkboxes socioeconômicos -->
+            <div style="font-size:.66rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.6px;margin:10px 0 6px;">Dados Socioeconômicos</div>
+            <div id="perfilSocioChecks">
+                <div style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="pib" data-group="socio" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">PIB per capita</label></div>
+                <div style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="renda" data-group="socio" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">Renda per capita</label></div>
+                <div style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="bf" data-group="socio" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">Bolsa Família (menos = mais conservador)</label></div>
+                <div style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="meis" data-group="socio" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">MEIs ativos</label></div>
+            </div>
+            <!-- Checkboxes demográficos -->
+            <div style="font-size:.66rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.6px;margin:10px 0 6px;">Dados Demográficos</div>
+            <div id="perfilDemoChecks">
+                <div style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="pop_urbana_pct" data-group="socio" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">% Pop. urbana</label></div>
+                <div style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="idosos_pct" data-group="socio" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">% Idosos (60+)</label></div>
+                <div style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="jovens_pct" data-group="socio" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">% Jovens (18-29)</label></div>
+                <div style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="escolaridade" data-group="socio" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">Escolaridade média</label></div>
+            </div>
+            <!-- Slider peso -->
+            <div style="margin-top:12px;border-top:1px solid #e2e8f0;padding-top:10px;">
+                <div style="display:flex;justify-content:space-between;font-size:.7rem;color:#64748b;margin-bottom:4px;">
+                    <span>Socioecon.</span>
+                    <span id="perfilPesoLabel">50% / 50%</span>
+                    <span>Eleitoral</span>
+                </div>
+                <input type="range" id="perfilPesoSlider" min="0" max="100" value="50" style="width:100%;accent-color:#1e40af;cursor:pointer;" />
+            </div>
+            <!-- Ações -->
+            <div style="margin-top:10px;display:flex;gap:6px;justify-content:space-between;align-items:center;">
+                <div id="perfilStatus" style="font-size:.7rem;color:#94a3b8;flex:1;">Selecione ao menos um dado</div>
+                <button id="perfilExportBtn" style="display:none;font-size:.65rem;padding:4px 8px;border:1px solid #cbd5e1;border-radius:4px;background:#f8fafc;color:#1e40af;cursor:pointer;white-space:nowrap;" title="Exportar ranking em CSV">Exportar CSV</button>
+            </div>
+            <!-- Ranking -->
+            <div id="perfilRanking" style="display:none;margin-top:10px;border-top:1px solid #e2e8f0;padding-top:10px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                    <span style="font-size:.66rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.6px;">Ranking</span>
+                    <div style="display:flex;gap:4px;">
+                        <button id="rankTopBtn" class="rank-tab active" style="font-size:.6rem;padding:2px 6px;border:1px solid #cbd5e1;border-radius:3px;background:#1e40af;color:#fff;cursor:pointer;">Top 10</button>
+                        <button id="rankBottomBtn" class="rank-tab" style="font-size:.6rem;padding:2px 6px;border:1px solid #cbd5e1;border-radius:3px;background:#f8fafc;color:#334155;cursor:pointer;">Bottom 10</button>
+                    </div>
+                </div>
+                <div id="perfilRankList" style="font-size:.72rem;"></div>
+            </div>
+        </div>
+        <!-- Painel de comparação -->
+        <div id="perfilComparePanel" style="display:none;position:absolute;bottom:14px;left:14px;z-index:500;background:rgba(255,255,255,.97);backdrop-filter:blur(2px);border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;box-shadow:0 6px 20px rgba(15,23,42,.12);font-size:.78rem;max-width:600px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <span style="font-size:.66rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.6px;">Comparar cidades (clique no mapa)</span>
+                <button id="perfilCompareClose" style="border:none;background:none;color:#94a3b8;cursor:pointer;font-size:1rem;line-height:1;">&times;</button>
+            </div>
+            <div id="perfilCompareContent"></div>
+        </div>
     </div>
 
     <!-- Legendas dinamicas -->
@@ -452,8 +520,8 @@
 <!-- Dashboard contextual abaixo do mapa -->
 <div class="map-wrapper map-dashboard map-dashboard-hidden" id="mapDashboard"></div>
 
-<script src="{% static 'js/map/api.js' %}"></script>
-<script src="{% static 'js/map/sc-map.js' %}"></script>
+<script src="{% static 'js/map/api.js' %}?v=5"></script>
+<script src="{% static 'js/map/sc-map.js' %}?v=5"></script>
 <script>
 (function() {
     const map = new SCMap('map-container');
@@ -524,7 +592,7 @@
                 '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#22c55e;vertical-align:middle;margin-right:4px"></span> <strong style="color:#22c55e">Verde</strong> — penetração alta (&ge;3%)<br><br>' +
                 'Passe o <strong>mouse</strong> para ver o percentual exato, votos e total de eleitores.',
             example: '<strong>Como interpretar:</strong> Uma região em verde com 4% significa que 4 a cada 100 eleitores registrados votaram no LS. Uma região em vermelho com 0.3% indica que apenas 3 a cada 1.000 eleitores votaram nele.<br>' +
-                '<strong>Uso estratégico:</strong> Compare o mapa de calor com o mapa de Rede PL. Regiões vermelhas onde o PL já tem estrutura forte (azul escuro na Rede PL) indicam potencial desperdiçado — a rede existe mas os votos não vieram. Já regiões verdes com PL fraco sugerem voto espontâneo que pode ser consolidado com estrutura.',
+                '<strong>Uso estratégico:</strong> Regiões vermelhas onde o PL já tem estrutura forte indicam potencial desperdiçado — a rede existe mas os votos não vieram. Já regiões verdes com estrutura fraca sugerem voto espontâneo que pode ser consolidado.',
         },
         demandas: {
             what: 'Painel de <strong>acompanhamento de demandas e tarefas políticas</strong> distribuídas por região. Cada tarefa tem prazo e responsável, e o mapa mostra visualmente quais regiões estão com pendências atrasadas, em dia ou sem demandas registradas.<br><br>' +
@@ -563,37 +631,6 @@
             example: '<strong>Uso estratégico:</strong> Concentre energia nas cidades "Aliado Fraco" e "Potencial Oculto" — são as que dão mais retorno por real investido. Bases Fortes já estão consolidadas e Hostis exigem muito esforço.<br>' +
                 '<strong>Exemplo:</strong> Chapecó como Base Forte (prefeito PL, 5 vereadores, 2.000 apoiadores) é para manter. Xanxerê como Aliado Fraco (boa votação mas sem diretório) precisa de um presidente de diretório local para subir de categoria.',
         },
-        rede_pl: {
-            what: 'Mede a <strong>presença e a força organizacional do PL</strong> em cada uma das 295 cidades de SC. O score (0 a 100) combina 5 indicadores com pesos diferentes:<br><br>' +
-                '<table style="width:100%;font-size:.78rem;border-collapse:collapse;margin-bottom:4px">' +
-                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0"><strong>Coordenador Regional</strong></td><td style="text-align:right;color:#1e3a8a;font-weight:700">25%</td><td style="padding-left:8px;color:#64748b">A cidade pertence a uma região com coordenador ativo?</td></tr>' +
-                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0"><strong>Vereadores PL</strong></td><td style="text-align:right;color:#1e3a8a;font-weight:700">25%</td><td style="padding-left:8px;color:#64748b">% de vereadores do PL na câmara (mais vereadores = score maior)</td></tr>' +
-                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0"><strong>Presidente do Diretório</strong></td><td style="text-align:right;color:#1e3a8a;font-weight:700">20%</td><td style="padding-left:8px;color:#64748b">Há presidente do diretório executivo municipal cadastrado?</td></tr>' +
-                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0"><strong>Base de Apoiadores</strong></td><td style="text-align:right;color:#1e3a8a;font-weight:700">15%</td><td style="padding-left:8px;color:#64748b">Densidade de apoiadores ativos em relação ao eleitorado da cidade</td></tr>' +
-                '<tr><td style="padding:3px 0"><strong>Cabos Eleitorais</strong></td><td style="text-align:right;color:#1e3a8a;font-weight:700">15%</td><td style="padding-left:8px;color:#64748b">Quantidade de cabos eleitorais cadastrados na cidade</td></tr>' +
-                '</table>',
-            how: 'As cidades são <strong>classificadas por percentil</strong> (posição relativa entre todas as 295), garantindo variação real de cores mesmo quando muitas cidades têm estrutura similar:<br><br>' +
-                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#1e3a8a;vertical-align:middle;margin-right:4px"></span> <strong style="color:#1e3a8a">Azul escuro</strong> — <strong>Forte</strong>: top 25% das cidades (score &ge;60). Estrutura completa ou quase completa.<br>' +
-                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#2563eb;vertical-align:middle;margin-right:4px"></span> <strong style="color:#2563eb">Azul médio</strong> — <strong>Moderada</strong>: metade intermediária (score 35-59). Tem presença mas faltam elementos.<br>' +
-                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#93c5fd;vertical-align:middle;margin-right:4px"></span> <strong style="color:#60a5fa">Azul claro</strong> — <strong>Fraca</strong>: 25% inferiores (score 1-34). Presença mínima, precisa de atenção.<br>' +
-                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#d1d5db;vertical-align:middle;margin-right:4px"></span> <strong style="color:#9ca3af">Cinza</strong> — <strong>Ausente</strong>: score 0. Nenhum dos 5 indicadores preenchido.<br><br>' +
-                'Passe o <strong>mouse sobre uma região</strong> para ver o score médio e a distribuição. <strong>Clique na região</strong> para ver o detalhe cidade a cidade.',
-            example: '<strong>Leitura rápida:</strong> Regiões inteiramente azul escuro indicam rede consolidada. Regiões com mistura de azul claro e cinza são prioridade para fortalecimento. ' +
-                '<strong>Exemplo:</strong> Se Chapecó aparece em azul escuro (score 85) com coordenador, 4 vereadores PL, presidente de diretório e 12 cabos, está no top 25%. Já uma cidade vizinha em azul claro (score 20) com apenas 1 vereador e sem coordenador precisa de investimento em estrutura partidária.',
-        },
-        zonas: {
-            what: 'Mostra a <strong>performance do LS por zona eleitoral</strong> nas eleições de 2022. Zonas eleitorais são as unidades oficiais de apuração do TSE — cada zona pode cobrir uma ou várias cidades, e é onde os votos são efetivamente contados.<br><br>' +
-                'Este mapa é fundamental porque a <strong>disputa real acontece por zona</strong>, não por cidade. Um candidato pode perder em uma cidade mas vencer na zona se for forte nas cidades vizinhas que fazem parte dela.',
-            how: 'As cidades são coloridas pela <strong>posição do LS no ranking da zona eleitoral</strong> a que pertencem:<br><br>' +
-                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#15803d;vertical-align:middle;margin-right:4px"></span> <strong style="color:#15803d">Verde escuro</strong> — <strong>1º lugar</strong>: o LS foi o dep. federal mais votado naquela zona. Domínio total.<br>' +
-                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#22c55e;vertical-align:middle;margin-right:4px"></span> <strong style="color:#22c55e">Verde</strong> — <strong>Top 3</strong>: entre os 3 mais votados. Base competitiva.<br>' +
-                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#eab308;vertical-align:middle;margin-right:4px"></span> <strong style="color:#eab308">Amarelo</strong> — <strong>Top 5</strong>: presença relevante mas não dominante.<br>' +
-                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#f97316;vertical-align:middle;margin-right:4px"></span> <strong style="color:#f97316">Laranja</strong> — <strong>Top 10</strong>: presença fraca na zona.<br>' +
-                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#ef4444;vertical-align:middle;margin-right:4px"></span> <strong style="color:#ef4444">Vermelho</strong> — <strong>11º+</strong>: zona adversária.<br><br>' +
-                'Passe o <strong>mouse</strong> para ver número da zona, posição, votos do LS e total de candidatos.',
-            example: '<strong>Uso estratégico:</strong> Identifique zonas amarelas/laranjas que fazem fronteira com zonas verdes — são as de maior potencial de crescimento com transbordamento de base vizinha.<br>' +
-                '<strong>Exemplo:</strong> Se a zona 42 (Lages) aparece em verde escuro (1º lugar, 12.000 votos) mas a zona 43 vizinha está em laranja (8º lugar, 800 votos), vale concentrar esforço na zona 43 aproveitando a proximidade da base forte.',
-        },
         transferencia: {
             what: 'Análise de <strong>transferência de votos</strong> entre o LS e os governadores aliados (Jorginho Mello e Carol de Toni). O mapa cruza a votação dos três em cada cidade para identificar onde há <strong>potencial de transferência</strong> — eleitores que votaram nos governadores mas não no LS, e vice-versa.<br><br>' +
                 'A lógica: eleitores que já votaram em candidatos aliados são mais propensos a votar no LS com a articulação correta.',
@@ -630,22 +667,38 @@
                 '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#dbeafe;vertical-align:middle;margin-right:4px"></span> <strong style="color:#93c5fd">Azul muito claro</strong> — Arrecadação <strong>mínima</strong>. Presença financeira simbólica.<br>' +
                 '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#d1d5db;vertical-align:middle;margin-right:4px"></span> <strong style="color:#9ca3af">Cinza</strong> — <strong>Nenhuma doação</strong> registrada.<br><br>' +
                 'Passe o <strong>mouse</strong> para ver: valor total, quantidade de doações, doadores únicos e top captadores.',
-            example: '<strong>Leitura rápida:</strong> Regiões cinza são prioridade para campanhas de arrecadação — não há sequer um doador ativo. Regiões azul claro com muitos apoiadores cadastrados (veja no mapa de Rede PL) indicam base engajada politicamente mas não financeiramente — boa oportunidade para captação.<br>' +
+            example: '<strong>Leitura rápida:</strong> Regiões cinza são prioridade para campanhas de arrecadação — não há sequer um doador ativo. Regiões azul claro com muitos apoiadores cadastrados indicam base engajada politicamente mas não financeiramente — boa oportunidade para captação.<br>' +
                 '<strong>Exemplo:</strong> Se AMREC aparece em azul escuro (R$ 85.000, 42 doadores, top captador: João Silva com R$ 12.000), a arrecadação está concentrada. Já AMEOSC em cinza com 150 apoiadores sugere potencial financeiro não explorado.',
         },
         perfil_ideologico: {
-            what: 'Cruza <strong>dados socioeconômicos</strong> (PIB, renda per capita, MEIs, Bolsa Família) com <strong>resultados eleitorais de 2022</strong> (governador 1º turno) para gerar um <strong>índice de alinhamento ideológico</strong> por cidade.<br><br>' +
-                'O índice varia de <strong>0 (esquerda)</strong> a <strong>100 (direita)</strong>, combinando 40% dados socioeconômicos e 60% dados eleitorais.',
-            how: 'As cidades são coloridas por um <strong>gradiente espectral</strong>:<br><br>' +
-                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#E53935;vertical-align:middle;margin-right:4px"></span> <strong style="color:#E53935">Vermelho</strong> — Perfil de <strong>esquerda</strong> (índice ≤ 25)<br>' +
-                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#FF7043;vertical-align:middle;margin-right:4px"></span> <strong style="color:#FF7043">Laranja</strong> — <strong>Centro-esquerda</strong> (índice 25-50)<br>' +
-                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#FFD54F;vertical-align:middle;margin-right:4px"></span> <strong style="color:#d4a017">Amarelo</strong> — <strong>Centro</strong> (índice ~50)<br>' +
-                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#66BB6A;vertical-align:middle;margin-right:4px"></span> <strong style="color:#66BB6A">Verde</strong> — <strong>Centro-direita</strong> (índice 50-75)<br>' +
-                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#1565C0;vertical-align:middle;margin-right:4px"></span> <strong style="color:#1565C0">Azul</strong> — Perfil de <strong>direita</strong> (índice ≥ 75)<br><br>' +
-                'O <strong>score socioeconômico</strong> considera: renda (30%), PIB per capita (25%), MEIs (25%) e inverso de Bolsa Família (20%).<br>' +
-                'O <strong>score eleitoral</strong> mede a proporção de votos para partidos de direita vs. esquerda na eleição de governador 2022.',
-            example: '<strong>Interpretação:</strong> Cidades azuis/verdes tendem a ser base natural do candidato (alinhamento com direita/centro-direita). Cidades vermelhas/laranjas indicam territórios onde a mensagem precisará ser ajustada.<br>' +
-                '<strong>Exemplo:</strong> Se Joinville aparece azul escuro (índice 82) e Chapecó amarelo (índice 48), Joinville é base ideológica forte enquanto Chapecó requer estratégia mais moderada.',
+            what: 'Ferramenta de <strong>inteligência territorial</strong> que cruza múltiplas camadas de dados para revelar o perfil ideológico de cada cidade de SC.<br><br>' +
+                '<strong>Como usar:</strong> O mapa inicia neutro. Use os <strong>cenários prontos</strong> (Base garantida, Onde investir, etc.) para análise rápida, ou monte sua própria combinação selecionando os dados desejados. Tudo se atualiza em tempo real.<br><br>' +
+                '<strong>Funcionalidades:</strong><br>' +
+                '&bull; <strong>Cenários prontos</strong> — configurações predefinidas para decisões rápidas<br>' +
+                '&bull; <strong>Ranking</strong> — Top 10 / Bottom 10 cidades ordenadas pelo score<br>' +
+                '&bull; <strong>Comparação</strong> — clique em até 3 cidades para ver tabela comparativa<br>' +
+                '&bull; <strong>Exportar CSV</strong> — baixe o ranking completo (295 cidades) para usar em reuniões',
+            how: '<strong>Camadas de dados disponíveis:</strong><br><br>' +
+                '<table style="width:100%;border-collapse:collapse;font-size:.82rem;">' +
+                '<tr style="border-bottom:1px solid #e2e8f0;"><td style="padding:4px 0;vertical-align:top;"><strong style="color:#1e40af;">Eleitorais</strong></td><td style="padding:4px 8px;">Proporção de votos direita vs. esquerda em 2022: Governador (1T e 2T) e Senador</td></tr>' +
+                '<tr style="border-bottom:1px solid #e2e8f0;"><td style="padding:4px 0;vertical-align:top;"><strong style="color:#059669;">Socioeconômicos</strong></td><td style="padding:4px 8px;">PIB e Renda per capita, MEIs ativos, Bolsa Família (inverso: menos BF = mais conservador)</td></tr>' +
+                '<tr style="border-bottom:1px solid #e2e8f0;"><td style="padding:4px 0;vertical-align:top;"><strong style="color:#7c3aed;">Demográficos</strong></td><td style="padding:4px 8px;">% Pop. urbana, % Idosos 60+, % Jovens 18-29, Escolaridade média (fonte: IBGE)</td></tr>' +
+                '<tr><td style="padding:4px 0;vertical-align:top;"><strong style="color:#dc2626;">CRM</strong></td><td style="padding:4px 8px;">Apoiadores cadastrados e demandas por cidade (exibidos no tooltip e na comparação)</td></tr>' +
+                '</table><br>' +
+                '<strong>Barra de peso</strong> — define quanto cada grupo influencia o score final. Ex: 70%/30% prioriza o socioeconômico sobre o eleitoral.<br><br>' +
+                '<strong>Escala de cores (relativa dentro de SC):</strong><br>' +
+                '<div style="display:flex;gap:2px;margin:6px 0 4px;height:14px;border-radius:3px;overflow:hidden;">' +
+                '<div style="flex:1;background:#E53935;" title="Menos conservador"></div>' +
+                '<div style="flex:1;background:#FF7043;" title="Moderado"></div>' +
+                '<div style="flex:1;background:#FFD54F;" title="Conservador"></div>' +
+                '<div style="flex:1;background:#66BB6A;" title="Muito conservador"></div>' +
+                '<div style="flex:1;background:#1565C0;" title="Ultra conservador"></div></div>' +
+                '<div style="display:flex;justify-content:space-between;font-size:.72rem;color:#64748b;"><span>Menos conservador</span><span>Ultra conservador</span></div>',
+            example: '<strong>Cenários sugeridos:</strong><br><br>' +
+                '<strong style="color:#1565C0;">Base garantida</strong> — Mostra cidades ultra conservadoras com boa estrutura econômica. <em>Ação: manter presença, não precisa de grande investimento.</em><br><br>' +
+                '<strong style="color:#FF7043;">Onde investir</strong> — Cidades moderadas com população alta e poucos apoiadores. <em>Ação: maior retorno por real investido. Priorizar visitas e eventos.</em><br><br>' +
+                '<strong style="color:#E53935;">A disputar</strong> — Territórios menos conservadores. <em>Ação: ajustar comunicação, focar em pautas locais.</em><br><br>' +
+                '<strong>Dica avançada:</strong> Use a <strong>comparação</strong> (clique em cidades) para entender as diferenças entre dois municípios vizinhos. Exporte o CSV para levar o ranking em reuniões de planejamento de campanha.',
         },
         concorrencia: {
             what: 'Ferramenta de <strong>análise comparativa de até 8 candidatos</strong> de 2022 (governador, senador, deputado federal ou estadual). Permite visualizar simultaneamente as <strong>áreas de atuação</strong> de múltiplos candidatos para entender sobreposições e territórios exclusivos.<br><br>' +
@@ -722,19 +775,6 @@
             {color: '#dc2626', label: 'Território Hostil'},
             {color: '#9ca3af', label: 'Neutro'},
         ],
-        rede_pl: [
-            {color: '#1e3a8a', label: 'Forte (\u226560)'},
-            {color: '#2563eb', label: 'Moderada (35-59)'},
-            {color: '#93c5fd', label: 'Fraca (1-34)'},
-            {color: '#d1d5db', label: 'Ausente (0)'},
-        ],
-        zonas: [
-            {color: '#15803d', label: '1º Lugar'},
-            {color: '#22c55e', label: 'Top 3'},
-            {color: '#eab308', label: 'Top 5'},
-            {color: '#f97316', label: '6o+'},
-            {color: '#d1d5db', label: 'Sem dados'},
-        ],
         transferencia: [
             {color: '#fbbf24', label: 'Zona de Ouro'},
             {color: '#7c3aed', label: 'Buscar Ambos'},
@@ -758,11 +798,11 @@
             {color: '#e2e8f0', label: 'Nenhuma'},
         ],
         perfil_ideologico: [
-            {color: '#E53935', label: 'Esquerda'},
-            {color: '#FF7043', label: 'Centro-Esq.'},
-            {color: '#FFD54F', label: 'Centro'},
-            {color: '#66BB6A', label: 'Centro-Dir.'},
-            {color: '#1565C0', label: 'Direita'},
+            {color: '#E53935', label: 'Menos conservador'},
+            {color: '#FF7043', label: 'Moderado'},
+            {color: '#FFD54F', label: 'Conservador'},
+            {color: '#66BB6A', label: 'Muito conserv.'},
+            {color: '#1565C0', label: 'Ultra conserv.'},
         ],
         concorrencia: [
             {color: '#14532d', label: 'Muito forte'},
@@ -830,17 +870,7 @@
                     renderStrategicDashboard(data);
                     break;
                 }
-                case 'rede_pl': {
-                    const data = await API.dashboard.plNetwork();
-                    renderPLNetworkDashboard(data);
-                    break;
-                }
-                case 'zonas': {
-                    const data = await API.dashboard.zoneRanking();
-                    renderZonesDashboard(data);
-                    break;
-                }
-                case 'transferencia': {
+case 'transferencia': {
                     const data = await API.dashboard.voteTransfer();
                     renderTransferDashboard(data);
                     break;
@@ -1678,10 +1708,15 @@
         map.concorrenciaEnabled = false;
         map.perfilIdeologicoEnabled = false;
 
-        // Limpar concorrência ao sair do modo
+        // Limpar modos especiais ao sair
         if (mode !== 'concorrencia') {
             compWrap.style.display = 'none';
             map.setConcorrencia(false);
+        }
+        if (mode !== 'perfil_ideologico') {
+            document.getElementById('perfilPanel').style.display = 'none';
+            document.getElementById('perfilComparePanel').style.display = 'none';
+            map.setPerfilIdeologico(false);
         }
 
         // O seletor só aparece no modo Concorrência; o mapa começa limpo até escolher.
@@ -1712,13 +1747,7 @@
             case 'estrategico':
                 await map.setStrategic(true);
                 break;
-            case 'rede_pl':
-                await map.setPLNetwork(true);
-                break;
-            case 'zonas':
-                await map.setZoneRanking(true);
-                break;
-            case 'transferencia':
+case 'transferencia':
                 await map.setVoteTransfer(true);
                 break;
             case 'deputados':
@@ -1734,7 +1763,9 @@
                 await map.setConcorrencia(true);
                 break;
             case 'perfil_ideologico':
-                await map.setPerfilIdeologico(true);
+                document.getElementById('perfilPanel').style.display = 'block';
+                document.getElementById('mapLegend').innerHTML = '';
+                await initPerfilPanel();
                 break;
         }
 
@@ -1753,6 +1784,393 @@
         document.getElementById('btnBack').classList.remove('visible');
         document.getElementById('map-location').textContent = 'Santa Catarina';
     };
+
+    // ── Perfil Ideológico: painel interativo ───────────────────
+    let _perfilData = null;
+    let _perfilInited = false;
+
+    async function initPerfilPanel() {
+        // Carregar geojson e mapa cinza
+        try {
+            await map.setPerfilIdeologico(true);
+        } catch (e) {
+            console.error('Perfil: erro ao carregar geojson:', e);
+        }
+
+        // Carregar dados da API
+        if (!_perfilData) {
+            try {
+                _perfilData = await API.perfilIdeologico.dados();
+            } catch (e) {
+                console.error('Perfil API error:', e);
+                document.getElementById('perfilStatus').textContent = 'Erro ao carregar dados: ' + e.message;
+                document.getElementById('perfilStatus').style.color = '#ef4444';
+                _perfilData = null;
+                return;
+            }
+        }
+
+        // Conectar eventos nos checkboxes (já estão no HTML)
+        if (!_perfilInited) {
+            _perfilInited = true;
+            document.querySelectorAll('#perfilElectoralChecks input, #perfilSocioChecks input, #perfilDemoChecks input').forEach(cb => {
+                cb.addEventListener('change', recalcPerfilMap);
+            });
+            document.getElementById('perfilPesoSlider').addEventListener('input', () => {
+                const v = document.getElementById('perfilPesoSlider').value;
+                document.getElementById('perfilPesoLabel').textContent = `${100 - v}% / ${v}%`;
+                recalcPerfilMap();
+            });
+        }
+
+        // Mapa começa cinza
+        recalcPerfilMap();
+    }
+
+    function recalcPerfilMap() {
+        if (!_perfilData || !map._allCitiesGeojson) return;
+
+        const elChecks = [...document.querySelectorAll('#perfilElectoralChecks input:checked')].map(c => c.dataset.key);
+        const soChecks = [...document.querySelectorAll('#perfilSocioChecks input:checked, #perfilDemoChecks input:checked')].map(c => c.dataset.key);
+        const slider = document.getElementById('perfilPesoSlider');
+        const status = document.getElementById('perfilStatus');
+
+        if (elChecks.length === 0 && soChecks.length === 0) {
+            status.textContent = 'Selecione ao menos um dado';
+            status.style.color = '#94a3b8';
+            // Colorir tudo cinza
+            map._perfilScores = null;
+            map.g.selectAll('path.perfil-city').transition().duration(300).attr('fill', '#e2e8f0');
+            document.getElementById('mapLegend').innerHTML = '';
+            return;
+        }
+
+        const pesoEleitoral = parseInt(slider.value) / 100;
+        const pesoSocio = 1 - pesoEleitoral;
+
+        // Calcular score combinado por cidade
+        const cidades = _perfilData.cidades;
+        const scores = {};
+        let min = Infinity, max = -Infinity;
+
+        for (const [slug, c] of Object.entries(cidades)) {
+            let scoreEl = 0, countEl = 0;
+            for (const key of elChecks) {
+                if (c[key] !== undefined) { scoreEl += c[key]; countEl++; }
+            }
+            if (countEl > 0) scoreEl /= countEl;
+
+            let scoreSo = 0, countSo = 0;
+            for (const key of soChecks) {
+                if (c[key] !== undefined) { scoreSo += c[key]; countSo++; }
+            }
+            if (countSo > 0) scoreSo /= countSo;
+
+            let score;
+            if (countEl > 0 && countSo > 0) {
+                score = scoreSo * pesoSocio + scoreEl * pesoEleitoral;
+            } else if (countEl > 0) {
+                score = scoreEl;
+            } else {
+                score = scoreSo;
+            }
+
+            scores[slug] = score;
+            if (score < min) min = score;
+            if (score > max) max = score;
+        }
+
+        // Normalizar para 0-1 (escala relativa)
+        const range = max - min || 1;
+        for (const slug in scores) {
+            scores[slug] = (scores[slug] - min) / range;
+        }
+
+        // Guardar scores no map para tooltip
+        map._perfilScores = scores;
+        map._perfilRawData = _perfilData.cidades;
+        map._perfilActiveEl = elChecks;
+        map._perfilActiveSo = soChecks;
+
+        // Atualizar cores
+        map.g.selectAll('path.perfil-city')
+            .transition().duration(400)
+            .attr('fill', d => {
+                const s = scores[d.properties.slug];
+                return s !== undefined ? map._perfilColor(s) : '#e2e8f0';
+            });
+
+        // Status
+        const totalSel = elChecks.length + soChecks.length;
+        status.textContent = `${totalSel} dado${totalSel > 1 ? 's' : ''} selecionado${totalSel > 1 ? 's' : ''}`;
+        status.style.color = '#1e40af';
+
+        // Mostrar botão exportar
+        document.getElementById('perfilExportBtn').style.display = 'inline-block';
+
+        // Legenda
+        renderLegend('perfil_ideologico');
+
+        // Ranking
+        updatePerfilRanking(scores);
+    }
+
+    // ── Ranking ──────────────────────────────────────────────────
+    let _rankShowTop = true;
+
+    function updatePerfilRanking(scores) {
+        if (!scores || !_perfilData) {
+            document.getElementById('perfilRanking').style.display = 'none';
+            return;
+        }
+        document.getElementById('perfilRanking').style.display = 'block';
+
+        const cidades = _perfilData.cidades;
+        const sorted = Object.entries(scores)
+            .filter(([slug]) => cidades[slug])
+            .map(([slug, score]) => ({
+                slug,
+                nome: cidades[slug].nome,
+                score,
+                pop: cidades[slug].pop || 0,
+                apoiadores: cidades[slug].apoiadores || 0,
+            }))
+            .sort((a, b) => _rankShowTop ? b.score - a.score : a.score - b.score);
+
+        const top10 = sorted.slice(0, 10);
+        const listEl = document.getElementById('perfilRankList');
+        listEl.innerHTML = top10.map((c, i) => {
+            const color = map._perfilColor(c.score);
+            const pct = (c.score * 100).toFixed(0);
+            return `<div class="rank-item" data-slug="${c.slug}" style="display:flex;align-items:center;gap:6px;padding:3px 0;cursor:pointer;border-bottom:1px solid #f1f5f9;" title="Clique para comparar">
+                <span style="color:#94a3b8;width:16px;text-align:right;font-size:.65rem;">${i + 1}.</span>
+                <span style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;"></span>
+                <span style="flex:1;color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.nome}</span>
+                <span style="color:${color};font-weight:600;font-size:.7rem;">${pct}</span>
+                <span style="color:#94a3b8;font-size:.6rem;width:40px;text-align:right;">${c.pop > 0 ? (c.pop / 1000).toFixed(0) + 'k' : ''}</span>
+            </div>`;
+        }).join('');
+
+        // Clique no ranking para comparar
+        listEl.querySelectorAll('.rank-item').forEach(el => {
+            el.addEventListener('click', () => addToCompare(el.dataset.slug));
+        });
+    }
+
+    // ── Presets ──────────────────────────────────────────────────
+    function applyPreset(preset) {
+        const elInputs = document.querySelectorAll('#perfilElectoralChecks input');
+        const soInputs = document.querySelectorAll('#perfilSocioChecks input');
+        const slider = document.getElementById('perfilPesoSlider');
+        const all = [...elInputs, ...soInputs];
+
+        // Resetar
+        all.forEach(cb => cb.checked = false);
+
+        switch (preset) {
+            case 'base': // Ultra conservadoras
+                elInputs.forEach(cb => cb.checked = true);
+                soInputs.forEach(cb => { if (['pib', 'renda'].includes(cb.dataset.key)) cb.checked = true; });
+                slider.value = 70;
+                break;
+            case 'investir': // Moderadas com oportunidade
+                elInputs.forEach(cb => { if (cb.dataset.key === 'governador_2t') cb.checked = true; });
+                soInputs.forEach(cb => cb.checked = true);
+                slider.value = 40;
+                break;
+            case 'disputar': // Menos conservadoras
+                elInputs.forEach(cb => cb.checked = true);
+                slider.value = 80;
+                break;
+            case 'completo': // Tudo
+                all.forEach(cb => cb.checked = true);
+                slider.value = 50;
+                break;
+            case 'limpar':
+                slider.value = 50;
+                break;
+        }
+
+        // Atualizar label do slider
+        const v = slider.value;
+        document.getElementById('perfilPesoLabel').textContent = `${100 - v}% / ${v}%`;
+
+        // Destacar botão ativo
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.style.background = btn.dataset.preset === preset ? '#1e40af' : '#f8fafc';
+            btn.style.color = btn.dataset.preset === preset ? '#fff' : '#334155';
+        });
+
+        recalcPerfilMap();
+    }
+
+    // ── Exportação CSV ──────────────────────────────────────────
+    function exportPerfilCSV() {
+        if (!_perfilData || !map._perfilScores) return;
+        const scores = map._perfilScores;
+        const cidades = _perfilData.cidades;
+        const elChecks = [...document.querySelectorAll('#perfilElectoralChecks input:checked')].map(c => c.dataset.key);
+        const soChecks = [...document.querySelectorAll('#perfilSocioChecks input:checked')].map(c => c.dataset.key);
+
+        // Cabeçalho
+        let headers = ['Cidade', 'Score', 'Perfil', 'Populacao', 'Apoiadores', 'Demandas'];
+        for (const k of elChecks) headers.push(k + '_pct_dir');
+        for (const k of soChecks) headers.push(k + '_raw');
+
+        // Dados ordenados
+        const rows = Object.entries(scores)
+            .filter(([slug]) => cidades[slug])
+            .sort((a, b) => b[1] - a[1])
+            .map(([slug, score]) => {
+                const c = cidades[slug];
+                const label = score <= 0.20 ? 'Menos conservador' : score <= 0.40 ? 'Moderado' : score <= 0.60 ? 'Conservador' : score <= 0.80 ? 'Muito conservador' : 'Ultra conservador';
+                let row = [c.nome, (score * 100).toFixed(1), label, c.pop || 0, c.apoiadores || 0, c.demandas || 0];
+                for (const k of elChecks) row.push(c[k] !== undefined ? (c[k] * 100).toFixed(1) : '');
+                for (const k of soChecks) {
+                    if (k === 'pib') row.push(c.pib_raw || 0);
+                    else if (k === 'renda') row.push(c.renda_raw || 0);
+                    else if (k === 'bf') row.push(c.bf_raw || 0);
+                    else if (k === 'meis') row.push(c.meis_raw || 0);
+                    else row.push(c[k + '_raw'] || c[k] || '');
+                }
+                return row;
+            });
+
+        const csv = [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
+        const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'perfil_ideologico_ranking.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    // ── Comparação de cidades ────────────────────────────────────
+    window._compareCities = [];
+    const _compareCities = window._compareCities;
+
+    window.addToCompare = function addToCompare(slug) {
+        if (_compareCities.includes(slug)) return;
+        if (_compareCities.length >= 3) _compareCities.shift();
+        _compareCities.push(slug);
+        renderComparePanel();
+    }
+
+    window.renderComparePanel = function renderComparePanel() {
+        if (!_perfilData || _compareCities.length === 0) {
+            document.getElementById('perfilComparePanel').style.display = 'none';
+            return;
+        }
+
+        const panel = document.getElementById('perfilComparePanel');
+        const content = document.getElementById('perfilCompareContent');
+        panel.style.display = 'block';
+
+        const scores = map._perfilScores || {};
+        const cidades = _perfilData.cidades;
+        const elChecks = map._perfilActiveEl || [];
+        const soChecks = map._perfilActiveSo || [];
+        const allKeys = [...elChecks, ...soChecks];
+
+        const LABELS = {
+            governador_1t: 'Gov. 1T', governador_2t: 'Gov. 2T', senador_1t: 'Senador',
+            pib: 'PIB p/c', renda: 'Renda p/c', bf: 'Bolsa Fam.', meis: 'MEIs',
+        };
+
+        let html = '<table style="width:100%;border-collapse:collapse;font-size:.72rem;">';
+        // Cabeçalho com nomes
+        html += '<tr><td style="padding:3px 6px;color:#94a3b8;font-weight:600;">Indicador</td>';
+        for (const slug of _compareCities) {
+            const c = cidades[slug];
+            const sn = scores[slug];
+            const color = sn !== undefined ? map._perfilColor(sn) : '#94a3b8';
+            html += `<td style="padding:3px 6px;font-weight:700;color:${color};text-align:center;border-left:1px solid #e2e8f0;">${c?.nome || slug} <span style="cursor:pointer;color:#94a3b8;margin-left:2px;" onclick="window._compareCities.splice(window._compareCities.indexOf('${slug}'),1);renderComparePanel();">&times;</span></td>`;
+        }
+        html += '</tr>';
+
+        // Score
+        html += '<tr style="background:#f8fafc;"><td style="padding:3px 6px;font-weight:600;">Score</td>';
+        for (const slug of _compareCities) {
+            const sn = scores[slug];
+            const color = sn !== undefined ? map._perfilColor(sn) : '#94a3b8';
+            html += `<td style="padding:3px 6px;text-align:center;font-weight:700;color:${color};border-left:1px solid #e2e8f0;">${sn !== undefined ? (sn * 100).toFixed(0) : '-'}</td>`;
+        }
+        html += '</tr>';
+
+        // Cada componente
+        for (const key of allKeys) {
+            html += `<tr><td style="padding:3px 6px;color:#64748b;">${LABELS[key] || key}</td>`;
+            for (const slug of _compareCities) {
+                const c = cidades[slug];
+                let val = '-';
+                if (c && c[key] !== undefined) {
+                    if (['governador_1t', 'governador_2t', 'senador_1t'].includes(key)) {
+                        val = (c[key] * 100).toFixed(1) + '% D';
+                    } else if (key === 'pib') val = 'R$ ' + (c.pib_raw || 0).toLocaleString('pt-BR', {maximumFractionDigits: 0});
+                    else if (key === 'renda') val = 'R$ ' + (c.renda_raw || 0).toLocaleString('pt-BR', {maximumFractionDigits: 0});
+                    else if (key === 'bf') val = (c.bf_raw || 0).toLocaleString('pt-BR') + ' fam.';
+                    else if (key === 'meis') val = (c.meis_raw || 0).toLocaleString('pt-BR');
+                    else val = (c[key] * 100).toFixed(1) + '%';
+                }
+                html += `<td style="padding:3px 6px;text-align:center;border-left:1px solid #e2e8f0;">${val}</td>`;
+            }
+            html += '</tr>';
+        }
+
+        // CRM
+        html += '<tr style="background:#f8fafc;"><td style="padding:3px 6px;font-weight:600;">Apoiadores</td>';
+        for (const slug of _compareCities) {
+            const c = cidades[slug];
+            html += `<td style="padding:3px 6px;text-align:center;border-left:1px solid #e2e8f0;">${(c?.apoiadores || 0).toLocaleString('pt-BR')}</td>`;
+        }
+        html += '</tr>';
+        html += '<tr style="background:#f8fafc;"><td style="padding:3px 6px;font-weight:600;">Demandas</td>';
+        for (const slug of _compareCities) {
+            const c = cidades[slug];
+            html += `<td style="padding:3px 6px;text-align:center;border-left:1px solid #e2e8f0;">${(c?.demandas || 0).toLocaleString('pt-BR')}</td>`;
+        }
+        html += '</tr>';
+
+        // População
+        html += '<tr><td style="padding:3px 6px;color:#94a3b8;">Populaçao</td>';
+        for (const slug of _compareCities) {
+            const c = cidades[slug];
+            html += `<td style="padding:3px 6px;text-align:center;border-left:1px solid #e2e8f0;color:#94a3b8;">${(c?.pop || 0).toLocaleString('pt-BR')}</td>`;
+        }
+        html += '</tr></table>';
+
+        content.innerHTML = html;
+    }
+
+    // ── Event listeners para novas funcionalidades ──────────────
+    // Presets
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.addEventListener('click', () => applyPreset(btn.dataset.preset));
+    });
+
+    // Ranking tabs
+    document.getElementById('rankTopBtn').addEventListener('click', () => {
+        _rankShowTop = true;
+        document.getElementById('rankTopBtn').style.cssText = 'font-size:.6rem;padding:2px 6px;border:1px solid #cbd5e1;border-radius:3px;background:#1e40af;color:#fff;cursor:pointer;';
+        document.getElementById('rankBottomBtn').style.cssText = 'font-size:.6rem;padding:2px 6px;border:1px solid #cbd5e1;border-radius:3px;background:#f8fafc;color:#334155;cursor:pointer;';
+        if (map._perfilScores) updatePerfilRanking(map._perfilScores);
+    });
+    document.getElementById('rankBottomBtn').addEventListener('click', () => {
+        _rankShowTop = false;
+        document.getElementById('rankBottomBtn').style.cssText = 'font-size:.6rem;padding:2px 6px;border:1px solid #cbd5e1;border-radius:3px;background:#1e40af;color:#fff;cursor:pointer;';
+        document.getElementById('rankTopBtn').style.cssText = 'font-size:.6rem;padding:2px 6px;border:1px solid #cbd5e1;border-radius:3px;background:#f8fafc;color:#334155;cursor:pointer;';
+        if (map._perfilScores) updatePerfilRanking(map._perfilScores);
+    });
+
+    // Exportar
+    document.getElementById('perfilExportBtn').addEventListener('click', exportPerfilCSV);
+
+    // Fechar comparação
+    document.getElementById('perfilCompareClose').addEventListener('click', () => {
+        window._compareCities.length = 0;
+        document.getElementById('perfilComparePanel').style.display = 'none';
+    });
 
     // ── Init ────────────────────────────────────────────────────
     setActiveBtn(currentMode);

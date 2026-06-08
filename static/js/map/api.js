@@ -39,8 +39,11 @@ const API = {
     },
     perfilIdeologico: {
         _cache: null,
-        dados(ano = 2022) {
-            if (!this._cache) this._cache = apiGet(`/mapa/api/perfil-ideologico/?ano=${ano}`);
+        async dados(ano = 2022) {
+            if (!this._cache) {
+                this._cache = apiGet(`/mapa/api/perfil-ideologico/?ano=${ano}&_v=4`);
+                try { await this._cache; } catch(e) { this._cache = null; throw e; }
+            }
             return this._cache;
         },
     },

@@ -8,6 +8,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
 
 from liderancas.models import (
     Regiao, Cidade, Apoiador, CoordenadorRegional, CaboEleitoral, Bairro,
@@ -143,6 +144,7 @@ class CityMapAPI(APIView):
 
 class StateCitiesMapAPI(APIView):
     """GeoJSON de todas as 295 cidades."""
+    permission_classes = [AllowAny]
     def get(self, request):
         cities = (
             Cidade.objects
@@ -1379,11 +1381,15 @@ class CompeticaoMapAPI(APIView):
         })
 
 
-class PerfilIdeologicoAPI(APIView):
-    """Perfil Ideológico: cruza indicadores socioeconômicos com resultados eleitorais 2022.
 
-    Retorna um índice de alinhamento ideológico por cidade (0=esquerda .. 1=direita).
-    score = score_socio * 0.40 + score_eleitoral * 0.60
+class PerfilIdeologicoAPI(APIView):
+    permission_classes = [AllowAny]
+    """Perfil Ideológico: retorna componentes individuais normalizados por cidade.
+
+    O frontend combina os componentes selecionados pelo usuário em tempo real.
+    Componentes eleitorais: votos_gov (governador), votos_gov2t (2o turno), votos_sen (senador)
+    Componentes socioeconômicos: pib, renda, bf (bolsa família invertido), meis
+    Todos normalizados 0-1 dentro do range de SC.
     """
 
     DIREITA = {
@@ -1399,39 +1405,59 @@ class PerfilIdeologicoAPI(APIView):
     def get(self, request):
         ano = int(request.GET.get('ano', 2022))
 
+        # ── Indicadores socioeconômicos ──
         indicadores = {
             ind.cidade_id: ind
             for ind in IndicadorMunicipal.objects.filter(ano_referencia=ano).select_related('cidade')
         }
 
-        # Votos por partido por cidade (governador 2022 1T como proxy principal)
-        votos_qs = (
-            ResultadoCandidato.objects
-            .filter(eleicao__ano=2022, eleicao__turno=1, eleicao__tipo='governador')
-            .values('cidade_id', 'cidade__slug', 'cidade__nome', 'partido')
-            .annotate(total=Sum('votos'))
-        )
+        # ── Votos por tipo de eleição ──
+        election_types = ['governador', 'senador']
+        turnos = {
+            'governador': [1, 2],
+            'senador': [1],
+        }
+        # {tipo_turno: {cidade_id: {dir, esq, total}}}
+        votes_by_type = {}
+        for tipo in election_types:
+            for turno in turnos[tipo]:
+                key = f'{tipo}_{turno}t'
+                qs = (
+                    ResultadoCandidato.objects
+                    .filter(eleicao__ano=2022, eleicao__turno=turno, eleicao__tipo=tipo)
+                    .values('cidade_id', 'cidade__slug', 'cidade__nome', 'partido')
+                    .annotate(total=Sum('votos'))
+                )
+                cv = defaultdict(lambda: {'dir': 0, 'esq': 0, 'total': 0, 'slug': '', 'nome': ''})
+                for r in qs:
+                    cid = r['cidade_id']
+                    cv[cid]['slug'] = r['cidade__slug']
+                    cv[cid]['nome'] = r['cidade__nome']
+                    v = r['total'] or 0
+                    cv[cid]['total'] += v
+                    p = (r['partido'] or '').upper()
+                    if p in self.DIREITA:
+                        cv[cid]['dir'] += v
+                    elif p in self.ESQUERDA:
+                        cv[cid]['esq'] += v
+                if cv:
+                    votes_by_type[key] = dict(cv)
 
-        # Agrupar votos por cidade
-        city_votes = defaultdict(lambda: {'dir': 0, 'esq': 0, 'total': 0, 'slug': '', 'nome': ''})
-        for r in votos_qs:
-            cid = r['cidade_id']
-            city_votes[cid]['slug'] = r['cidade__slug']
-            city_votes[cid]['nome'] = r['cidade__nome']
-            v = r['total'] or 0
-            city_votes[cid]['total'] += v
-            partido_upper = (r['partido'] or '').upper()
-            if partido_upper in self.DIREITA:
-                city_votes[cid]['dir'] += v
-            elif partido_upper in self.ESQUERDA:
-                city_votes[cid]['esq'] += v
+        # ── Coletar todas as cidades (union de todas as fontes) ──
+        all_city_ids = set()
+        city_info = {}  # cid -> {slug, nome}
+        for vt in votes_by_type.values():
+            for cid, data in vt.items():
+                all_city_ids.add(cid)
+                city_info[cid] = {'slug': data['slug'], 'nome': data['nome']}
 
-        # Calcular scores socioeconômicos normalizados
+        # ── Calcular componentes normalizados ──
+        # Socioeconômicos
         if indicadores:
             vals = list(indicadores.values())
-            max_renda = max((i.renda_per_capita for i in vals), default=1) or 1
+            max_renda = float(max((i.renda_per_capita for i in vals), default=1) or 1)
             max_pib_pop = max(
-                (i.pib / i.populacao if i.populacao else 0 for i in vals), default=1
+                (float(i.pib) / i.populacao if i.populacao else 0 for i in vals), default=1
             ) or 1
             max_bf_pct = max(
                 (i.familias_bolsa_familia / i.populacao if i.populacao else 0 for i in vals),
@@ -1441,48 +1467,112 @@ class PerfilIdeologicoAPI(APIView):
                 (i.meis_ativos / i.populacao if i.populacao else 0 for i in vals),
                 default=1,
             ) or 1
+            # Demográficos
+            max_urban_pct = max(
+                (i.populacao_urbana / i.populacao if i.populacao else 0 for i in vals),
+                default=1,
+            ) or 1
+            max_idosos_pct = max(
+                (i.idosos_60_mais / i.populacao if i.populacao else 0 for i in vals),
+                default=1,
+            ) or 1
+            max_jovens_pct = max(
+                (i.jovens_18_29 / i.populacao if i.populacao else 0 for i in vals),
+                default=1,
+            ) or 1
+            max_escolaridade = float(max(
+                (i.anos_estudo_medio for i in vals), default=1
+            ) or 1)
 
         cidades = {}
-        for cid, cv in city_votes.items():
-            # Score eleitoral: proporção de votos à direita
-            if cv['total'] > 0:
-                score_eleitoral = cv['dir'] / cv['total']
-            else:
-                score_eleitoral = 0.5
+        for cid in all_city_ids:
+            info = city_info[cid]
+            slug = info['slug']
+            c = {'nome': info['nome']}
 
-            # Score socioeconômico
+            # Componentes eleitorais (proporção votos direita: 0=esq, 1=dir)
+            for vt_key, vt_data in votes_by_type.items():
+                cv = vt_data.get(cid)
+                if cv and cv['total'] > 0:
+                    c[vt_key] = round(cv['dir'] / cv['total'], 4)
+                    c[f'{vt_key}_dir'] = cv['dir']
+                    c[f'{vt_key}_esq'] = cv['esq']
+                    c[f'{vt_key}_total'] = cv['total']
+
+            # Componentes socioeconômicos (normalizados 0-1)
             ind = indicadores.get(cid)
             if ind and ind.populacao > 0:
-                renda_n = float(ind.renda_per_capita) / float(max_renda)
-                pib_n = float(ind.pib) / float(ind.populacao) / float(max_pib_pop)
-                bf_n = ind.familias_bolsa_familia / ind.populacao / float(max_bf_pct)
-                mei_n = ind.meis_ativos / ind.populacao / float(max_mei_pct)
-                # Maior renda/PIB/MEI = mais direita, mais BF = mais esquerda
-                score_socio = (renda_n * 0.30 + pib_n * 0.25 + mei_n * 0.25 + (1 - bf_n) * 0.20)
-            else:
-                score_socio = 0.5
+                pop = ind.populacao
+                c['pib'] = round(float(ind.pib) / pop / max_pib_pop, 4)
+                c['renda'] = round(float(ind.renda_per_capita) / max_renda, 4)
+                c['bf'] = round(1 - (ind.familias_bolsa_familia / pop / max_bf_pct), 4)
+                c['meis'] = round(ind.meis_ativos / pop / max_mei_pct, 4)
+                c['pib_raw'] = float(ind.pib)
+                c['renda_raw'] = float(ind.renda_per_capita)
+                c['bf_raw'] = ind.familias_bolsa_familia
+                c['meis_raw'] = ind.meis_ativos
+                c['pop'] = pop
 
-            score = score_socio * 0.40 + score_eleitoral * 0.60
-            score = round(min(max(score, 0), 1), 4)
+                # Demográficos
+                if ind.populacao_urbana > 0 or ind.populacao_rural > 0:
+                    urban_pct = ind.populacao_urbana / pop
+                    c['pop_urbana_pct'] = round(urban_pct / max_urban_pct, 4) if max_urban_pct else 0
+                    c['pop_urbana_pct_raw'] = round(urban_pct * 100, 1)
 
-            cidades[cv['slug']] = {
-                'nome': cv['nome'],
-                'score': score,
-                'score_socio': round(score_socio, 4),
-                'score_eleitoral': round(score_eleitoral, 4),
-                'votos_dir': cv['dir'],
-                'votos_esq': cv['esq'],
-                'votos_total': cv['total'],
-                'tem_indicadores': ind is not None,
-            }
+                if ind.idosos_60_mais > 0:
+                    idosos_pct = ind.idosos_60_mais / pop
+                    c['idosos_pct'] = round(idosos_pct / max_idosos_pct, 4) if max_idosos_pct else 0
+                    c['idosos_pct_raw'] = round(idosos_pct * 100, 1)
+
+                if ind.jovens_18_29 > 0:
+                    jovens_pct = ind.jovens_18_29 / pop
+                    c['jovens_pct'] = round(jovens_pct / max_jovens_pct, 4) if max_jovens_pct else 0
+                    c['jovens_pct_raw'] = round(jovens_pct * 100, 1)
+
+                if float(ind.anos_estudo_medio) > 0:
+                    c['escolaridade'] = round(float(ind.anos_estudo_medio) / max_escolaridade, 4) if max_escolaridade else 0
+                    c['escolaridade_raw'] = float(ind.anos_estudo_medio)
+
+            cidades[slug] = c
+
+        # ── Dados CRM (apoiadores e demandas por cidade) ──
+        apoiadores_qs = (
+            Apoiador.objects.filter(status='ativo')
+            .values('cidade__slug')
+            .annotate(total=Count('id'))
+        )
+        apoiadores_map = {r['cidade__slug']: r['total'] for r in apoiadores_qs}
+
+        demandas_qs = (
+            Tarefa.objects.all()
+            .values('cidade__slug')
+            .annotate(total=Count('id'))
+        )
+        demandas_map = {r['cidade__slug']: r['total'] for r in demandas_qs}
+
+        for slug, c in cidades.items():
+            c['apoiadores'] = apoiadores_map.get(slug, 0)
+            c['demandas'] = demandas_map.get(slug, 0)
 
         return Response({
             'cidades': cidades,
             'total_cidades': len(cidades),
-            'com_indicadores': sum(1 for c in cidades.values() if c['tem_indicadores']),
-            'legenda': {
-                'min_label': 'Esquerda',
-                'max_label': 'Direita',
-                'cores': ['#E53935', '#FF7043', '#FFD54F', '#66BB6A', '#1565C0'],
+            'com_indicadores': sum(1 for c in cidades.values() if 'pib' in c),
+            'componentes': {
+                'eleitorais': [
+                    {'key': 'governador_1t', 'label': 'Governador 1º turno', 'disponivel': 'governador_1t' in votes_by_type},
+                    {'key': 'governador_2t', 'label': 'Governador 2º turno', 'disponivel': 'governador_2t' in votes_by_type},
+                    {'key': 'senador_1t', 'label': 'Senador', 'disponivel': 'senador_1t' in votes_by_type},
+                ],
+                'socioeconomicos': [
+                    {'key': 'pib', 'label': 'PIB per capita', 'disponivel': bool(indicadores)},
+                    {'key': 'renda', 'label': 'Renda per capita', 'disponivel': bool(indicadores)},
+                    {'key': 'bf', 'label': 'Bolsa Família (menos = mais conservador)', 'disponivel': bool(indicadores)},
+                    {'key': 'meis', 'label': 'MEIs ativos', 'disponivel': bool(indicadores)},
+                    {'key': 'pop_urbana_pct', 'label': '% Pop. urbana', 'disponivel': bool(indicadores)},
+                    {'key': 'idosos_pct', 'label': '% Idosos (60+)', 'disponivel': bool(indicadores)},
+                    {'key': 'jovens_pct', 'label': '% Jovens (18-29)', 'disponivel': bool(indicadores)},
+                    {'key': 'escolaridade', 'label': 'Escolaridade média', 'disponivel': bool(indicadores)},
+                ],
             },
         })

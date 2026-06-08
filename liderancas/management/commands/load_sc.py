@@ -7,6 +7,7 @@ import gzip
 import json
 import urllib.request
 from django.core.management.base import BaseCommand
+from django.utils.text import slugify
 from liderancas.models import Regiao, Cidade
 
 REGIOES = [
@@ -153,7 +154,11 @@ class Command(BaseCommand):
         for pk, sigla, nome in REGIOES:
             regiao, created = Regiao.objects.update_or_create(
                 sigla=sigla,
-                defaults={'nome': nome},
+                defaults={
+                    'nome': nome,
+                    'nome_completo': nome,
+                    'slug': slugify(sigla),
+                },
             )
             regioes_map[sigla] = regiao
             status = 'criada' if created else 'atualizada'
@@ -194,15 +199,32 @@ class Command(BaseCommand):
                 skipped.append(f'{nome} ({ibge_code})')
                 continue
 
-            _, was_created = Cidade.objects.update_or_create(
-                nome=nome,
-                regiao=regioes_map[sigla_regiao],
-                defaults={},
-            )
-            if was_created:
-                created_count += 1
-            else:
+            slug = slugify(nome)
+            regiao = regioes_map[sigla_regiao]
+
+            # Tenta buscar por codigo_ibge primeiro, depois por nome+regiao
+            cidade = Cidade.objects.filter(codigo_ibge=ibge_code).first()
+            if not cidade:
+                cidade = Cidade.objects.filter(nome=nome, regiao=regiao).first()
+            if not cidade:
+                # Busca por nome em qualquer região (pode ter sido importada com região errada)
+                cidade = Cidade.objects.filter(nome=nome).first()
+
+            if cidade:
+                cidade.codigo_ibge = ibge_code
+                cidade.regiao = regiao
+                if not cidade.slug:
+                    cidade.slug = slug
+                cidade.save(update_fields=['codigo_ibge', 'regiao', 'slug'])
                 updated_count += 1
+            else:
+                Cidade.objects.create(
+                    nome=nome,
+                    regiao=regiao,
+                    codigo_ibge=ibge_code,
+                    slug=slug,
+                )
+                created_count += 1
 
         self.stdout.write(self.style.SUCCESS(
             f'Concluído: {created_count} cidades criadas, {updated_count} atualizadas'

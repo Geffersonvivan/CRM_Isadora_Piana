@@ -194,12 +194,63 @@ class SCMap {
             this._tip = tip;
         }
 
+        // Zoom com botões +/−
         this.zoom = d3.zoom()
-            .scaleExtent([1, 1])
-            .on('zoom', () => {});
-        this.svg.on('.zoom', null);
+            .scaleExtent([1, 8])
+            .on('zoom', (event) => {
+                this.g.attr('transform', event.transform);
+            });
+        this.svg.call(this.zoom);
+        // Desabilitar zoom por scroll/duplo-clique (só botões)
+        this.svg.on('wheel.zoom', null);
+        this.svg.on('dblclick.zoom', null);
+
+        // Criar botões de zoom
+        this._createZoomControls();
 
         return this;
+    }
+
+    _createZoomControls() {
+        const container = document.getElementById(this.containerId);
+        // Remover controles anteriores se existirem
+        const old = container.querySelector('.zoom-controls');
+        if (old) old.remove();
+
+        const div = document.createElement('div');
+        div.className = 'zoom-controls';
+        div.style.cssText = 'position:absolute;bottom:14px;right:14px;display:flex;flex-direction:column;gap:4px;z-index:400;';
+
+        const btnStyle = 'width:34px;height:34px;border:1px solid #cbd5e1;border-radius:6px;background:rgba(255,255,255,.95);color:#334155;font-size:1.2rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.1);transition:background .15s;';
+
+        const btnPlus = document.createElement('button');
+        btnPlus.innerHTML = '+';
+        btnPlus.title = 'Aproximar';
+        btnPlus.style.cssText = btnStyle;
+        btnPlus.onmouseenter = () => btnPlus.style.background = '#e2e8f0';
+        btnPlus.onmouseleave = () => btnPlus.style.background = 'rgba(255,255,255,.95)';
+        btnPlus.onclick = () => this.svg.transition().duration(300).call(this.zoom.scaleBy, 1.5);
+
+        const btnMinus = document.createElement('button');
+        btnMinus.innerHTML = '−';
+        btnMinus.title = 'Afastar';
+        btnMinus.style.cssText = btnStyle;
+        btnMinus.onmouseenter = () => btnMinus.style.background = '#e2e8f0';
+        btnMinus.onmouseleave = () => btnMinus.style.background = 'rgba(255,255,255,.95)';
+        btnMinus.onclick = () => this.svg.transition().duration(300).call(this.zoom.scaleBy, 1 / 1.5);
+
+        const btnReset = document.createElement('button');
+        btnReset.innerHTML = '⟲';
+        btnReset.title = 'Resetar zoom';
+        btnReset.style.cssText = btnStyle + 'font-size:1rem;margin-top:2px;';
+        btnReset.onmouseenter = () => btnReset.style.background = '#e2e8f0';
+        btnReset.onmouseleave = () => btnReset.style.background = 'rgba(255,255,255,.95)';
+        btnReset.onclick = () => this.svg.transition().duration(400).call(this.zoom.transform, d3.zoomIdentity);
+
+        div.appendChild(btnPlus);
+        div.appendChild(btnMinus);
+        div.appendChild(btnReset);
+        container.appendChild(div);
     }
 
     _showTip(html, x, y) {
@@ -281,15 +332,15 @@ class SCMap {
                 try { this._allCitiesGeojson = await API.maps.stateCities(); }
                 catch (e) { this._allCitiesGeojson = null; }
             }
-            if (!this._perfilData) {
-                try { this._perfilData = await API.perfilIdeologico.dados(); }
-                catch (e) { this._perfilData = null; }
-            }
         }
         if (!enabled) {
+            this._perfilScores = null;
+            this._perfilRawData = null;
+            this._perfilActiveEl = [];
+            this._perfilActiveSo = [];
             this._resetToNeutral();
         }
-        if (enabled && this._allCitiesGeojson && this._perfilData) {
+        if (enabled && this._allCitiesGeojson) {
             this._renderPerfilIdeologicoCityMap();
         }
     }
@@ -304,30 +355,80 @@ class SCMap {
 
     _perfilTipHtml(d) {
         const slug = d.properties.slug;
-        const cidades = this._perfilData?.cidades || {};
-        const c = cidades[slug];
+        const c = this._perfilRawData?.[slug];
         let html = `<div class="tooltip-title">${d.properties.name}</div>`;
         if (!c) {
             html += `<div class="tooltip-row"><span style="color:#9ca3af">Sem dados</span></div>`;
             return html;
         }
-        const scoreLabel = c.score <= 0.35 ? 'Esquerda' : c.score <= 0.55 ? 'Centro' : c.score <= 0.75 ? 'Centro-Direita' : 'Direita';
-        const scoreColor = this._perfilColor(c.score);
-        html += `<div class="tooltip-row"><span class="tooltip-label">Índice</span> <span class="tooltip-value" style="color:${scoreColor};font-weight:bold">${(c.score * 100).toFixed(1)} — ${scoreLabel}</span></div>`;
-        html += `<div class="tooltip-row"><span class="tooltip-label">Score Socioecon.</span> <span class="tooltip-value">${(c.score_socio * 100).toFixed(1)}</span></div>`;
-        html += `<div class="tooltip-row"><span class="tooltip-label">Score Eleitoral</span> <span class="tooltip-value">${(c.score_eleitoral * 100).toFixed(1)}</span></div>`;
-        if (c.votos_total > 0) {
-            html += `<div class="tooltip-row"><span class="tooltip-label">Votos Direita</span> <span class="tooltip-value" style="color:#1565C0">${c.votos_dir.toLocaleString('pt-BR')}</span></div>`;
-            html += `<div class="tooltip-row"><span class="tooltip-label">Votos Esquerda</span> <span class="tooltip-value" style="color:#E53935">${c.votos_esq.toLocaleString('pt-BR')}</span></div>`;
+
+        // Score normalizado dinâmico com barra visual
+        const sn = this._perfilScores?.[slug];
+        if (sn !== undefined) {
+            const scoreLabel = sn <= 0.20 ? 'Menos conservador' : sn <= 0.40 ? 'Moderado' : sn <= 0.60 ? 'Conservador' : sn <= 0.80 ? 'Muito conservador' : 'Ultra conservador';
+            const scoreColor = this._perfilColor(sn);
+            const pct = (sn * 100).toFixed(0);
+            html += `<div class="tooltip-row" style="margin-bottom:4px"><span class="tooltip-label">Perfil</span> <span class="tooltip-value" style="color:${scoreColor};font-weight:bold">${scoreLabel} (${pct})</span></div>`;
+            html += `<div style="height:6px;background:#e2e8f0;border-radius:3px;margin-bottom:6px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${scoreColor};border-radius:3px;transition:width .3s"></div></div>`;
         }
-        if (!c.tem_indicadores) {
-            html += `<div class="tooltip-row"><span style="color:#f59e0b;font-size:.75rem">⚠ Sem indicadores socioeconômicos</span></div>`;
+
+        const LABELS = {
+            governador_1t: 'Gov. 1T', governador_2t: 'Gov. 2T', senador_1t: 'Senador',
+            pib: 'PIB p/c', renda: 'Renda p/c', bf: 'Bolsa Fam.', meis: 'MEIs',
+            pop_urbana_pct: '% Urbana', idosos_pct: '% Idosos', jovens_pct: '% Jovens',
+            escolaridade: 'Escolaridade',
+        };
+
+        // Dados eleitorais selecionados
+        const elKeys = this._perfilActiveEl || [];
+        if (elKeys.length) {
+            html += `<div style="font-size:.6rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:4px 0 2px">Eleitoral</div>`;
+            for (const key of elKeys) {
+                if (c[key] === undefined) continue;
+                const dir = c[key + '_dir'] || 0;
+                const esq = c[key + '_esq'] || 0;
+                const total = c[key + '_total'] || 1;
+                const dirPct = ((dir / total) * 100).toFixed(1);
+                html += `<div class="tooltip-row"><span class="tooltip-label">${LABELS[key] || key}</span> <span class="tooltip-value"><span style="color:#1565C0">${dirPct}%D</span> <span style="color:#9ca3af">(${dir.toLocaleString('pt-BR')}×${esq.toLocaleString('pt-BR')})</span></span></div>`;
+            }
         }
+
+        // Dados socioeconômicos selecionados
+        const soKeys = this._perfilActiveSo || [];
+        if (soKeys.length) {
+            html += `<div style="font-size:.6rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:4px 0 2px">Socioeconômico</div>`;
+            for (const key of soKeys) {
+                if (c[key] === undefined) continue;
+                let val = '';
+                if (key === 'pib') val = 'R$ ' + (c.pib_raw || 0).toLocaleString('pt-BR', {maximumFractionDigits: 0});
+                else if (key === 'renda') val = 'R$ ' + (c.renda_raw || 0).toLocaleString('pt-BR', {maximumFractionDigits: 0});
+                else if (key === 'bf') val = (c.bf_raw || 0).toLocaleString('pt-BR') + ' fam.';
+                else if (key === 'meis') val = (c.meis_raw || 0).toLocaleString('pt-BR');
+                else if (key === 'pop_urbana_pct') val = (c.pop_urbana_pct_raw || 0).toFixed(1) + '%';
+                else if (key === 'idosos_pct') val = (c.idosos_pct_raw || 0).toFixed(1) + '%';
+                else if (key === 'jovens_pct') val = (c.jovens_pct_raw || 0).toFixed(1) + '%';
+                else if (key === 'escolaridade') val = (c.escolaridade_raw || 0).toFixed(1) + ' anos';
+                else val = (c[key] * 100).toFixed(1) + '%';
+                html += `<div class="tooltip-row"><span class="tooltip-label">${LABELS[key] || key}</span> <span class="tooltip-value">${val}</span></div>`;
+            }
+        }
+
+        // Dados CRM
+        if (c.apoiadores !== undefined || c.demandas !== undefined) {
+            html += `<div style="font-size:.6rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:4px 0 2px">CRM</div>`;
+            if (c.apoiadores !== undefined) html += `<div class="tooltip-row"><span class="tooltip-label">Apoiadores</span> <span class="tooltip-value">${(c.apoiadores || 0).toLocaleString('pt-BR')}</span></div>`;
+            if (c.demandas !== undefined) html += `<div class="tooltip-row"><span class="tooltip-label">Demandas</span> <span class="tooltip-value">${(c.demandas || 0).toLocaleString('pt-BR')}</span></div>`;
+        }
+
+        if (c.pop) {
+            html += `<div class="tooltip-row" style="margin-top:3px;border-top:1px solid #f1f5f9;padding-top:3px"><span class="tooltip-label" style="color:#9ca3af">Pop.</span> <span class="tooltip-value" style="color:#9ca3af">${c.pop.toLocaleString('pt-BR')}</span></div>`;
+        }
+
         return html;
     }
 
     _renderPerfilIdeologicoCityMap() {
-        if (!this._allCitiesGeojson || !this._perfilData) return;
+        if (!this._allCitiesGeojson) return;
         const geojson = this._allCitiesGeojson;
         const self = this;
 
@@ -339,7 +440,6 @@ class SCMap {
             this._concH = this.height;
         }
         const path = this._concPath;
-        const cidades = this._perfilData.cidades || {};
 
         const paths = this.g.selectAll('path.perfil-city')
             .data(geojson.features, d => d.properties.slug);
@@ -365,15 +465,14 @@ class SCMap {
             })
             .on('click', (event, d) => {
                 self._hideTip();
-                window.location.href = `/mapa/cidade/${d.properties.slug}/`;
+                if (typeof addToCompare === 'function') {
+                    addToCompare(d.properties.slug);
+                }
             });
 
+        // Começa cinza — a coloração é controlada por recalcPerfilMap() no index.html
         enter.merge(paths)
-            .transition().duration(400)
-            .attr('fill', d => {
-                const c = cidades[d.properties.slug];
-                return c ? self._perfilColor(c.score) : '#e2e8f0';
-            });
+            .attr('fill', '#e2e8f0');
     }
 
     // ── Concorrência (MVP): área de atuação de um candidato ──────────

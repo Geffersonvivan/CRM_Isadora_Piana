@@ -79,6 +79,11 @@ class IndicadorMunicipal(models.Model):
     familias_bolsa_familia = models.IntegerField(default=0, verbose_name='Famílias no Bolsa Família')
     populacao = models.IntegerField(default=0)
     meis_ativos = models.IntegerField(default=0, verbose_name='MEIs ativos')
+    populacao_urbana = models.IntegerField(default=0, verbose_name='Pop. urbana')
+    populacao_rural = models.IntegerField(default=0, verbose_name='Pop. rural')
+    idosos_60_mais = models.IntegerField(default=0, verbose_name='Idosos 60+')
+    jovens_18_29 = models.IntegerField(default=0, verbose_name='Jovens 18-29')
+    anos_estudo_medio = models.DecimalField(max_digits=4, decimal_places=1, default=0, verbose_name='Anos de estudo médio')
     ano_referencia = models.IntegerField(verbose_name='Ano de referência')
 
     class Meta:
