@@ -32,4 +32,5 @@ urlpatterns = [
     path('api/elections-2022/', views.Elections2022API.as_view(), name='api_elections_2022'),
     path('api/neighbor-deputies/', views.NeighborDeputiesAPI.as_view(), name='api_neighbor_deputies'),
     path('api/competicao/', views.CompeticaoMapAPI.as_view(), name='api_competicao'),
+    path('api/perfil-ideologico/', views.PerfilIdeologicoAPI.as_view(), name='api_perfil_ideologico'),
 ]

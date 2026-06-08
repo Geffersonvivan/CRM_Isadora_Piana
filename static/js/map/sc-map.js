@@ -258,6 +258,124 @@ class SCMap {
         return html;
     }
 
+    // ── Perfil Ideológico: índice socioeconômico × eleitoral ──────────
+    async setPerfilIdeologico(enabled) {
+        this.perfilIdeologicoEnabled = enabled;
+        if (enabled) {
+            this.heatmapEnabled = false;
+            this.demandsEnabled = false;
+            this.itinerariesEnabled = false;
+            this.strategicEnabled = false;
+            this.plNetworkEnabled = false;
+            this.zoneRankingEnabled = false;
+            this.voteTransferEnabled = false;
+            this.neighborDeputiesEnabled = false;
+            this.elections2022Enabled = false;
+            this.doacoesEnabled = false;
+            this.concorrenciaEnabled = false;
+            this._resetToNeutral();
+            this.g.selectAll('path.region').style('display', 'none');
+            this.g.selectAll('text').style('display', 'none');
+
+            if (!this._allCitiesGeojson) {
+                try { this._allCitiesGeojson = await API.maps.stateCities(); }
+                catch (e) { this._allCitiesGeojson = null; }
+            }
+            if (!this._perfilData) {
+                try { this._perfilData = await API.perfilIdeologico.dados(); }
+                catch (e) { this._perfilData = null; }
+            }
+        }
+        if (!enabled) {
+            this._resetToNeutral();
+        }
+        if (enabled && this._allCitiesGeojson && this._perfilData) {
+            this._renderPerfilIdeologicoCityMap();
+        }
+    }
+
+    _perfilColor(score) {
+        // 0 = esquerda (vermelho), 0.5 = centro (amarelo), 1 = direita (azul)
+        return d3.scaleLinear()
+            .domain([0, 0.25, 0.5, 0.75, 1])
+            .range(['#E53935', '#FF7043', '#FFD54F', '#66BB6A', '#1565C0'])
+            .clamp(true)(score);
+    }
+
+    _perfilTipHtml(d) {
+        const slug = d.properties.slug;
+        const cidades = this._perfilData?.cidades || {};
+        const c = cidades[slug];
+        let html = `<div class="tooltip-title">${d.properties.name}</div>`;
+        if (!c) {
+            html += `<div class="tooltip-row"><span style="color:#9ca3af">Sem dados</span></div>`;
+            return html;
+        }
+        const scoreLabel = c.score <= 0.35 ? 'Esquerda' : c.score <= 0.55 ? 'Centro' : c.score <= 0.75 ? 'Centro-Direita' : 'Direita';
+        const scoreColor = this._perfilColor(c.score);
+        html += `<div class="tooltip-row"><span class="tooltip-label">Índice</span> <span class="tooltip-value" style="color:${scoreColor};font-weight:bold">${(c.score * 100).toFixed(1)} — ${scoreLabel}</span></div>`;
+        html += `<div class="tooltip-row"><span class="tooltip-label">Score Socioecon.</span> <span class="tooltip-value">${(c.score_socio * 100).toFixed(1)}</span></div>`;
+        html += `<div class="tooltip-row"><span class="tooltip-label">Score Eleitoral</span> <span class="tooltip-value">${(c.score_eleitoral * 100).toFixed(1)}</span></div>`;
+        if (c.votos_total > 0) {
+            html += `<div class="tooltip-row"><span class="tooltip-label">Votos Direita</span> <span class="tooltip-value" style="color:#1565C0">${c.votos_dir.toLocaleString('pt-BR')}</span></div>`;
+            html += `<div class="tooltip-row"><span class="tooltip-label">Votos Esquerda</span> <span class="tooltip-value" style="color:#E53935">${c.votos_esq.toLocaleString('pt-BR')}</span></div>`;
+        }
+        if (!c.tem_indicadores) {
+            html += `<div class="tooltip-row"><span style="color:#f59e0b;font-size:.75rem">⚠ Sem indicadores socioeconômicos</span></div>`;
+        }
+        return html;
+    }
+
+    _renderPerfilIdeologicoCityMap() {
+        if (!this._allCitiesGeojson || !this._perfilData) return;
+        const geojson = this._allCitiesGeojson;
+        const self = this;
+
+        if (!this._concProjection || this._concW !== this.width || this._concH !== this.height) {
+            this._concProjection = d3.geoMercator()
+                .fitExtent([[20, 10], [this.width - 20, this.height - 10]], geojson);
+            this._concPath = d3.geoPath().projection(this._concProjection);
+            this._concW = this.width;
+            this._concH = this.height;
+        }
+        const path = this._concPath;
+        const cidades = this._perfilData.cidades || {};
+
+        const paths = this.g.selectAll('path.perfil-city')
+            .data(geojson.features, d => d.properties.slug);
+
+        const enter = paths.enter()
+            .append('path')
+            .attr('class', 'perfil-city')
+            .attr('d', path)
+            .attr('fill-opacity', 0.88)
+            .attr('stroke', '#94a3b8')
+            .attr('stroke-width', 0.6)
+            .attr('stroke-linejoin', 'round')
+            .attr('cursor', 'pointer')
+            .on('mouseenter', (event, d) => {
+                self.g.selectAll('path.perfil-city').attr('stroke', '#94a3b8').attr('stroke-width', 0.6);
+                d3.select(event.currentTarget).attr('stroke', '#475569').attr('stroke-width', 1.4);
+                self._showTip(self._perfilTipHtml(d), event.pageX, event.pageY);
+            })
+            .on('mousemove', (event) => { self._moveTip(event.pageX, event.pageY); })
+            .on('mouseleave', () => {
+                self.g.selectAll('path.perfil-city').attr('stroke', '#94a3b8').attr('stroke-width', 0.6);
+                self._hideTip();
+            })
+            .on('click', (event, d) => {
+                self._hideTip();
+                window.location.href = `/mapa/cidade/${d.properties.slug}/`;
+            });
+
+        enter.merge(paths)
+            .transition().duration(400)
+            .attr('fill', d => {
+                const c = cidades[d.properties.slug];
+                return c ? self._perfilColor(c.score) : '#e2e8f0';
+            });
+    }
+
     // ── Concorrência (MVP): área de atuação de um candidato ──────────
     async setConcorrencia(enabled) {
         this.concorrenciaEnabled = enabled;
@@ -269,6 +387,7 @@ class SCMap {
             this.plNetworkEnabled = false;
             this.zoneRankingEnabled = false;
             this.voteTransferEnabled = false;
+            this.perfilIdeologicoEnabled = false;
             this.neighborDeputiesEnabled = false;
             this.elections2022Enabled = false;
             this.doacoesEnabled = false;
@@ -448,7 +567,7 @@ class SCMap {
         this.g.selectAll('path.city').style('display', null).attr('fill', '#e2e8f0').attr('fill-opacity', 0.85);
         this.g.selectAll('text').style('display', null);
         // Remove overlay elements from special modes
-        this.g.selectAll('.itinerary-line,.itinerary-marker,.transfer-arrow,.transfer-marker,.transfer-city,.concorrencia-city').remove();
+        this.g.selectAll('.itinerary-line,.itinerary-marker,.transfer-arrow,.transfer-marker,.transfer-city,.concorrencia-city,.perfil-city').remove();
     }
 
     setHeatmap(enabled) {

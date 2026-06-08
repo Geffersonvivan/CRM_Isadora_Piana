@@ -37,6 +37,13 @@ const API = {
     roteiros: {
         mapData: (showCompleted) => apiGet(`/mapa/api/roteiros/?completed=${showCompleted}`),
     },
+    perfilIdeologico: {
+        _cache: null,
+        dados(ano = 2022) {
+            if (!this._cache) this._cache = apiGet(`/mapa/api/perfil-ideologico/?ano=${ano}`);
+            return this._cache;
+        },
+    },
     competicao: {
         _cache: {},
         candidatos() {

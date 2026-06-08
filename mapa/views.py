@@ -17,7 +17,7 @@ from tarefas.models import Tarefa
 from agenda.models import Compromisso, Roteiro, RoteiroPonto
 from usuarios.models import Usuario
 from usuarios.views import secao_required
-from mapa.models import Eleicao, ResultadoCandidato, ResultadoZona
+from mapa.models import Eleicao, ResultadoCandidato, ResultadoZona, IndicadorMunicipal
 
 ALLIED_PARTIES = {'PL', 'PP', 'REPUBLICANOS', 'UNIÃO', 'UNIÃO BRASIL'}
 ADVERSARY_PARTIES = {'PT', 'PSOL', 'PCdoB', 'REDE', 'PV', 'SOLIDARIEDADE'}
@@ -1376,4 +1376,113 @@ class CompeticaoMapAPI(APIView):
             'max_votos': max_votos,
             'total_votos': total,
             'cidades_com_voto': sum(1 for c in cidades.values() if c['votos'] > 0),
+        })
+
+
+class PerfilIdeologicoAPI(APIView):
+    """Perfil Ideológico: cruza indicadores socioeconômicos com resultados eleitorais 2022.
+
+    Retorna um índice de alinhamento ideológico por cidade (0=esquerda .. 1=direita).
+    score = score_socio * 0.40 + score_eleitoral * 0.60
+    """
+
+    DIREITA = {
+        'PL', 'NOVO', 'PP', 'REPUBLICANOS', 'UNIÃO', 'UNIÃO BRASIL',
+        'PSD', 'PATRIOTA', 'PTB', 'PSC', 'AVANTE', 'PROS',
+    }
+    ESQUERDA = {
+        'PT', 'PSOL', 'PCdoB', 'REDE', 'PV', 'PDT', 'SOLIDARIEDADE',
+        'PSB', 'PSTU', 'PCB', 'UP',
+    }
+
+    @method_decorator(cache_page(60 * 60 * 24))
+    def get(self, request):
+        ano = int(request.GET.get('ano', 2022))
+
+        indicadores = {
+            ind.cidade_id: ind
+            for ind in IndicadorMunicipal.objects.filter(ano_referencia=ano).select_related('cidade')
+        }
+
+        # Votos por partido por cidade (governador 2022 1T como proxy principal)
+        votos_qs = (
+            ResultadoCandidato.objects
+            .filter(eleicao__ano=2022, eleicao__turno=1, eleicao__tipo='governador')
+            .values('cidade_id', 'cidade__slug', 'cidade__nome', 'partido')
+            .annotate(total=Sum('votos'))
+        )
+
+        # Agrupar votos por cidade
+        city_votes = defaultdict(lambda: {'dir': 0, 'esq': 0, 'total': 0, 'slug': '', 'nome': ''})
+        for r in votos_qs:
+            cid = r['cidade_id']
+            city_votes[cid]['slug'] = r['cidade__slug']
+            city_votes[cid]['nome'] = r['cidade__nome']
+            v = r['total'] or 0
+            city_votes[cid]['total'] += v
+            partido_upper = (r['partido'] or '').upper()
+            if partido_upper in self.DIREITA:
+                city_votes[cid]['dir'] += v
+            elif partido_upper in self.ESQUERDA:
+                city_votes[cid]['esq'] += v
+
+        # Calcular scores socioeconômicos normalizados
+        if indicadores:
+            vals = list(indicadores.values())
+            max_renda = max((i.renda_per_capita for i in vals), default=1) or 1
+            max_pib_pop = max(
+                (i.pib / i.populacao if i.populacao else 0 for i in vals), default=1
+            ) or 1
+            max_bf_pct = max(
+                (i.familias_bolsa_familia / i.populacao if i.populacao else 0 for i in vals),
+                default=1,
+            ) or 1
+            max_mei_pct = max(
+                (i.meis_ativos / i.populacao if i.populacao else 0 for i in vals),
+                default=1,
+            ) or 1
+
+        cidades = {}
+        for cid, cv in city_votes.items():
+            # Score eleitoral: proporção de votos à direita
+            if cv['total'] > 0:
+                score_eleitoral = cv['dir'] / cv['total']
+            else:
+                score_eleitoral = 0.5
+
+            # Score socioeconômico
+            ind = indicadores.get(cid)
+            if ind and ind.populacao > 0:
+                renda_n = float(ind.renda_per_capita) / float(max_renda)
+                pib_n = float(ind.pib) / float(ind.populacao) / float(max_pib_pop)
+                bf_n = ind.familias_bolsa_familia / ind.populacao / float(max_bf_pct)
+                mei_n = ind.meis_ativos / ind.populacao / float(max_mei_pct)
+                # Maior renda/PIB/MEI = mais direita, mais BF = mais esquerda
+                score_socio = (renda_n * 0.30 + pib_n * 0.25 + mei_n * 0.25 + (1 - bf_n) * 0.20)
+            else:
+                score_socio = 0.5
+
+            score = score_socio * 0.40 + score_eleitoral * 0.60
+            score = round(min(max(score, 0), 1), 4)
+
+            cidades[cv['slug']] = {
+                'nome': cv['nome'],
+                'score': score,
+                'score_socio': round(score_socio, 4),
+                'score_eleitoral': round(score_eleitoral, 4),
+                'votos_dir': cv['dir'],
+                'votos_esq': cv['esq'],
+                'votos_total': cv['total'],
+                'tem_indicadores': ind is not None,
+            }
+
+        return Response({
+            'cidades': cidades,
+            'total_cidades': len(cidades),
+            'com_indicadores': sum(1 for c in cidades.values() if c['tem_indicadores']),
+            'legenda': {
+                'min_label': 'Esquerda',
+                'max_label': 'Direita',
+                'cores': ['#E53935', '#FF7043', '#FFD54F', '#66BB6A', '#1565C0'],
+            },
         })

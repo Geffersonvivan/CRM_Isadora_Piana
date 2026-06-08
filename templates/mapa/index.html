@@ -405,6 +405,7 @@
                     <button class="mode-btn" data-mode="deputados">Dep. Aliados</button>
                     <button class="mode-btn" data-mode="doacoes">Doações</button>
                     <button class="mode-btn" data-mode="concorrencia">Concorrência</button>
+                    <button class="mode-btn" data-mode="perfil_ideologico">Perfil Ideológico</button>
                 </div>
                 <button class="btn-help" id="btnHelp" title="O que este mapa mostra?">?</button>
             </div>
@@ -632,6 +633,20 @@
             example: '<strong>Leitura rápida:</strong> Regiões cinza são prioridade para campanhas de arrecadação — não há sequer um doador ativo. Regiões azul claro com muitos apoiadores cadastrados (veja no mapa de Rede PL) indicam base engajada politicamente mas não financeiramente — boa oportunidade para captação.<br>' +
                 '<strong>Exemplo:</strong> Se AMREC aparece em azul escuro (R$ 85.000, 42 doadores, top captador: João Silva com R$ 12.000), a arrecadação está concentrada. Já AMEOSC em cinza com 150 apoiadores sugere potencial financeiro não explorado.',
         },
+        perfil_ideologico: {
+            what: 'Cruza <strong>dados socioeconômicos</strong> (PIB, renda per capita, MEIs, Bolsa Família) com <strong>resultados eleitorais de 2022</strong> (governador 1º turno) para gerar um <strong>índice de alinhamento ideológico</strong> por cidade.<br><br>' +
+                'O índice varia de <strong>0 (esquerda)</strong> a <strong>100 (direita)</strong>, combinando 40% dados socioeconômicos e 60% dados eleitorais.',
+            how: 'As cidades são coloridas por um <strong>gradiente espectral</strong>:<br><br>' +
+                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#E53935;vertical-align:middle;margin-right:4px"></span> <strong style="color:#E53935">Vermelho</strong> — Perfil de <strong>esquerda</strong> (índice ≤ 25)<br>' +
+                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#FF7043;vertical-align:middle;margin-right:4px"></span> <strong style="color:#FF7043">Laranja</strong> — <strong>Centro-esquerda</strong> (índice 25-50)<br>' +
+                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#FFD54F;vertical-align:middle;margin-right:4px"></span> <strong style="color:#d4a017">Amarelo</strong> — <strong>Centro</strong> (índice ~50)<br>' +
+                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#66BB6A;vertical-align:middle;margin-right:4px"></span> <strong style="color:#66BB6A">Verde</strong> — <strong>Centro-direita</strong> (índice 50-75)<br>' +
+                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#1565C0;vertical-align:middle;margin-right:4px"></span> <strong style="color:#1565C0">Azul</strong> — Perfil de <strong>direita</strong> (índice ≥ 75)<br><br>' +
+                'O <strong>score socioeconômico</strong> considera: renda (30%), PIB per capita (25%), MEIs (25%) e inverso de Bolsa Família (20%).<br>' +
+                'O <strong>score eleitoral</strong> mede a proporção de votos para partidos de direita vs. esquerda na eleição de governador 2022.',
+            example: '<strong>Interpretação:</strong> Cidades azuis/verdes tendem a ser base natural do candidato (alinhamento com direita/centro-direita). Cidades vermelhas/laranjas indicam territórios onde a mensagem precisará ser ajustada.<br>' +
+                '<strong>Exemplo:</strong> Se Joinville aparece azul escuro (índice 82) e Chapecó amarelo (índice 48), Joinville é base ideológica forte enquanto Chapecó requer estratégia mais moderada.',
+        },
         concorrencia: {
             what: 'Ferramenta de <strong>análise comparativa de até 8 candidatos</strong> de 2022 (governador, senador, deputado federal ou estadual). Permite visualizar simultaneamente as <strong>áreas de atuação</strong> de múltiplos candidatos para entender sobreposições e territórios exclusivos.<br><br>' +
                 '<strong>Como usar:</strong> clique em "+ Adicionar candidato" no painel à esquerda do mapa, selecione os candidatos desejados. Cada um receberá uma cor distinta. Para remover, clique no <strong>&times;</strong> do chip colorido.',
@@ -741,6 +756,13 @@
             {color: '#60a5fa', label: 'Baixo'},
             {color: '#dbeafe', label: 'Mínimo'},
             {color: '#e2e8f0', label: 'Nenhuma'},
+        ],
+        perfil_ideologico: [
+            {color: '#E53935', label: 'Esquerda'},
+            {color: '#FF7043', label: 'Centro-Esq.'},
+            {color: '#FFD54F', label: 'Centro'},
+            {color: '#66BB6A', label: 'Centro-Dir.'},
+            {color: '#1565C0', label: 'Direita'},
         ],
         concorrencia: [
             {color: '#14532d', label: 'Muito forte'},
@@ -1654,6 +1676,7 @@
         map.elections2022Enabled = false;
         map.doacoesEnabled = false;
         map.concorrenciaEnabled = false;
+        map.perfilIdeologicoEnabled = false;
 
         // Limpar concorrência ao sair do modo
         if (mode !== 'concorrencia') {
@@ -1709,6 +1732,9 @@
                 break;
             case 'concorrencia':
                 await map.setConcorrencia(true);
+                break;
+            case 'perfil_ideologico':
+                await map.setPerfilIdeologico(true);
                 break;
         }
 

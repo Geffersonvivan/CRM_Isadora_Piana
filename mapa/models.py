@@ -70,3 +70,21 @@ class ResultadoZona(models.Model):
 
     def __str__(self):
         return f'{self.candidato_nome} - Zona {self.zona} ({self.cidade.nome}): {self.votos}'
+
+
+class IndicadorMunicipal(models.Model):
+    cidade = models.ForeignKey(Cidade, on_delete=models.CASCADE, related_name='indicadores')
+    pib = models.DecimalField(max_digits=14, decimal_places=2, default=0, verbose_name='PIB (R$ mil)')
+    renda_per_capita = models.DecimalField(max_digits=10, decimal_places=2, default=0, verbose_name='Renda per capita')
+    familias_bolsa_familia = models.IntegerField(default=0, verbose_name='Famílias no Bolsa Família')
+    populacao = models.IntegerField(default=0)
+    meis_ativos = models.IntegerField(default=0, verbose_name='MEIs ativos')
+    ano_referencia = models.IntegerField(verbose_name='Ano de referência')
+
+    class Meta:
+        unique_together = ('cidade', 'ano_referencia')
+        verbose_name = 'Indicador Municipal'
+        verbose_name_plural = 'Indicadores Municipais'
+
+    def __str__(self):
+        return f'{self.cidade.nome} ({self.ano_referencia})'
