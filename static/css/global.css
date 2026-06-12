@@ -354,6 +354,7 @@ input[type="date"].form-input, input[type="date"].g-input { color: #475569; }
     font-size: 0.84rem; color: #1e3a8a; line-height: 1.55;
 }
 .onb-banner.onb-visible { display: flex; }
+.onb-banner .onb-text { max-width: 1000px; text-wrap: balance; }
 .onb-close { top: 50%; transform: translateY(-50%); }
 .onb-banner strong { color: #002776; }
 .onb-banner .onb-emoji { font-size: 1.3rem; flex-shrink: 0; }
