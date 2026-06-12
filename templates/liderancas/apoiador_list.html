@@ -81,6 +81,14 @@
     .bulk-bar select { padding: 4px 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.78rem; }
     .bulk-bar .count { font-weight: 600; color: #002776; }
     .row-check { width: 15px; height: 15px; cursor: pointer; accent-color: #002776; }
+
+    /* Colunas compactas centralizadas (cabeçalho + conteúdo) */
+    .table-scroll th:nth-child(3), .table-scroll td:nth-child(3),
+    .table-scroll th:nth-child(6), .table-scroll td:nth-child(6),
+    .table-scroll th:nth-child(7), .table-scroll td:nth-child(7),
+    .table-scroll th:nth-child(8), .table-scroll td:nth-child(8),
+    .table-scroll th:nth-child(9), .table-scroll td:nth-child(9) { text-align: center !important; }
+    .actions { justify-content: center; }
 </style>
 {% endblock %}
 

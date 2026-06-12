@@ -67,6 +67,13 @@
         #filterForm .filters-row { flex-wrap: wrap; }
         #filterForm .filter-group { min-width: 160px; }
     }
+
+    /* Colunas compactas centralizadas (cabeçalho + conteúdo) */
+    .table-scroll th:nth-child(2), .table-scroll td:nth-child(2),
+    .table-scroll th:nth-child(6), .table-scroll td:nth-child(6),
+    .table-scroll th:nth-child(7), .table-scroll td:nth-child(7),
+    .table-scroll th:nth-child(8), .table-scroll td:nth-child(8) { text-align: center !important; }
+    .actions { justify-content: center; }
 </style>
 {% endblock %}
 
