@@ -447,7 +447,7 @@ body {
 .sidebar-submenu .submenu-group {
     font-size: 0.6rem; font-weight: 700; letter-spacing: 0.8px;
     text-transform: uppercase; color: #94a3b8;
-    padding: 10px 0 2px 0; margin-top: 6px;
+    padding: 10px 14px 2px 48px; margin-top: 6px;
     border-top: 1px solid #e2e8f0;
     list-style: none;
 }
