@@ -1,14 +1,30 @@
+import json
 from datetime import datetime, date, time
 
 from django import forms
 from django.forms import inlineformset_factory
 from django.utils import timezone
 from liderancas.models import Cidade
-from liderancas.models import Regiao
+from liderancas.models import Regiao, CoordenadorRegional, CaboEleitoral, Apoiador
 from .models import Compromisso, Evento, Roteiro, RoteiroPonto
 
 
 class CompromissoForm(forms.ModelForm):
+    # Participantes vinculados ao CRM — a UI são checkboxes no painel de
+    # contatos do modal (populado via API por região/cidade); os campos aqui
+    # só validam e salvam os IDs postados.
+    coordenadores = forms.ModelMultipleChoiceField(
+        queryset=CoordenadorRegional.objects.all(), required=False,
+        widget=forms.MultipleHiddenInput,
+    )
+    cabos = forms.ModelMultipleChoiceField(
+        queryset=CaboEleitoral.objects.all(), required=False,
+        widget=forms.MultipleHiddenInput,
+    )
+    apoiadores = forms.ModelMultipleChoiceField(
+        queryset=Apoiador.objects.all(), required=False,
+        widget=forms.MultipleHiddenInput,
+    )
     data = forms.DateField(
         label='Data',
         widget=forms.DateInput(attrs={'class': 'form-input', 'type': 'date'}, format='%Y-%m-%d'),
@@ -31,7 +47,8 @@ class CompromissoForm(forms.ModelForm):
             'titulo', 'descricao',
             'tipo', 'regiao', 'cidade', 'endereco',
             'contato_local_nome', 'contato_local_telefone',
-            'participantes', 'prioridade', 'status', 'observacoes',
+            'participantes', 'coordenadores', 'cabos', 'apoiadores',
+            'prioridade', 'status', 'observacoes',
         ]
         widgets = {
             'titulo': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Adicionar título'}),
@@ -53,6 +70,16 @@ class CompromissoForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        # IDs já vinculados (para o JS pré-marcar os checkboxes do painel)
+        if self.instance.pk:
+            self.participantes_selecionados = json.dumps({
+                'coordenadores': list(self.instance.coordenadores.values_list('id', flat=True)),
+                'cabos': list(self.instance.cabos.values_list('id', flat=True)),
+                'apoiadores': list(self.instance.apoiadores.values_list('id', flat=True)),
+            })
+        else:
+            self.participantes_selecionados = '{"coordenadores":[],"cabos":[],"apoiadores":[]}'
+
         # Populate data/hora fields from instance
         if self.instance.pk and self.instance.data_hora_inicio:
             inicio = timezone.localtime(self.instance.data_hora_inicio)
@@ -67,7 +94,7 @@ class CompromissoForm(forms.ModelForm):
                 regiao=self.instance.cidade.regiao
             )
         else:
-            regiao_id = self.data.get('regiao') if self.data else None
+            regiao_id = (self.data.get('regiao') if self.data else None) or self.initial.get('regiao')
             if regiao_id:
                 self.fields['cidade'].queryset = Cidade.objects.filter(
                     regiao_id=regiao_id

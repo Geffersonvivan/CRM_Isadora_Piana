@@ -273,12 +273,14 @@ input[type="date"].form-input, input[type="date"].g-input { color: #475569; }
 }
 .row-menu.open { display: block; }
 .row-menu form { margin: 0; }
-.row-menu button {
+.row-menu button, .row-menu a {
     display: flex; align-items: center; gap: 8px; width: 100%;
     padding: 8px 10px; border: none; background: none; font-size: 0.78rem;
     color: #374151; border-radius: 6px; cursor: pointer; text-align: left;
+    text-decoration: none; box-sizing: border-box;
 }
-.row-menu button:hover { background: #f1f5f9; }
+.row-menu button:hover, .row-menu a:hover { background: #f1f5f9; }
+.row-menu a svg { width: 14px; height: 14px; }
 .row-menu button.danger { color: #dc2626; }
 .row-menu button.danger:hover { background: #fef2f2; }
 .row-menu svg { width: 14px; height: 14px; }

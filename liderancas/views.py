@@ -34,7 +34,8 @@ def _paginate(request, queryset, default=50):
     if per_page not in PER_PAGE_OPTIONS:
         per_page = default
     # annotate(Max(...)) descarta o Meta.ordering — sem isso a paginação embaralha
-    if not queryset.ordered:
+    # (listas já ordenadas em Python não têm o atributo 'ordered')
+    if hasattr(queryset, 'ordered') and not queryset.ordered:
         queryset = queryset.order_by('nome')
     paginator = Paginator(queryset, per_page)
     return paginator, paginator.get_page(request.GET.get('page'))
@@ -442,6 +443,81 @@ def apoiador_delete(request, pk):
         apoiador.soft_delete(user=request.user)
         messages.success(request, 'Apoiador removido com sucesso.')
     return redirect('liderancas:apoiador_list')
+
+
+# ==================== FILA DE RELACIONAMENTO ====================
+
+# Prazo (em dias) para cada frequência de relacionamento configurada
+FREQ_PRAZOS = {'semanal': 7, 'quinzenal': 15, 'mensal': 30, 'eventual': 90}
+
+
+@secao_required('liderancas:fila')
+def fila_relacionamento(request):
+    """Contatos cujo último contato estourou a frequência configurada,
+    ordenados por prioridade e tamanho do atraso."""
+    agora = timezone.now()
+    regiao_id = request.GET.get('regiao', '')
+    tipo_filtro = request.GET.get('tipo', '')
+    prioridade = request.GET.get('prioridade', '')
+    busca = request.GET.get('busca', '')
+
+    fontes = [
+        ('coordenador', CoordenadorRegional.objects.select_related('regiao', 'cidade_base')),
+        ('cabo', CaboEleitoral.objects.select_related('cidade', 'cidade__regiao')),
+        ('apoiador', Apoiador.objects.select_related('cidade', 'cidade__regiao')),
+    ]
+    fila = []
+    total_monitorado = 0
+    for tipo, qs in fontes:
+        if tipo_filtro and tipo != tipo_filtro:
+            continue
+        if regiao_id:
+            qs = qs.filter(regiao_id=regiao_id) if tipo == 'coordenador' else qs.filter(cidade__regiao_id=regiao_id)
+        if prioridade:
+            qs = qs.filter(prioridade=prioridade)
+        if busca:
+            qs = qs.filter(Q(nome__icontains=busca) | Q(telefone__icontains=busca))
+        for c in qs.annotate(ultima=Max('interacoes__data')):
+            total_monitorado += 1
+            prazo = FREQ_PRAZOS.get(c.frequencia_relacionamento, 30)
+            dias = (agora - c.ultima).days if c.ultima else None
+            if dias is not None and dias <= prazo:
+                continue  # relacionamento em dia
+            fila.append({
+                'tipo': tipo,
+                'obj': c,
+                'cidade': c.cidade_base if tipo == 'coordenador' else c.cidade,
+                'dias': dias,
+                'prazo': prazo,
+                'atraso': (dias - prazo) if dias is not None else None,
+                'ultima': c.ultima,
+            })
+
+    ordem_pr = {'alta': 0, 'media': 1, 'baixa': 2}
+    fila.sort(key=lambda x: (
+        ordem_pr.get(x['obj'].prioridade, 1),
+        0 if x['atraso'] is None else 1,
+        -(x['atraso'] or 0),
+    ))
+
+    nunca = sum(1 for f in fila if f['dias'] is None)
+    paginator, page_obj = _paginate(request, fila)
+
+    qs_params = request.GET.copy()
+    qs_params.pop('page', None)
+
+    return render(request, 'liderancas/fila_relacionamento.html', {
+        'page_obj': page_obj,
+        'total': paginator.count,
+        'total_monitorado': total_monitorado,
+        'nunca': nunca,
+        'regioes': Regiao.objects.all().order_by('sigla'),
+        'busca': busca,
+        'regiao_filtro': regiao_id,
+        'tipo_filtro': tipo_filtro,
+        'prioridade_filtro': prioridade,
+        'query_string': qs_params.urlencode(),
+    })
 
 
 # ==================== EGRESSOS ====================

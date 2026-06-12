@@ -143,6 +143,9 @@
                 {% if user.perfil == 'admin' or user.is_superuser or 'liderancas:egressos' in user.secoes_permitidas %}
                 <li><a href="{% url 'liderancas:egresso_list' %}">Egressos</a></li>
                 {% endif %}
+                {% if user.perfil == 'admin' or user.is_superuser or 'liderancas:fila' in user.secoes_permitidas %}
+                <li><a href="{% url 'liderancas:fila_relacionamento' %}">Fila de Relacionamento</a></li>
+                {% endif %}
                 {% if user.perfil == 'admin' or user.is_superuser or 'liderancas:lassberg' in user.secoes_permitidas %}
                 <li><a href="{% url 'liderancas:lassberg_list' %}">Lassberg</a></li>
                 {% endif %}

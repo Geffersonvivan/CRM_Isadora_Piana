@@ -23,6 +23,7 @@ SECOES_CHOICES = [
     ('liderancas:cabos_eleitorais', '— Cabos Eleitorais'),
     ('liderancas:coordenador_regional', '— Coordenador Regional'),
     ('liderancas:egressos', '— Egressos'),
+    ('liderancas:fila', '— Fila de Relacionamento'),
     ('liderancas:lassberg', '— Lassberg'),
     # Mapa
     ('mapa', 'Mapa'),

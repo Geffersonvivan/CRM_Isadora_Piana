@@ -54,6 +54,22 @@ class Compromisso(models.Model):
         'Telefone do Contato', max_length=20, blank=True,
     )
     participantes = models.TextField(blank=True)
+    coordenadores = models.ManyToManyField(
+        'liderancas.CoordenadorRegional', blank=True, related_name='compromissos',
+        verbose_name='Coordenadores participantes',
+    )
+    cabos = models.ManyToManyField(
+        'liderancas.CaboEleitoral', blank=True, related_name='compromissos',
+        verbose_name='Cabos participantes',
+    )
+    apoiadores = models.ManyToManyField(
+        'liderancas.Apoiador', blank=True, related_name='compromissos',
+        verbose_name='Apoiadores participantes',
+    )
+    interacoes_geradas = models.BooleanField(
+        default=False,
+        help_text='Interações já criadas para os participantes ao realizar o compromisso.',
+    )
     prioridade = models.CharField(
         max_length=10, choices=PRIORIDADE_CHOICES, default='media',
     )
@@ -81,6 +97,41 @@ class Compromisso(models.Model):
     @property
     def cor(self):
         return self.TIPO_COR.get(self.tipo, '#002776')
+
+    def gerar_interacoes(self, user=None):
+        """Cria InteracaoLog para cada participante quando o compromisso é realizado.
+
+        Idempotente: roda uma única vez por compromisso (interacoes_geradas).
+        Retorna o número de interações criadas.
+        """
+        if self.status != 'realizado' or self.interacoes_geradas:
+            return 0
+        from liderancas.models import InteracaoLog
+        tipo_map = {
+            'visita': 'visita', 'reuniao': 'reuniao', 'evento': 'evento',
+            'comicio': 'evento', 'entrevista': 'outro', 'viagem': 'visita',
+            'pessoal': 'outro',
+        }
+        tipo = tipo_map.get(self.tipo, 'outro')
+        descricao = (
+            f'Compromisso realizado: {self.titulo} — '
+            f'{self.cidade.nome} ({self.data_hora_inicio:%d/%m/%Y})'
+        )
+        criadas = 0
+        for m2m, fk in (('coordenadores', 'coordenador'), ('cabos', 'cabo'), ('apoiadores', 'apoiador')):
+            for contato in getattr(self, m2m).all():
+                InteracaoLog.objects.create(
+                    **{fk: contato},
+                    tipo=tipo,
+                    descricao=descricao,
+                    data=self.data_hora_inicio,
+                    registrado_por=user,
+                )
+                criadas += 1
+        if criadas:
+            self.interacoes_geradas = True
+            self.save(update_fields=['interacoes_geradas'])
+        return criadas
 
     def __str__(self):
         return f'{self.titulo} — {self.data_hora_inicio:%d/%m/%Y %H:%M}'

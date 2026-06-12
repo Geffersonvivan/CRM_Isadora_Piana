@@ -20,7 +20,32 @@
     .ponto-titulo { font-weight: 600; color: #374151; font-size: 0.9rem; }
     .ponto-meta { font-size: 0.8rem; color: #64748b; margin-top: 4px; }
     .ponto-obs { font-size: 0.82rem; color: #374151; margin-top: 6px; font-style: italic; }
+
+    #roteiroMapa { height: 380px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px; z-index: 1; }
+    .mapa-num-icon {
+        background: #002776; color: #fff; border-radius: 50%; width: 26px; height: 26px;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 700; font-size: 0.78rem; border: 2px solid #fff;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+    .sug-panel { margin-top: 8px; }
+    .sug-item {
+        display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+        border: 1px solid #f1f5f9; border-radius: 10px; margin-bottom: 8px;
+        background: #f8fafc; font-size: 0.82rem;
+    }
+    .sug-item:hover { background: #eef4ff; }
+    .sug-cidade { font-weight: 600; color: #1e293b; flex: 1; }
+    .sug-stat { font-size: 0.72rem; color: #64748b; white-space: nowrap; }
+    .sug-stat strong { color: #dc2626; }
+    .sug-add {
+        font-size: 0.72rem; font-weight: 600; color: #002776;
+        text-decoration: none; white-space: nowrap; padding: 4px 10px;
+        border: 1px solid #c7d7f5; border-radius: 7px; background: #fff;
+    }
+    .sug-add:hover { background: #002776; color: #fff; }
 </style>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 {% endblock %}
 
 {% block content %}
@@ -31,6 +56,13 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
             Imprimir
         </a>
+        <form method="post" action="{% url 'agenda:roteiro_otimizar' roteiro.pk %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-secondary" title="Reordena as paradas pelo trajeto mais curto entre as cidades">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                Otimizar ordem
+            </button>
+        </form>
         <a href="{% url 'agenda:roteiro_edit' roteiro.pk %}" class="btn btn-primary">Editar</a>
         <a href="{% url 'agenda:roteiro_list' %}" class="btn btn-secondary">Voltar</a>
     </div>
@@ -67,6 +99,9 @@
     </div>
     {% endif %}
 
+    <h3 class="section-title">Mapa do Trajeto</h3>
+    <div id="roteiroMapa"></div>
+
     <h3 class="section-title">Paradas</h3>
 
     {% for ponto in roteiro.pontos.all %}
@@ -89,5 +124,56 @@
     {% empty %}
     <p style="color:#9ca3af;font-size:0.85rem;text-align:center;padding:20px;">Nenhuma parada cadastrada.</p>
     {% endfor %}
+
+
+    <h3 class="section-title">Sugestões para esta região <span style="font-weight:400;font-size:0.78rem;color:#64748b;">— cidades com mais contatos precisando de atenção</span></h3>
+    <div class="sug-panel">
+        {% for sug in sugestoes %}
+        <div class="sug-item">
+            <span class="sug-cidade">{{ sug.cidade.nome }}</span>
+            <span class="sug-stat"><strong>{{ sug.vencidos }}</strong> vencidos</span>
+            <span class="sug-stat">{{ sug.nunca }} nunca contatados</span>
+            {% if sug.alta %}<span class="sug-stat">⭐ {{ sug.alta }} prioridade alta</span>{% endif %}
+            <a class="sug-add" href="/agenda/compromissos/?cidade={{ sug.cidade.pk }}&data={{ roteiro.data|date:'Y-m-d' }}">+ Compromisso aqui</a>
+        </div>
+        {% empty %}
+        <p style="font-size:0.82rem;color:#16a34a;font-weight:600;">Relacionamento em dia em toda a região. 🎉</p>
+        {% endfor %}
+    </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function () {
+    const pontos = JSON.parse('{{ pontos_mapa_json|escapejs }}');
+    const mapaEl = document.getElementById('roteiroMapa');
+    if (!pontos.length) {
+        mapaEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;font-size:0.85rem;">Sem paradas georreferenciadas para exibir.</div>';
+        return;
+    }
+    const mapa = L.map('roteiroMapa');
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap',
+    }).addTo(mapa);
+
+    const coords = [];
+    pontos.forEach(function (p) {
+        const latlng = [p.lat, p.lng];
+        coords.push(latlng);
+        const icone = L.divIcon({
+            className: '', iconSize: [26, 26], iconAnchor: [13, 13],
+            html: '<div class="mapa-num-icon">' + p.ordem + '</div>',
+        });
+        L.marker(latlng, { icon: icone })
+            .addTo(mapa)
+            .bindPopup('<strong>' + p.ordem + '. ' + p.titulo + '</strong><br>' + p.cidade + ' — ' + p.hora);
+    });
+    if (coords.length > 1) {
+        L.polyline(coords, { color: '#002776', weight: 3, opacity: 0.7, dashArray: '8 6' }).addTo(mapa);
+    }
+    mapa.fitBounds(L.latLngBounds(coords).pad(0.25));
+})();
+</script>
 {% endblock %}

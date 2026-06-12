@@ -18,6 +18,7 @@ urlpatterns = [
     path('roteiros/<int:pk>/editar/', views.roteiro_edit, name='roteiro_edit'),
     path('roteiros/<int:pk>/excluir/', views.roteiro_delete, name='roteiro_delete'),
     path('roteiros/<int:pk>/imprimir/', views.roteiro_print, name='roteiro_print'),
+    path('roteiros/<int:pk>/otimizar/', views.roteiro_otimizar, name='roteiro_otimizar'),
 
     # Eventos
     path('eventos/', views.evento_list, name='evento_list'),

@@ -160,10 +160,11 @@
 
     </div>
 
-    <!-- Contatos da região (painel oculto) -->
-    <div id="contatos-panel" class="contatos-panel-compact" style="display:none;">
+    <!-- Participantes do CRM (painel oculto; checkboxes postam coordenadores/cabos/apoiadores) -->
+    <div id="contatos-panel" class="contatos-panel-compact" style="display:none;"
+         data-selecionados='{{ form.participantes_selecionados }}'>
         <div class="contatos-box contatos-scroll">
-            <div class="contatos-title">Contatos da Região / Cidade</div>
+            <div class="contatos-title">Participantes do CRM <span class="contatos-hint">— marque para vincular; ao realizar o compromisso, a interação é registrada automaticamente</span></div>
             <div class="contato-section-label coord">Coordenadores Regionais</div>
             <div id="coord-list" class="contato-empty">Selecione uma regiao...</div>
             <div class="contato-section-label cabo">Cabos Eleitorais</div>

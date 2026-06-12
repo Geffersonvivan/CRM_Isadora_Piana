@@ -32,14 +32,44 @@ def compromisso_create(request):
             comp = form.save(commit=False)
             comp.cadastrado_por = request.user
             comp.save()
-            return JsonResponse({'success': True})
+            form.save_m2m()
+            interacoes = comp.gerar_interacoes(request.user)
+            return JsonResponse({'success': True, 'interacoes': interacoes})
         html = render_to_string('agenda/_compromisso_form.html', {
             'form': form, 'titulo': 'Novo Compromisso',
         }, request=request)
         return JsonResponse({'success': False, 'html': html})
 
     if _is_ajax(request):
-        form = CompromissoForm()
+        # Pré-preenchimento vindo das listas de contatos (?apoiador=ID etc.)
+        import json as json_mod
+        initial, selecionados = {}, None
+        contato, chave = None, None
+        for param, model in (('apoiador', Apoiador), ('cabo', CaboEleitoral), ('coordenador', CoordenadorRegional)):
+            if request.GET.get(param):
+                contato = model.objects.filter(pk=request.GET[param]).first()
+                chave = param
+                break
+        if contato:
+            cidade_ref = getattr(contato, 'cidade', None) or getattr(contato, 'cidade_base', None)
+            initial = {'tipo': 'visita', 'titulo': f'Visita — {contato.nome}'}
+            if cidade_ref:
+                initial['regiao'] = cidade_ref.regiao_id
+                initial['cidade'] = cidade_ref.pk
+            plural = {'apoiador': 'apoiadores', 'cabo': 'cabos', 'coordenador': 'coordenadores'}[chave]
+            selecionados = {'coordenadores': [], 'cabos': [], 'apoiadores': []}
+            selecionados[plural] = [contato.pk]
+        elif request.GET.get('cidade'):
+            # Vindo das sugestões do roteiro: cidade (e data) pré-definidas
+            from liderancas.models import Cidade
+            cid = Cidade.objects.filter(pk=request.GET['cidade']).first()
+            if cid:
+                initial = {'tipo': 'visita', 'regiao': cid.regiao_id, 'cidade': cid.pk}
+        if request.GET.get('data'):
+            initial['data'] = request.GET['data']
+        form = CompromissoForm(initial=initial)
+        if selecionados:
+            form.participantes_selecionados = json_mod.dumps(selecionados)
         html = render_to_string('agenda/_compromisso_form.html', {
             'form': form, 'titulo': 'Novo Compromisso',
         }, request=request)
@@ -52,6 +82,8 @@ def compromisso_create(request):
             comp = form.save(commit=False)
             comp.cadastrado_por = request.user
             comp.save()
+            form.save_m2m()
+            comp.gerar_interacoes(request.user)
             messages.success(request, 'Compromisso cadastrado com sucesso.')
             return redirect('agenda:compromisso_list')
     else:
@@ -71,7 +103,9 @@ def compromisso_edit(request, pk):
             obj = form.save(commit=False)
             obj.atualizado_por = request.user
             obj.save()
-            return JsonResponse({'success': True})
+            form.save_m2m()
+            interacoes = obj.gerar_interacoes(request.user)
+            return JsonResponse({'success': True, 'interacoes': interacoes})
         tarefas_vinculadas = comp.tarefas.select_related('responsavel').all()
         html = render_to_string('agenda/_compromisso_form.html', {
             'form': form, 'titulo': f'Editar: {comp.titulo}', 'editing': True, 'pk': pk,
@@ -95,6 +129,8 @@ def compromisso_edit(request, pk):
             obj = form.save(commit=False)
             obj.atualizado_por = request.user
             obj.save()
+            form.save_m2m()
+            obj.gerar_interacoes(request.user)
             messages.success(request, 'Compromisso atualizado com sucesso.')
             return redirect('agenda:compromisso_list')
     else:
@@ -198,15 +234,90 @@ def roteiro_delete(request, pk):
 
 @secao_required('demandas:roteiros')
 def roteiro_detail(request, pk):
+    import json as json_mod
     roteiro = get_object_or_404(
         Roteiro.objects.select_related('regiao').prefetch_related(
             'pontos__compromisso__cidade', 'pontos__compromisso__regiao'
         ),
         pk=pk,
     )
+
+    # Pontos com coordenadas para o mapa (ordem do roteiro)
+    pontos_mapa = []
+    for ponto in roteiro.pontos.all():
+        cid = ponto.compromisso.cidade
+        if cid.latitude and cid.longitude:
+            pontos_mapa.append({
+                'ordem': ponto.ordem,
+                'titulo': ponto.compromisso.titulo,
+                'cidade': cid.nome,
+                'hora': ponto.compromisso.data_hora_inicio.strftime('%H:%M'),
+                'lat': cid.latitude,
+                'lng': cid.longitude,
+            })
+
     return render(request, 'agenda/roteiro_detail.html', {
         'roteiro': roteiro,
+        'pontos_mapa_json': json_mod.dumps(pontos_mapa),
+        'sugestoes': _sugestoes_cidades(roteiro.regiao),
     })
+
+
+def _sugestoes_cidades(regiao, limite=8):
+    """Cidades da região ordenadas por contatos com relacionamento vencido —
+    matéria-prima para escolher onde criar os pontos do roteiro."""
+    from django.db.models import Max
+    from django.utils import timezone as tz
+    from liderancas.views import FREQ_PRAZOS
+    agora = tz.now()
+    por_cidade = {}
+    fontes = (
+        CaboEleitoral.objects.filter(cidade__regiao=regiao).select_related('cidade'),
+        Apoiador.objects.filter(cidade__regiao=regiao).select_related('cidade'),
+    )
+    for qs in fontes:
+        for c in qs.annotate(ultima=Max('interacoes__data')):
+            prazo = FREQ_PRAZOS.get(c.frequencia_relacionamento, 30)
+            dias = (agora - c.ultima).days if c.ultima else None
+            if dias is not None and dias <= prazo:
+                continue
+            info = por_cidade.setdefault(c.cidade, {'vencidos': 0, 'nunca': 0, 'alta': 0})
+            info['vencidos'] += 1
+            if dias is None:
+                info['nunca'] += 1
+            if c.prioridade == 'alta':
+                info['alta'] += 1
+    ranking = sorted(por_cidade.items(), key=lambda kv: (-kv[1]['alta'], -kv[1]['vencidos']))
+    return [{'cidade': cid, **info} for cid, info in ranking[:limite]]
+
+
+def _dist2(c1, c2):
+    return (c1.latitude - c2.latitude) ** 2 + (c1.longitude - c2.longitude) ** 2
+
+
+@secao_required('demandas:roteiros')
+def roteiro_otimizar(request, pk):
+    """Reordena os pontos pelo vizinho mais próximo (lat/long das cidades)."""
+    roteiro = get_object_or_404(Roteiro, pk=pk)
+    if request.method == 'POST':
+        pontos = list(roteiro.pontos.select_related('compromisso__cidade'))
+        com_coord = [p for p in pontos if p.compromisso.cidade.latitude and p.compromisso.cidade.longitude]
+        sem_coord = [p for p in pontos if p not in com_coord]
+        if len(com_coord) >= 2:
+            com_coord.sort(key=lambda p: p.ordem)
+            ordenados = [com_coord.pop(0)]
+            while com_coord:
+                atual = ordenados[-1].compromisso.cidade
+                com_coord.sort(key=lambda p: _dist2(atual, p.compromisso.cidade))
+                ordenados.append(com_coord.pop(0))
+            for i, ponto in enumerate(ordenados + sem_coord, start=1):
+                if ponto.ordem != i:
+                    ponto.ordem = i
+                    ponto.save(update_fields=['ordem'])
+            messages.success(request, 'Ordem otimizada pela proximidade entre as cidades. Revise os horários dos compromissos.')
+        else:
+            messages.warning(request, 'É preciso ao menos 2 paradas com cidades georreferenciadas.')
+    return redirect('agenda:roteiro_detail', pk=pk)
 
 
 @secao_required('demandas:roteiros')
@@ -257,28 +368,40 @@ def api_compromissos_json(request):
     return JsonResponse(events, safe=False)
 
 
+def _contatos_payload(qs):
+    """Serializa contatos com prioridade e dias desde a última interação,
+    ordenando: prioridade alta primeiro, depois nunca contatados, depois mais atrasados."""
+    from django.db.models import Max
+    from django.utils import timezone as tz
+    agora = tz.now()
+    out = []
+    for c in qs.annotate(ult=Max('interacoes__data')):
+        dias = (agora - c.ult).days if c.ult else None
+        out.append({
+            'id': c.id, 'nome': c.nome, 'telefone': c.telefone,
+            'instagram': c.instagram, 'prioridade': c.prioridade, 'dias': dias,
+        })
+    ordem_pr = {'alta': 0, 'media': 1, 'baixa': 2}
+    out.sort(key=lambda x: (ordem_pr.get(x['prioridade'], 1), 0 if x['dias'] is None else 1, -(x['dias'] or 0)))
+    return out
+
+
 @secao_required('demandas:agenda')
 def api_coordenadores_regiao(request, regiao_id):
-    coords = CoordenadorRegional.objects.filter(
-        regiao_id=regiao_id
-    ).values('id', 'nome', 'telefone', 'instagram')
-    return JsonResponse(list(coords), safe=False)
+    qs = CoordenadorRegional.objects.filter(regiao_id=regiao_id)
+    return JsonResponse(_contatos_payload(qs), safe=False)
 
 
 @secao_required('demandas:agenda')
 def api_cabos_cidade(request, cidade_id):
-    cabos = CaboEleitoral.objects.filter(
-        cidade_id=cidade_id
-    ).values('id', 'nome', 'telefone', 'instagram')
-    return JsonResponse(list(cabos), safe=False)
+    qs = CaboEleitoral.objects.filter(cidade_id=cidade_id)
+    return JsonResponse(_contatos_payload(qs), safe=False)
 
 
 @secao_required('demandas:agenda')
 def api_apoiadores_cidade(request, cidade_id):
-    apoiadores = Apoiador.objects.filter(
-        cidade_id=cidade_id
-    ).values('id', 'nome', 'telefone', 'instagram')
-    return JsonResponse(list(apoiadores), safe=False)
+    qs = Apoiador.objects.filter(cidade_id=cidade_id)
+    return JsonResponse(_contatos_payload(qs), safe=False)
 
 
 @secao_required('demandas:agenda')

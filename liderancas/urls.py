@@ -25,6 +25,9 @@ urlpatterns = [
     path('apoiadores/<int:pk>/editar/', views.apoiador_edit, name='apoiador_edit'),
     path('apoiadores/<int:pk>/excluir/', views.apoiador_delete, name='apoiador_delete'),
 
+    # Fila de Relacionamento
+    path('fila/', views.fila_relacionamento, name='fila_relacionamento'),
+
     # Egressos
     path('egressos/', views.egresso_list, name='egresso_list'),
     path('egressos/novo/', views.egresso_create, name='egresso_create'),
