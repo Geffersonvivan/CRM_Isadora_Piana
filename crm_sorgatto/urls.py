@@ -5,6 +5,8 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
+from dashboard.views import home_view
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -19,7 +21,7 @@ urlpatterns = [
     path('doacoes/', include('doacoes.urls')),
     path('mapa/', include('mapa.urls')),
     path('app/', include('pwa.urls')),
-    path('', login_required(lambda request: __import__('dashboard.views', fromlist=['home_view']).home_view(request)), name='home'),
+    path('', login_required(home_view), name='home'),
 ]
 
 if settings.DEBUG:

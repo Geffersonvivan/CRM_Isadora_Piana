@@ -19,6 +19,17 @@ staticfiles/
 # Old project
 Antigo/
 
+# Proposta comercial
+PROPOSTA_COMERCIAL_NOVO.md
+PROPOSTA_COMERCIAL_POLIS.pdf
+PROPOSTA_COMERCIAL_POLIS_V2.md
+PROPOSTA_COMERCIAL_POLIS_V2.pdf
+gerar_pdf_proposta.py
+
 # OS
 .DS_Store
 Thumbs.db
+
+# Dados pessoais (NUNCA commitar — repositório é público)
+Planilha/
+import_pendencias.csv

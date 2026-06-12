@@ -6,6 +6,8 @@ from django.db.models import Sum, Count, Q
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
 
+from core.models import Configuracao
+from core.views import api_cidades as core_api_cidades
 from usuarios.views import secao_required
 from .models import Doacao, ComissaoResgate
 from .forms import DoacaoForm
@@ -179,11 +181,9 @@ def comissao_pagar(request, pk):
     return redirect('doacoes:comissao_list')
 
 
-META_DOACOES = 120000
-
-
 @secao_required('demandas:doacoes')
 def dashboard_doacoes(request):
+    config = Configuracao.get()
     confirmadas = Doacao.objects.filter(status='confirmada')
     todas = Doacao.objects.all()
 
@@ -231,9 +231,9 @@ def dashboard_doacoes(request):
     chart_mes_data = json.dumps([float(m['total']) for m in por_mes])
 
     return render(request, 'doacoes/dashboard.html', {
-        'meta_doacoes': META_DOACOES,
-        'meta_doacoes_fmt': f'{META_DOACOES:,.0f}'.replace(',', '.'),
-        'percentual_meta': round(float(total_arrecadado) / META_DOACOES * 100, 1) if META_DOACOES > 0 else 0,
+        'meta_doacoes': config.meta_doacoes,
+        'meta_doacoes_fmt': f'{config.meta_doacoes:,.0f}'.replace(',', '.'),
+        'percentual_meta': round(float(total_arrecadado) / config.meta_doacoes * 100, 1) if config.meta_doacoes > 0 else 0,
         'total_doacoes': total_doacoes,
         'total_confirmadas': total_confirmadas,
         'total_arrecadado': total_arrecadado,
@@ -250,6 +250,4 @@ def dashboard_doacoes(request):
     })
 
 
-def api_cidades_regiao(request, regiao_id):
-    cidades = Cidade.objects.filter(regiao_id=regiao_id).values('id', 'nome')
-    return JsonResponse(list(cidades), safe=False)
+api_cidades_regiao = core_api_cidades

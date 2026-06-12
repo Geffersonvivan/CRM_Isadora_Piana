@@ -6,6 +6,8 @@ from django.utils import timezone
 from datetime import timedelta
 import json
 
+from core.models import Configuracao
+from core.services import calcular_scores_rede, score_usuario
 from usuarios.models import Usuario
 from usuarios.views import secao_required
 from liderancas.models import Apoiador, CoordenadorRegional, CaboEleitoral, Regiao
@@ -13,14 +15,11 @@ from doacoes.models import Doacao
 from agenda.models import Compromisso, Evento
 from tarefas.models import Tarefa
 
-META_VOTOS = 45000
-META_DOACOES = 120000
-
-
 def home_view(request):
+    config = Configuracao.get()
     total_votos = Apoiador.objects.count()
-    percentual = round((total_votos / META_VOTOS) * 100, 1) if META_VOTOS > 0 else 0
-    faltam = max(0, META_VOTOS - total_votos)
+    percentual = round((total_votos / config.meta_votos) * 100, 1) if config.meta_votos > 0 else 0
+    faltam = max(0, config.meta_votos - total_votos)
 
     now = timezone.now()
     hoje = now.date()
@@ -73,14 +72,22 @@ def home_view(request):
     )
 
     # --- Gráficos ---
-    # Captação últimos 7 dias
-    dias_captacao = []
-    for i in range(6, -1, -1):
-        dia = hoje - timedelta(days=i)
-        dias_captacao.append({
+    # Captação últimos 7 dias (uma única query agregada por dia)
+    inicio_captacao = hoje - timedelta(days=6)
+    captacao_por_dia = dict(
+        Apoiador.objects.filter(created_at__date__gte=inicio_captacao)
+        .annotate(dia=TruncDate('created_at'))
+        .values('dia')
+        .annotate(total=Count('id'))
+        .values_list('dia', 'total')
+    )
+    dias_captacao = [
+        {
             'label': dia.strftime('%d/%m'),
-            'count': Apoiador.objects.filter(created_at__date=dia).count(),
-        })
+            'count': captacao_por_dia.get(dia, 0),
+        }
+        for dia in (inicio_captacao + timedelta(days=i) for i in range(7))
+    ]
     chart_captacao_labels = json.dumps([d['label'] for d in dias_captacao])
     chart_captacao_data = json.dumps([d['count'] for d in dias_captacao])
 
@@ -95,13 +102,13 @@ def home_view(request):
     chart_arrec_data = json.dumps([float(m['total']) for m in arrec_mes])
 
     return render(request, 'home.html', {
-        'meta_votos': META_VOTOS,
+        'meta_votos': config.meta_votos,
         'total_votos': total_votos,
         'percentual': percentual,
         'faltam': faltam,
         # Financeiro
-        'meta_doacoes_fmt': f'{META_DOACOES:,.0f}'.replace(',', '.'),
-        'percentual_meta': round(float(total_arrecadado) / META_DOACOES * 100, 1) if META_DOACOES > 0 else 0,
+        'meta_doacoes_fmt': f'{config.meta_doacoes:,.0f}'.replace(',', '.'),
+        'percentual_meta': round(float(total_arrecadado) / config.meta_doacoes * 100, 1) if config.meta_doacoes > 0 else 0,
         'total_arrecadado': total_arrecadado,
         'total_liquido': total_liquido,
         'pendentes_qtd': pendentes_qtd,
@@ -128,35 +135,17 @@ def home_view(request):
     })
 
 
-def admin_required(view_func):
-    from functools import wraps
-    from django.shortcuts import redirect
-    from django.contrib import messages
-
-    @wraps(view_func)
-    def wrapper(request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return redirect('login')
-        if request.user.perfil != 'admin' and not request.user.is_superuser:
-            messages.error(request, 'Acesso restrito a administradores.')
-            return redirect('home')
-        return view_func(request, *args, **kwargs)
-    return wrapper
 
 
-def calcular_score_rede(usuario):
-    diretos = Apoiador.objects.filter(cadastrado_por=usuario).count()
-    rep_ids = list(usuario.convidados.values_list('id', flat=True))
-    rede = Apoiador.objects.filter(cadastrado_por__in=rep_ids).count() if rep_ids else 0
-    return diretos, rede, diretos + rede
 
 
 @secao_required('dashboard:meta_votos')
 def meta_votos(request):
     vinculo_map = dict(Usuario.VINCULO_CHOICES)
 
+    config = Configuracao.get()
     total_votos = Apoiador.objects.count()
-    percentual = round((total_votos / META_VOTOS) * 100, 1) if META_VOTOS > 0 else 0
+    percentual = round((total_votos / config.meta_votos) * 100, 1) if config.meta_votos > 0 else 0
 
     pwa_users = Usuario.objects.filter(
         vinculo__in=['coordenador', 'cabo', 'replicador']
@@ -166,8 +155,10 @@ def meta_votos(request):
     totais_vinculo = {'coordenador': 0, 'cabo': 0, 'replicador': 0}
     totais_regiao = {}
 
+    diretos_map, convidados_map = calcular_scores_rede()
+
     for u in pwa_users:
-        diretos, rede, total = calcular_score_rede(u)
+        diretos, rede, total, convidados = score_usuario(u.id, diretos_map, convidados_map)
         if u.vinculo in totais_vinculo:
             totais_vinculo[u.vinculo] += total
 
@@ -188,7 +179,7 @@ def meta_votos(request):
             'diretos': diretos,
             'rede': rede,
             'total': total,
-            'replicadores': u.convidados.count(),
+            'replicadores': len(convidados),
         })
 
     ranking_geral.sort(key=lambda x: x['total'], reverse=True)
@@ -210,13 +201,13 @@ def meta_votos(request):
 
     regioes_list = Regiao.objects.all().order_by('sigla')
 
-    faltam = max(0, META_VOTOS - total_votos)
+    faltam = max(0, config.meta_votos - total_votos)
 
     paginator = Paginator(ranking_filtrado, 20)
     page_obj = paginator.get_page(request.GET.get('page'))
 
     return render(request, 'dashboard/meta_votos.html', {
-        'meta_votos': META_VOTOS,
+        'meta_votos': config.meta_votos,
         'total_votos': total_votos,
         'percentual': percentual,
         'faltam': faltam,

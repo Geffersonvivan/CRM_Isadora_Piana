@@ -6,6 +6,9 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.http import JsonResponse, FileResponse
 from django.db.models import Count
+from django.utils import timezone
+from core.views import api_cidades as core_api_cidades
+from core.services import calcular_scores_rede, score_usuario
 from liderancas.models import Apoiador, Cidade
 from .forms import ApoiadorPWAForm, ReplicadorForm, VoluntarioPWAForm, DoacaoPWAForm
 
@@ -43,26 +46,22 @@ def pwa_logout(request):
 def dashboard(request):
     user = request.user
 
-    # Meu placar (diretos + rede)
     from usuarios.models import Usuario
-    from django.db.models import Q, Subquery, IntegerField, Value
-    from django.db.models.functions import Coalesce
 
-    meus_diretos = Apoiador.objects.filter(cadastrado_por=user).count()
-    ids_replicadores = list(user.convidados.values_list('id', flat=True))
-    meus_rede = Apoiador.objects.filter(cadastrado_por__in=ids_replicadores).count() if ids_replicadores else 0
-    meu_total = meus_diretos + meus_rede
+    diretos_map, convidados_map = calcular_scores_rede()
+
+    # Meu placar (diretos + rede)
+    meus_diretos, meus_rede, meu_total, _ = score_usuario(user.id, diretos_map, convidados_map)
 
     # Ranking geral (top 10) — score = cadastros diretos + cadastros dos replicadores
     vinculo_map = dict(Usuario.VINCULO_CHOICES)
-    pwa_users = Usuario.objects.filter(vinculo__in=['coordenador', 'cabo', 'replicador'])
+    pwa_users = Usuario.objects.filter(
+        vinculo__in=['coordenador', 'cabo', 'replicador'],
+    ).select_related('regiao')
 
     ranking = []
     for u in pwa_users:
-        diretos = Apoiador.objects.filter(cadastrado_por=u).count()
-        rep_ids = list(u.convidados.values_list('id', flat=True))
-        rede = Apoiador.objects.filter(cadastrado_por__in=rep_ids).count() if rep_ids else 0
-        total = diretos + rede
+        diretos, rede, total, _ = score_usuario(u.id, diretos_map, convidados_map)
         if total > 0:
             vinculo_label = vinculo_map.get(u.vinculo, u.vinculo or '')
             regiao_sigla = u.regiao.sigla if u.regiao else ''
@@ -157,7 +156,7 @@ def cadastro_doacao(request):
         form = DoacaoPWAForm(request.POST)
         if form.is_valid():
             doacao = form.save(commit=False)
-            doacao.data = __import__('django.utils.timezone', fromlist=['now']).now()
+            doacao.data = timezone.now()
             doacao.status = 'pendente'
             regiao_id = request.POST.get('regiao')
             if regiao_id:
@@ -174,10 +173,7 @@ def cadastro_doacao(request):
     return render(request, 'pwa/cadastro_doacao.html', {'form': form})
 
 
-@pwa_login_required
-def api_cidades(request, regiao_id):
-    cidades = Cidade.objects.filter(regiao_id=regiao_id).values('id', 'nome').order_by('nome')
-    return JsonResponse(list(cidades), safe=False)
+api_cidades = core_api_cidades
 
 
 def manifest_json(request):

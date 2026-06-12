@@ -3,9 +3,9 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
+from core.views import api_cidades as core_api_cidades
 from .models import Usuario
 from .forms import UsuarioCreateForm, UsuarioEditForm, UsuarioPWACreateForm, UsuarioPWAEditForm
-from liderancas.models import Cidade
 
 
 def admin_required(view_func):
@@ -176,7 +176,4 @@ def usuario_pwa_edit(request, pk):
     })
 
 
-@secao_required('config:usuarios')
-def api_cidades_por_regiao(request, regiao_id):
-    cidades = Cidade.objects.filter(regiao_id=regiao_id).order_by('nome').values('id', 'nome')
-    return JsonResponse(list(cidades), safe=False)
+api_cidades_por_regiao = core_api_cidades

@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'core',
     'usuarios',
     'liderancas',
     'agenda',
@@ -154,4 +155,16 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+}
+
+# Cache em memória do processo — usado pelo cache_page das APIs analíticas
+# do mapa. Com múltiplos workers gunicorn cada worker tem o seu, o que é
+# aceitável para dados agregados; trocar por Redis se precisar invalidação.
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'crm-sorgatto',
+        'TIMEOUT': 300,
+        'OPTIONS': {'MAX_ENTRIES': 2000},
+    },
 }

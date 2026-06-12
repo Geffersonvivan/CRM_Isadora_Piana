@@ -8,6 +8,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
+from core.views import api_cidades as core_api_cidades
 from usuarios.views import secao_required
 from liderancas.models import Cidade, Regiao, CoordenadorRegional, CaboEleitoral
 from usuarios.models import Usuario
@@ -876,10 +877,7 @@ def api_tarefa_excluir_permanente(request):
     return JsonResponse({'ok': True, 'count': len(ids)})
 
 
-@secao_required('demandas:tarefas')
-def api_cidades(request, regiao_id):
-    cidades = Cidade.objects.filter(regiao_id=regiao_id).values('id', 'nome').order_by('nome')
-    return JsonResponse(list(cidades), safe=False)
+api_cidades = core_api_cidades
 
 
 @secao_required('demandas:tarefas')
