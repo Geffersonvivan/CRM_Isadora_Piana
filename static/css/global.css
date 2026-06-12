@@ -325,6 +325,25 @@ input[type="date"].form-input, input[type="date"].g-input { color: #475569; }
 .form-modal-errors ul { list-style: none; margin: 0; padding: 0; }
 @media (max-width: 640px) { .form-modal-body .form-grid { grid-template-columns: 1fr !important; } }
 
+/* ---------- Placar da Semana (Home e Painel Lideranças) ---------- */
+.semana-hero {
+    display: flex; align-items: center; gap: 28px; flex-wrap: wrap;
+    background: linear-gradient(120deg, #002776 0%, #0a3d91 60%, #1456b8 100%);
+    border-radius: 16px; padding: 20px 30px; margin-bottom: 20px;
+    color: #fff; box-shadow: 0 10px 30px rgba(0,39,118,0.25);
+}
+.semana-titulo {
+    font-size: 0.72rem; font-weight: 800; letter-spacing: 1px;
+    text-transform: uppercase; opacity: 0.7; width: 100%; margin-bottom: -6px;
+}
+.semana-item { display: flex; flex-direction: column; gap: 2px; }
+.semana-num { font-size: 1.7rem; font-weight: 800; line-height: 1; }
+.semana-num.semana-alerta { color: #fca5a5; }
+.semana-lbl { font-size: 0.72rem; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.4px; }
+.semana-cta { font-size: 0.74rem; font-weight: 700; color: #93c5fd; text-decoration: none; margin-top: 3px; }
+.semana-cta:hover { color: #fff; }
+.semana-sep { width: 1px; height: 44px; background: rgba(255,255,255,0.2); }
+
 /* ---------- Onboarding (banners de 1ª visita + toast de aprendizado) ---------- */
 .onb-banner {
     display: none; position: relative; align-items: flex-start; gap: 12px;

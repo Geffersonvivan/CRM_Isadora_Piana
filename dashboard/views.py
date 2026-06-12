@@ -10,7 +10,7 @@ from core.models import Configuracao
 from core.services import calcular_scores_rede, score_usuario
 from usuarios.models import Usuario
 from usuarios.views import secao_required
-from liderancas.models import Apoiador, CoordenadorRegional, CaboEleitoral, Regiao
+from liderancas.models import Apoiador, CoordenadorRegional, CaboEleitoral, Regiao, InteracaoLog
 from doacoes.models import Doacao
 from agenda.models import Compromisso, Evento
 from tarefas.models import Tarefa
@@ -61,6 +61,26 @@ def home_view(request):
         'cidade',
     ).order_by('-criado_em')[:5]
 
+    # --- Placar da Semana (ciclo de relacionamento) ---
+    from django.db.models import Max
+    from datetime import date
+    from liderancas.views import FREQ_PRAZOS
+    last_7 = now - timedelta(days=7)
+    interacoes_7d = InteracaoLog.objects.filter(data__gte=last_7).count()
+    contatos_alcancados_7d = (
+        InteracaoLog.objects.filter(data__gte=last_7, coordenador__isnull=False).values('coordenador').distinct().count()
+        + InteracaoLog.objects.filter(data__gte=last_7, cabo__isnull=False).values('cabo').distinct().count()
+        + InteracaoLog.objects.filter(data__gte=last_7, apoiador__isnull=False).values('apoiador').distinct().count()
+    )
+    fila_total = 0
+    for qs in (CoordenadorRegional.objects.all(), CaboEleitoral.objects.all(), Apoiador.objects.all()):
+        for c in qs.annotate(ultima=Max('interacoes__data')):
+            prazo = FREQ_PRAZOS.get(c.frequencia_relacionamento, 30)
+            dias = (now - c.ultima).days if c.ultima else None
+            if dias is None or dias > prazo:
+                fila_total += 1
+    dias_eleicao = (date(2026, 10, 4) - hoje).days
+
     # --- Rede ---
     coordenadores_ativos = CoordenadorRegional.objects.count()
     cabos_ativos = CaboEleitoral.objects.count()
@@ -102,6 +122,10 @@ def home_view(request):
     chart_arrec_data = json.dumps([float(m['total']) for m in arrec_mes])
 
     return render(request, 'home.html', {
+        'interacoes_7d': interacoes_7d,
+        'contatos_alcancados_7d': contatos_alcancados_7d,
+        'fila_total': fila_total,
+        'dias_eleicao': dias_eleicao,
         'meta_votos': config.meta_votos,
         'total_votos': total_votos,
         'percentual': percentual,
