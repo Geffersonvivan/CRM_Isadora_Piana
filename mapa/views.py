@@ -2472,14 +2472,10 @@ class PromessasMapAPI(APIView):
 class CityControlAPI(APIView):
     """Marca o controle político de uma cidade (manual, do painel do mapa)."""
     def post(self, request, slug):
-        import json as json_mod
         cid = Cidade.objects.filter(slug=slug).first()
         if not cid:
             return Response({'ok': False, 'error': 'Cidade não encontrada'}, status=404)
-        try:
-            data = json_mod.loads(request.body)
-        except (json_mod.JSONDecodeError, TypeError):
-            return Response({'ok': False, 'error': 'JSON inválido'}, status=400)
+        data = request.data  # DRF já parseia o body (acessar request.body quebra após o CSRF)
         controle = data.get('controle', '')
         if controle not in ('', 'aliado', 'neutro', 'disputado', 'adversario'):
             return Response({'ok': False, 'error': 'Controle inválido'}, status=400)
