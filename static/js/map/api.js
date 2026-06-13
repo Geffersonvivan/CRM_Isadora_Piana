@@ -17,6 +17,7 @@ const API = {
         city: (slug) => apiGet(`/mapa/api/city/${slug}/`),
         heatmap: (metric) => apiGet(`/mapa/api/heatmap/${metric}/`),
         victory: () => apiGet('/mapa/api/vitoria/'),
+        heatLayers: () => apiGet('/mapa/api/calor-camadas/'),
     },
     dashboard: {
         overview: () => apiGet('/mapa/api/overview/'),

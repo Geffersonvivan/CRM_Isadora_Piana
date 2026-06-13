@@ -527,8 +527,8 @@
 <!-- Dashboard contextual abaixo do mapa -->
 <div class="map-wrapper map-dashboard map-dashboard-hidden" id="mapDashboard"></div>
 
-<script src="{% static 'js/map/api.js' %}?v=5"></script>
-<script src="{% static 'js/map/sc-map.js' %}?v=5"></script>
+<script src="{% static 'js/map/api.js' %}?v=6"></script>
+<script src="{% static 'js/map/sc-map.js' %}?v=6"></script>
 <script>
 (function() {
     const map = new SCMap('map-container');
@@ -832,13 +832,7 @@
             {color: '#bbf7d0', label: 'Baixa'},
             {color: '#e2e8f0', label: 'Saturada'},
         ],
-        calor: [
-            {color: '#22c55e', label: '\u22653%'},
-            {color: '#a3e635', label: '\u22652%'},
-            {color: '#eab308', label: '\u22651%'},
-            {color: '#f97316', label: '\u22650.5%'},
-            {color: '#ef4444', label: '<0.5%'},
-        ],
+        calor: [],
         demandas: [
             {color: '#ef4444', label: 'Em atraso'},
             {color: '#22c55e', label: 'Em dia'},
@@ -1096,16 +1090,40 @@ case 'transferencia': {
     }
 
     // ── Calor Dashboard ────────────────────────────────────────
+    const HEAT_LAYER_META = {
+        penetracao:  { label: 'Penetração 2022', grad: 'linear-gradient(to right,#ef4444,#eab308,#22c55e)', lo: 'fraco', hi: 'forte', desc: 'Votos 2022 / eleitores — onde fomos fortes proporcionalmente' },
+        densidade:   { label: 'Densidade de apoiadores', grad: 'linear-gradient(to right,#ef4444,#eab308,#22c55e)', lo: 'vazio', hi: 'denso', desc: 'Apoiadores ativos por mil eleitores — onde temos estrutura hoje' },
+        lacuna:      { label: 'Lacuna de votos', grad: 'linear-gradient(to right,#dcfce7,#fdba74,#dc2626)', lo: 'saturado', hi: 'oportunidade', desc: 'Votos disponíveis (potencial − 2022) — onde há voto na mesa' },
+        absoluto:    { label: 'Votos absolutos (massa)', grad: 'linear-gradient(to right,#eff6ff,#60a5fa,#1e3a8a)', lo: 'poucos', hi: 'muitos', desc: 'Votos de 2022 em número absoluto — onde mora a massa de votos' },
+        fronteira:   { label: 'Fronteira de expansão', grad: 'linear-gradient(to right,#f1f5f9,#c4b5fd,#6d28d9)', lo: 'distante', hi: 'fronteira', desc: 'Cidades coladas na base, com tração — o voto mais barato de conquistar' },
+        esforco:     { label: 'Esforço de campo', grad: 'linear-gradient(to right,#ef4444,#eab308,#22c55e)', lo: 'ausente', hi: 'ativo', desc: 'Compromissos realizados — onde o candidato já pisou' },
+        doacoes:     { label: 'Doações', grad: 'linear-gradient(to right,#ef4444,#eab308,#22c55e)', lo: 'R$0', hi: 'alta', desc: 'Arrecadação confirmada por cidade' },
+        divergencia: { label: '2022 × Estrutura hoje', grad: 'linear-gradient(to right,#dc2626,#f1f5f9,#2563eb)', lo: 'abandonando', hi: 'investindo', desc: 'Vermelho = forte em 2022 mas sem estrutura agora; azul = construindo onde éramos fracos' },
+    };
+    let _heatLayerAtual = 'penetracao';
+
+    window.trocarCamadaCalor = function (layer) {
+        _heatLayerAtual = layer;
+        if (window.mapApp) window.mapApp.setHeatLayer(layer);
+        renderCalorDashboard(window._calorData || {});
+    };
+
     function renderCalorDashboard(data) {
-        // Gradient legend
-        let html = '<div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:16px;">';
-        html += '<span style="font-size:.88rem;font-weight:700;color:#1e293b;">Penetração LS 2022</span>';
+        window._calorData = data;
+        const m = HEAT_LAYER_META[_heatLayerAtual];
+        let html = '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;">';
+        html += '<span style="font-size:.88rem;font-weight:700;color:#1e293b;">Camada:</span>';
+        html += '<select onchange="trocarCamadaCalor(this.value)" style="padding:5px 10px;border:1px solid #cbd5e1;border-radius:7px;font-size:.8rem;font-weight:600;color:#1e293b;cursor:pointer;">';
+        for (const [k, v] of Object.entries(HEAT_LAYER_META)) {
+            html += `<option value="${k}" ${k === _heatLayerAtual ? 'selected' : ''}>${v.label}</option>`;
+        }
+        html += '</select>';
         html += '<div style="display:flex;align-items:center;gap:6px;">';
-        html += '<span style="font-size:.75rem;color:#64748b;">0%</span>';
-        html += '<div style="width:200px;height:16px;border-radius:4px;background:linear-gradient(to right, #ef4444, #eab308, #22c55e)"></div>';
-        html += '<span style="font-size:.75rem;color:#64748b;">5%+</span>';
+        html += `<span style="font-size:.72rem;color:#64748b;">${m.lo}</span>`;
+        html += `<div style="width:180px;height:14px;border-radius:4px;background:${m.grad}"></div>`;
+        html += `<span style="font-size:.72rem;color:#64748b;">${m.hi}</span>`;
         html += '</div>';
-        html += '<span style="font-size:.75rem;color:#94a3b8;">Votos Sorgatto 2022 / Eleitores</span>';
+        html += `<span style="font-size:.73rem;color:#94a3b8;flex:1;min-width:200px;">${m.desc}</span>`;
         html += '</div>';
 
         // Summary cards
@@ -2133,7 +2151,8 @@ case 'transferencia': {
                 map.setHeatmap(false);
                 break;
             case 'calor':
-                map.setHeatmap(true);
+                await map.setHeatmap(true);
+                map.setHeatLayer(_heatLayerAtual);
                 break;
             case 'demandas':
                 await map.setDemands(true);

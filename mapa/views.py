@@ -2424,3 +2424,113 @@ class VictoryMapAPI(APIView):
             'cities': cities,
             'regions': regions,
         })
+
+
+# ─── API: CAMADAS DO MAPA DE CALOR (multi-métrica + fronteira + divergência) ──
+
+class HeatLayersAPI(APIView):
+    """Alimenta o mapa de calor multi-camada: por cidade calcula penetração,
+    densidade de apoiadores, lacuna de votos, votos absolutos, esforço de campo,
+    doações, a fronteira de expansão (proximidade geográfica à base forte) e a
+    divergência entre força de 2022 e estrutura atual."""
+
+    def get(self, request):
+        from math import radians, sin, cos, asin, sqrt
+        from liderancas.views import FREQ_PRAZOS  # noqa (mantém consistência de prazos)
+
+        # contagens de estrutura/esforço por cidade
+        apoi = dict(
+            Apoiador.objects.filter(status='ativo').values('cidade')
+            .annotate(n=Count('id')).values_list('cidade', 'n')
+        )
+        visitas = dict(
+            Compromisso.objects.filter(status='realizado').values('cidade')
+            .annotate(n=Count('id')).values_list('cidade', 'n')
+        )
+        doacoes = dict(
+            Doacao.objects.filter(status='confirmada').values('cidade')
+            .annotate(t=Sum('valor')).values_list('cidade', 't')
+        )
+
+        TARGET_PEN, GROWTH = 0.012, 1.4
+        raw = []
+        for cid in Cidade.objects.select_related('regiao'):
+            v = cid.votos_sorgatto_2022 or 0
+            elei = cid.eleitores or 0
+            pen = (v / elei * 100) if elei else 0
+            ap = apoi.get(cid.id, 0)
+            dens = (ap / elei * 1000) if elei else 0   # apoiadores por mil eleitores
+            meta = cid.meta_votos or int(round(max(v * GROWTH, elei * TARGET_PEN) / 10) * 10)
+            gap = max(0, meta - v)
+            raw.append({
+                'cid': cid, 'slug': cid.slug, 'name': cid.nome,
+                'region_slug': cid.regiao.slug, 'region': cid.regiao.sigla,
+                'lat': cid.latitude, 'lng': cid.longitude,
+                'eleitores': elei, 'votos_2022': v, 'penetracao': round(pen, 2),
+                'apoiadores': ap, 'densidade': round(dens, 2), 'lacuna': gap,
+                'absoluto': v, 'esforco': visitas.get(cid.id, 0),
+                'doacoes': float(doacoes.get(cid.id, 0) or 0),
+                '_pen': pen, '_dens': dens,
+            })
+
+        # ── Fronteira de expansão: proximidade a uma cidade-base (pen>=2%) ──
+        bases = [r for r in raw if r['_pen'] >= 2.0 and r['lat'] and r['lng']]
+
+        def hav(a, b):
+            lat1, lon1, lat2, lon2 = map(radians, [a['lat'], a['lng'], b['lat'], b['lng']])
+            d = sin((lat2 - lat1) / 2) ** 2 + cos(lat1) * cos(lat2) * sin((lon2 - lon1) / 2) ** 2
+            return 2 * 6371 * asin(sqrt(d))
+
+        for r in raw:
+            if r['_pen'] >= 2.0 or not r['lat'] or not r['lng'] or not bases:
+                r['fronteira'] = 0
+                continue
+            dist = min(hav(r, b) for b in bases)
+            prox = max(0.0, 1 - dist / 70.0)            # raio de 70 km
+            traction = min(r['_pen'] / 1.0, 1.0)        # tração já existente
+            size = min(1.0, 0.5 + r['eleitores'] / 30000)
+            r['fronteira'] = round(prox * (0.4 + 0.6 * traction) * size * 100)
+
+        # ── Divergência: percentil de estrutura − percentil de penetração ──
+        def percentis(chave):
+            ordenados = sorted(range(len(raw)), key=lambda i: raw[i][chave])
+            pct = [0.0] * len(raw)
+            for rank, i in enumerate(ordenados):
+                pct[i] = rank / (len(raw) - 1) if len(raw) > 1 else 0
+            return pct
+
+        p_pen = percentis('_pen')
+        p_dens = percentis('_dens')
+        for i, r in enumerate(raw):
+            r['divergencia'] = round((p_dens[i] - p_pen[i]) * 100)
+
+        # ── Monta resposta (cidades) e agrega regiões ──
+        keep = ['slug', 'name', 'region_slug', 'region', 'lat', 'lng', 'eleitores',
+                'votos_2022', 'penetracao', 'apoiadores', 'densidade', 'lacuna',
+                'absoluto', 'esforco', 'doacoes', 'fronteira', 'divergencia']
+        cities = {r['slug']: {k: r[k] for k in keep} for r in raw}
+
+        regions = {}
+        for r in raw:
+            rs = r['region_slug']
+            g = regions.setdefault(rs, {
+                'votos': 0, 'eleitores': 0, 'apoiadores': 0, 'lacuna': 0,
+                'esforco': 0, 'doacoes': 0, 'fronteira': 0, 'div_sum': 0, 'n': 0,
+            })
+            g['votos'] += r['votos_2022']
+            g['eleitores'] += r['eleitores']
+            g['apoiadores'] += r['apoiadores']
+            g['lacuna'] += r['lacuna']
+            g['esforco'] += r['esforco']
+            g['doacoes'] += r['doacoes']
+            g['fronteira'] = max(g['fronteira'], r['fronteira'])
+            g['div_sum'] += r['divergencia']
+            g['n'] += 1
+        for g in regions.values():
+            n = g['n'] or 1
+            g['penetracao'] = round(g['votos'] / g['eleitores'] * 100, 2) if g['eleitores'] else 0
+            g['densidade'] = round(g['apoiadores'] / g['eleitores'] * 1000, 2) if g['eleitores'] else 0
+            g['absoluto'] = g['votos']
+            g['divergencia'] = round(g['div_sum'] / n)
+
+        return Response({'cities': cities, 'regions': regions})

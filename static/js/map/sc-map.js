@@ -27,6 +27,9 @@ class SCMap {
         this._visitUrgencyData = null;
         this.victoryEnabled = false;
         this._victoryData = null;
+        this.heatLayer = 'penetracao';
+        this._heatLayersData = null;
+        this._heatMax = {};
         this.onCityAction = null;
         this._demandsData = null;
         this._itinerariesData = null;
@@ -319,6 +322,75 @@ class SCMap {
     _penetracao(votes, voters) {
         if (!voters || voters === 0) return 0;
         return (votes / voters) * 100;
+    }
+
+    // ── Mapa de calor multi-camada ──
+    static get HEAT_LAYERS() {
+        return {
+            penetracao:  { label: 'Penetração 2022', short: '%', type: 'good', dom: [0, 2, 5], fmt: v => v.toFixed(2) + '%' },
+            densidade:   { label: 'Densidade de apoiadores', short: '/mil elei.', type: 'good', dom: [0, 1, 5], fmt: v => v.toFixed(2) },
+            lacuna:      { label: 'Lacuna de votos (oportunidade)', short: 'votos', type: 'opportunity', dyn: true, fmt: v => '+' + Math.round(v).toLocaleString('pt-BR') },
+            absoluto:    { label: 'Votos absolutos 2022 (massa)', short: 'votos', type: 'mass', dyn: true, fmt: v => Math.round(v).toLocaleString('pt-BR') },
+            fronteira:   { label: 'Fronteira de expansão', short: 'score', type: 'frontier', dom: [0, 50, 100], fmt: v => Math.round(v) },
+            esforco:     { label: 'Esforço de campo (visitas)', short: 'visitas', type: 'good', dyn: true, fmt: v => Math.round(v) },
+            doacoes:     { label: 'Doações', short: 'R$', type: 'good', dyn: true, fmt: v => 'R$ ' + Math.round(v).toLocaleString('pt-BR') },
+            divergencia: { label: '2022 × Estrutura hoje', short: '', type: 'diverging', dom: [-100, 0, 100], fmt: v => (v > 0 ? '+' : '') + Math.round(v) },
+        };
+    }
+
+    _heatColor(layer, value) {
+        const cfg = SCMap.HEAT_LAYERS[layer] || SCMap.HEAT_LAYERS.penetracao;
+        if (value === null || value === undefined) return '#e2e8f0';
+        const max = cfg.dyn ? (this._heatMax[layer] || 1) : null;
+        let scale;
+        if (cfg.type === 'good') {
+            const dom = cfg.dyn ? [0, max / 4, max] : cfg.dom;
+            scale = d3.scaleLinear().domain(dom).range(['#ef4444', '#eab308', '#22c55e']).clamp(true);
+        } else if (cfg.type === 'opportunity') {
+            scale = d3.scaleLinear().domain([0, max / 2, max]).range(['#dcfce7', '#fdba74', '#dc2626']).clamp(true);
+        } else if (cfg.type === 'mass') {
+            scale = d3.scaleLinear().domain([0, max / 3, max]).range(['#eff6ff', '#60a5fa', '#1e3a8a']).clamp(true);
+        } else if (cfg.type === 'frontier') {
+            scale = d3.scaleLinear().domain([0, 40, 90]).range(['#f1f5f9', '#c4b5fd', '#6d28d9']).clamp(true);
+        } else if (cfg.type === 'diverging') {
+            scale = d3.scaleLinear().domain([-60, 0, 60]).range(['#dc2626', '#f1f5f9', '#2563eb']).clamp(true);
+        }
+        return scale(value);
+    }
+
+    _computeHeatMax() {
+        this._heatMax = {};
+        const cities = Object.values(this._heatLayersData?.cities || {});
+        for (const layer of ['lacuna', 'absoluto', 'esforco', 'doacoes']) {
+            this._heatMax[layer] = Math.max(1, ...cities.map(c => c[layer] || 0));
+        }
+    }
+
+    async setHeatLayer(layer) {
+        this.heatLayer = layer;
+        if (this.currentLevel === 'state' && this._stateGeojson) this._applyStateColors(false);
+        else if (this.currentLevel === 'region' && this._regionGeojson) this._applyRegionColors(false);
+    }
+
+    _heatVal(slug, level) {
+        const src = level === 'region' ? this._heatLayersData?.regions : this._heatLayersData?.cities;
+        const o = (src || {})[slug];
+        return o ? o[this.heatLayer] : null;
+    }
+
+    _heatTipHtml(p, level) {
+        const cfg = SCMap.HEAT_LAYERS[this.heatLayer];
+        const src = level === 'region' ? this._heatLayersData?.regions : this._heatLayersData?.cities;
+        const o = (src || {})[p.slug];
+        let html = `<div class="tooltip-title">${p.name}</div>`;
+        if (!o) return html + '<div class="tooltip-row"><span style="color:#9ca3af">Sem dados</span></div>';
+        const val = o[this.heatLayer];
+        html += `<div class="tooltip-row"><span class="tooltip-label">${cfg.label}:</span> <span class="tooltip-value" style="color:${this._heatColor(this.heatLayer, val)};font-weight:800">${cfg.fmt(val || 0)}</span></div>`;
+        if (o.penetracao !== undefined && this.heatLayer !== 'penetracao') html += `<div class="tooltip-row"><span class="tooltip-label">Penetração 2022:</span> <span class="tooltip-value">${o.penetracao}%</span></div>`;
+        if (o.votos_2022 !== undefined) html += `<div class="tooltip-row"><span class="tooltip-label">Votos 2022:</span> <span class="tooltip-value">${(o.votos_2022||0).toLocaleString('pt-BR')}</span></div>`;
+        if (o.apoiadores !== undefined) html += `<div class="tooltip-row"><span class="tooltip-label">Apoiadores:</span> <span class="tooltip-value">${o.apoiadores||0}</span></div>`;
+        if (level !== 'region') html += '<div class="tooltip-row"><span class="tooltip-label" style="color:#9ca3af">Clique para o painel de ação</span></div>';
+        return html;
     }
 
     init() {
@@ -819,7 +891,7 @@ class SCMap {
         this.g.selectAll('.itinerary-line,.itinerary-marker,.transfer-arrow,.transfer-marker,.transfer-city,.concorrencia-city,.perfil-city,.builder-marker,.builder-line').remove();
     }
 
-    setHeatmap(enabled) {
+    async setHeatmap(enabled) {
         this.heatmapEnabled = enabled;
         if (enabled) {
             this.demandsEnabled = false;
@@ -831,6 +903,12 @@ class SCMap {
             this.neighborDeputiesEnabled = false;
             this.elections2022Enabled = false;
             this.doacoesEnabled = false;
+            this.victoryEnabled = false;
+            this.visitUrgencyEnabled = false;
+            if (!this._heatLayersData) {
+                try { this._heatLayersData = await API.maps.heatLayers(); this._computeHeatMax(); }
+                catch (e) { this._heatLayersData = null; }
+            }
         }
         this._resetToNeutral();
         if (this.currentLevel === 'state' && this._stateGeojson) {
@@ -1676,6 +1754,7 @@ class SCMap {
                     return self._doacoesColor(valor, self._doacoesMaxRegion);
                 }
                 if (self.heatmapEnabled) {
+                    if (self._heatLayersData) return self._heatColor(self.heatLayer, self._heatVal(d.properties.slug, 'region'));
                     const pct = self._penetracao(d.properties.total_votes_2022, d.properties.registered_voters);
                     return colorScale(pct);
                 }
@@ -1706,7 +1785,9 @@ class SCMap {
         // Atualizar tooltips
         const tipHtmls = new Map();
         for (const f of this._stateGeojson.features) {
-            if (self.victoryEnabled) {
+            if (self.heatmapEnabled && self._heatLayersData) {
+                tipHtmls.set(f.properties.slug, self._heatTipHtml(f.properties, 'region'));
+            } else if (self.victoryEnabled) {
                 tipHtmls.set(f.properties.slug, self._victoryRegionTipHtml(f.properties));
             } else if (self.visitUrgencyEnabled) {
                 tipHtmls.set(f.properties.slug, self._urgencyRegionTipHtml(f.properties));
@@ -1828,6 +1909,7 @@ class SCMap {
                     return self._doacoesColor(valor, self._doacoesMaxCity);
                 }
                 if (!self.heatmapEnabled) return '#80a5dc';
+                if (self._heatLayersData) return self._heatColor(self.heatLayer, self._heatVal(d.properties.slug, 'city'));
                 const pct = self._penetracao(d.properties.votes_2022, d.properties.registered_voters);
                 return colorScale(pct);
             })
@@ -1836,7 +1918,9 @@ class SCMap {
         // Atualizar tooltips
         const tipHtmls = new Map();
         for (const f of this._regionGeojson.features) {
-            if (self.victoryEnabled) {
+            if (self.heatmapEnabled && self._heatLayersData) {
+                tipHtmls.set(f.properties.slug, self._heatTipHtml(f.properties, 'city'));
+            } else if (self.victoryEnabled) {
                 tipHtmls.set(f.properties.slug, self._victoryCityTipHtml(f.properties));
             } else if (self.visitUrgencyEnabled) {
                 tipHtmls.set(f.properties.slug, self._urgencyCityTipHtml(f.properties));
@@ -1892,7 +1976,7 @@ class SCMap {
             })
             .on('click', (event, d) => {
                 this._hideTip();
-                if ((self.visitUrgencyEnabled || self.victoryEnabled) && self.onCityAction) {
+                if ((self.visitUrgencyEnabled || self.victoryEnabled || self.heatmapEnabled) && self.onCityAction) {
                     self.onCityAction(d.properties.slug);
                     return;
                 }
@@ -2062,7 +2146,7 @@ class SCMap {
                 })
                 .on('click', (event, d) => {
                     this._hideTip();
-                    if ((this.visitUrgencyEnabled || this.victoryEnabled) && this.onCityAction) {
+                    if ((this.visitUrgencyEnabled || this.victoryEnabled || this.heatmapEnabled) && this.onCityAction) {
                         this.onCityAction(d.properties.slug);
                         return;
                     }
@@ -2091,7 +2175,7 @@ class SCMap {
 
             this.svg.transition().duration(300).call(this.zoom.transform, d3.zoomIdentity);
 
-            if (this.visitUrgencyEnabled || this.victoryEnabled) this._applyRegionColors(true);
+            if (this.visitUrgencyEnabled || this.victoryEnabled || this.heatmapEnabled) this._applyRegionColors(true);
 
         } catch (e) {
             console.error('Erro zoom regiao:', e);
