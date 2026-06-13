@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<style>
+    .form-card { max-width: 720px; }
+    .btn-secondary { background: #e5e7eb; color: #374151; border: none; }
+    .btn-secondary:hover { background: #d1d5db; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">{{ titulo }}</h1>
+</div>
+
+<div class="form-card">
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-grid">
+            {% for field in form.visible_fields %}
+            <div class="form-group{% if field.name == 'observacoes' or field.name == 'descricao' %} full{% endif %}">
+                <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+                {{ field }}
+                {{ field.errors }}
+            </div>
+            {% endfor %}
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">{% if form.instance.pk %}Salvar{% else %}Registrar{% endif %}</button>
+            <a href="{% url 'tarefas:promessa_list' %}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/liderancas-common.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    LiderancasCommon.initCityLoader('#id_regiao', '#id_cidade', true);
+});
+</script>
+{% endblock %}
