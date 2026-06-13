@@ -113,6 +113,24 @@ class Cidade(models.Model):
     latitude = models.FloatField(null=True, blank=True, verbose_name='Latitude')
     longitude = models.FloatField(null=True, blank=True, verbose_name='Longitude')
 
+    CONTROLE_CHOICES = [
+        ('aliado', 'Aliado'),
+        ('neutro', 'Neutro'),
+        ('disputado', 'Em disputa'),
+        ('adversario', 'Adversário'),
+    ]
+    controle = models.CharField(
+        max_length=12, choices=CONTROLE_CHOICES, blank=True,
+        verbose_name='Controle político',
+        help_text='Quem domina a cidade politicamente (vazio = não classificado).',
+    )
+    controle_manual = models.BooleanField(
+        default=False,
+        help_text='Marcado à mão — a auto-detecção não sobrescreve.',
+    )
+    adversario_nome = models.CharField(max_length=200, blank=True, verbose_name='Adversário (quem controla)')
+    adversario_partido = models.CharField(max_length=50, blank=True, verbose_name='Partido do adversário')
+
     class Meta:
         ordering = ['nome']
         unique_together = [['slug', 'regiao']]

@@ -527,8 +527,8 @@
 <!-- Dashboard contextual abaixo do mapa -->
 <div class="map-wrapper map-dashboard map-dashboard-hidden" id="mapDashboard"></div>
 
-<script src="{% static 'js/map/api.js' %}?v=10"></script>
-<script src="{% static 'js/map/sc-map.js' %}?v=10"></script>
+<script src="{% static 'js/map/api.js' %}?v=11"></script>
+<script src="{% static 'js/map/sc-map.js' %}?v=11"></script>
 <script>
 (function() {
     const map = new SCMap('map-container');
@@ -1446,6 +1446,21 @@ case 'transferencia': {
         document.getElementById('capTitulo').textContent = `${d.nome} · ${d.regiao}`;
         const dataSel = document.getElementById('rotBuilderData')?.value || _amanha();
         let html = '';
+
+        // Quem controla? (seletor de controle político)
+        const ctrl = d.controle || '';
+        const ctrlCores = { aliado: '#15803d', neutro: '#9ca3af', disputado: '#7c3aed', adversario: '#dc2626' };
+        html += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:9px 11px;margin-bottom:10px;">';
+        html += '<div style="font-size:.68rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px;">Quem controla?' + (d.controle_manual ? ' <span style="color:#2563eb;">(manual)</span>' : (ctrl ? ' <span style="color:#94a3b8;font-weight:400;text-transform:none;">auto</span>' : '')) + '</div>';
+        html += '<div style="display:flex;gap:4px;flex-wrap:wrap;">';
+        for (const [k, lbl] of [['aliado','Aliado'],['neutro','Neutro'],['disputado','Disputa'],['adversario','Adversário']]) {
+            const on = ctrl === k;
+            html += `<button onclick="marcarControle('${slug}','${k}')" style="flex:1;padding:5px 4px;border:1px solid ${ctrlCores[k]};border-radius:6px;font-size:.7rem;font-weight:700;cursor:pointer;background:${on?ctrlCores[k]:'#fff'};color:${on?'#fff':ctrlCores[k]};">${lbl}</button>`;
+        }
+        html += '</div>';
+        if (d.adversario_nome) html += `<div style="font-size:.72rem;color:#dc2626;margin-top:5px;">Reduto de ${d.adversario_nome} (${d.adversario_partido})</div>`;
+        html += '</div>';
+
         // Cabeçalho estratégico (modo Vitória 2026)
         const vc = (map._victoryData?.cities || {})[slug];
         if (map.victoryEnabled && vc) {
@@ -1494,6 +1509,28 @@ case 'transferencia': {
     }
 
     map.onCityAction = openCityActionPanel;
+
+    window.marcarControle = function (slug, controle) {
+        fetch('/mapa/api/cidade/' + slug + '/controle/', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken'), 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ controle: controle }),
+        }).then(r => r.json()).then(d => {
+            if (d.ok) {
+                openCityActionPanel(slug);            // recarrega o painel
+                if (map.strategicEnabled) {           // recolore o mapa estratégico
+                    map._strategicData = null;
+                    API.dashboard.strategic().then(data => {
+                        window._strategicData = data; map._strategicData = data;
+                        if (map.currentLevel === 'state') map._applyStateColors(false);
+                        else map._applyRegionColors(false);
+                        if (typeof renderStrategicDashboard === 'function') renderStrategicDashboard(data);
+                    });
+                }
+            } else { alert(d.error || 'Erro ao salvar.'); }
+        }).catch(() => alert('Erro de conexão.'));
+    };
 
     // ── Vitória 2026: dashboard estratégico ───────────────────────
     let _victoryQuadFiltro = null;
@@ -1586,18 +1623,19 @@ case 'transferencia': {
 
     // ── Estrategico Dashboard ──────────────────────────────────
     const strategicColors = {
-        maquina_voto: '#15803d', aliado_ativar: '#f59e0b',
-        construir: '#f97316', hostil: '#dc2626', neutro: '#9ca3af',
+        maquina_voto: '#15803d', aliado_ativar: '#f59e0b', construir: '#f97316',
+        disputa: '#7c3aed', hostil: '#dc2626', neutro: '#9ca3af',
     };
     const strategicLabels = {
         maquina_voto: '🏭 Máquina de voto', aliado_ativar: '🤝 Aliado a ativar',
-        construir: '🏗️ Construir', hostil: '🚫 Hostil', neutro: '⚪ Neutro',
+        construir: '🏗️ Construir', disputa: '⚔️ Em disputa', hostil: '🚫 Hostil', neutro: '⚪ Neutro',
     };
     const strategicDesc = {
         maquina_voto: 'Aliado político + cabos trabalhando — colher',
         aliado_ativar: 'Aliado político SEM cabo engajado — ativar (alavanca)',
         construir: 'Voto disponível, zero aliado — recrutar liderança',
-        hostil: 'Adversário no comando — baixo retorno',
+        disputa: 'Eleitorado dividido — batalha pelo voto',
+        hostil: 'Reduto adversário — baixo retorno',
         neutro: 'Sem aliados e pouca oportunidade',
     };
 
@@ -1613,8 +1651,8 @@ case 'transferencia': {
         html += '</div>';
 
         // Cards de classificação (clicáveis = filtro)
-        html += '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:10px;">';
-        for (const key of ['maquina_voto','aliado_ativar','construir','hostil','neutro']) {
+        html += '<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:10px;">';
+        for (const key of ['maquina_voto','aliado_ativar','construir','disputa','hostil','neutro']) {
             const ativo = _stratFiltro === key;
             html += `<div onclick="filtrarEstrategico('${key}')" style="cursor:pointer;border:2px solid ${strategicColors[key]};background:${ativo ? strategicColors[key] : '#fff'};border-radius:10px;padding:9px 11px;">`;
             html += `<div style="font-size:1.3rem;font-weight:800;color:${ativo ? '#fff' : strategicColors[key]};">${summary[key] || 0}</div>`;

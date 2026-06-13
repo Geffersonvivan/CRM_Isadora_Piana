@@ -595,8 +595,8 @@ class StrategicAnalysisAPI(APIView):
 
         result = []
         summary = {
-            'maquina_voto': 0, 'aliado_ativar': 0,
-            'construir': 0, 'hostil': 0, 'neutro': 0,
+            'maquina_voto': 0, 'aliado_ativar': 0, 'construir': 0,
+            'disputa': 0, 'hostil': 0, 'neutro': 0,
         }
 
         for city in cities:
@@ -614,8 +614,9 @@ class StrategicAnalysisAPI(APIView):
             meta = city.meta_votos or int(round(max(votes * GROWTH, voters * TARGET_PEN) / 10) * 10)
             gap = max(0, meta - votes)
 
-            # alinhamento (aliado = temos políticos; adversário = partido do prefeito)
-            if mayor_party in ADVERSARY_PARTIES:
+            # alinhamento (aliado = temos políticos; adversário = controle marcado/auto)
+            controle = city.controle or ''
+            if controle == 'adversario' or mayor_party in ADVERSARY_PARTIES:
                 alignment = 'adversary'
             elif aliados > 0 or mayor_party in ALLIED_PARTIES:
                 alignment = 'allied'
@@ -623,8 +624,11 @@ class StrategicAnalysisAPI(APIView):
                 alignment = 'neutral'
 
             # classificação pelo CAMINHO POLÍTICO até o voto
-            if alignment == 'adversary':
+            # (controle adversário/disputa sobrepõe — é o terreno do oponente)
+            if controle == 'adversario':
                 cls = 'hostil'
+            elif controle == 'disputado':
+                cls = 'disputa'
             elif aliados > 0:
                 cls = 'maquina_voto' if cabos > 0 else 'aliado_ativar'
             elif gap >= 120:
@@ -713,6 +717,9 @@ class StrategicAnalysisAPI(APIView):
                 'crm': crm,
                 'alertas': alertas,
                 'gap': gap,
+                'controle': controle,
+                'adversario_nome': city.adversario_nome or '',
+                'adversario_partido': city.adversario_partido or '',
                 'politicos': {
                     'prefeito': pol['prefeito'], 'vice': pol['vice'],
                     'vereador': pol['vereador'], 'presidente': pol['presidente'],
@@ -2387,6 +2394,10 @@ class CityActionAPI(APIView):
             'nome': cid.nome,
             'slug': cid.slug,
             'regiao': cid.regiao.sigla,
+            'controle': cid.controle,
+            'controle_manual': cid.controle_manual,
+            'adversario_nome': cid.adversario_nome,
+            'adversario_partido': cid.adversario_partido,
             'lat': cid.latitude,
             'lng': cid.longitude,
             'total_contatos': len(contatos),
@@ -2456,6 +2467,34 @@ class PromessasMapAPI(APIView):
                         'taxa': round(entregues / total * 100) if total else 0},
             'ultimas': ultimas,
         })
+
+
+class CityControlAPI(APIView):
+    """Marca o controle político de uma cidade (manual, do painel do mapa)."""
+    def post(self, request, slug):
+        import json as json_mod
+        cid = Cidade.objects.filter(slug=slug).first()
+        if not cid:
+            return Response({'ok': False, 'error': 'Cidade não encontrada'}, status=404)
+        try:
+            data = json_mod.loads(request.body)
+        except (json_mod.JSONDecodeError, TypeError):
+            return Response({'ok': False, 'error': 'JSON inválido'}, status=400)
+        controle = data.get('controle', '')
+        if controle not in ('', 'aliado', 'neutro', 'disputado', 'adversario'):
+            return Response({'ok': False, 'error': 'Controle inválido'}, status=400)
+        cid.controle = controle
+        cid.controle_manual = bool(controle)   # vazio = volta ao automático
+        if controle in ('adversario', 'disputado'):
+            cid.adversario_nome = data.get('adversario_nome', cid.adversario_nome)
+            cid.adversario_partido = data.get('adversario_partido', cid.adversario_partido)
+        else:
+            cid.adversario_nome = ''
+            cid.adversario_partido = ''
+        cid.save(update_fields=['controle', 'controle_manual', 'adversario_nome', 'adversario_partido'])
+        from django.core.cache import cache
+        cache.clear()   # invalida o cache da análise estratégica
+        return Response({'ok': True, 'controle': cid.controle})
 
 
 # ─── API: VITÓRIA 2026 (lacuna de votos + quadrantes + presença CRM) ──────

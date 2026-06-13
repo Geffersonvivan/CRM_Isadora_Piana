@@ -202,6 +202,7 @@ class SCMap {
             maquina_voto: '#15803d',
             aliado_ativar: '#f59e0b',
             construir: '#f97316',
+            disputa: '#7c3aed',
             hostil: '#dc2626',
             neutro: '#9ca3af',
         };
@@ -1927,7 +1928,7 @@ class SCMap {
         if (!this._strategicData) return '';
         const city = this._strategicData.cities.find(c => c.slug === p.slug);
         if (!city) return this._cityTipHtml(p);
-        const labels = { maquina_voto: '🏭 Máquina de voto', aliado_ativar: '🤝 Aliado a ativar', construir: '🏗️ Construir', hostil: '🚫 Hostil', neutro: '⚪ Neutro' };
+        const labels = { maquina_voto: '🏭 Máquina de voto', aliado_ativar: '🤝 Aliado a ativar', construir: '🏗️ Construir', disputa: '⚔️ Em disputa', hostil: '🚫 Hostil', neutro: '⚪ Neutro' };
         const color = this._strategicColor(city.classification);
         const po = city.politicos || {};
         let html = `<div class="tooltip-title">${p.name}</div>`;
@@ -1943,6 +1944,8 @@ class SCMap {
         }
         html += `<div class="tooltip-row"><span class="tooltip-label">Votos LS 2022</span> <span class="tooltip-value">${(city.votes_2022 || 0).toLocaleString('pt-BR')} (${city.penetration.toFixed(2)}%)</span></div>`;
         if (city.gap) html += `<div class="tooltip-row"><span class="tooltip-label">Votos disponíveis</span> <span class="tooltip-value">+${city.gap.toLocaleString('pt-BR')}</span></div>`;
+        if (city.adversario_nome) html += `<div class="tooltip-row"><span class="tooltip-label">Adversário</span> <span class="tooltip-value" style="color:#dc2626">${city.adversario_nome} (${city.adversario_partido})</span></div>`;
+        html += '<div class="tooltip-row"><span class="tooltip-label" style="color:#9ca3af">Clique para marcar o controle</span></div>';
         return html;
     }
 
@@ -2064,7 +2067,7 @@ class SCMap {
             })
             .on('click', (event, d) => {
                 this._hideTip();
-                if ((self.visitUrgencyEnabled || self.victoryEnabled || self.heatmapEnabled || self.demandsEnabled) && self.onCityAction) {
+                if ((self.visitUrgencyEnabled || self.victoryEnabled || self.heatmapEnabled || self.demandsEnabled || self.strategicEnabled) && self.onCityAction) {
                     self.onCityAction(d.properties.slug);
                     return;
                 }
@@ -2234,7 +2237,7 @@ class SCMap {
                 })
                 .on('click', (event, d) => {
                     this._hideTip();
-                    if ((this.visitUrgencyEnabled || this.victoryEnabled || this.heatmapEnabled || this.demandsEnabled) && this.onCityAction) {
+                    if ((this.visitUrgencyEnabled || this.victoryEnabled || this.heatmapEnabled || this.demandsEnabled || this.strategicEnabled) && this.onCityAction) {
                         this.onCityAction(d.properties.slug);
                         return;
                     }
