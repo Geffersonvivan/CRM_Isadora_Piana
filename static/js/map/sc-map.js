@@ -585,6 +585,15 @@ class SCMap {
             .clamp(true)(score);
     }
 
+    _oppColor(score) {
+        // Camada de oportunidade (gap): cinza claro → amarelo → laranja → vermelho.
+        // 0 = baixa prioridade (já forte / pouco eleitorado), 1 = alvo prioritário.
+        return d3.scaleLinear()
+            .domain([0, 0.33, 0.66, 1])
+            .range(['#f1f5f9', '#fde68a', '#fb923c', '#b91c1c'])
+            .clamp(true)(score);
+    }
+
     _perfilTipHtml(d) {
         const slug = d.properties.slug;
         const c = this._perfilRawData?.[slug];
@@ -604,11 +613,23 @@ class SCMap {
             html += `<div style="height:6px;background:#e2e8f0;border-radius:3px;margin-bottom:6px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${scoreColor};border-radius:3px;transition:width .3s"></div></div>`;
         }
 
+        // Oportunidade (modo gap): conservadorismo × eleitorado × déficit de presença
+        const on = this._perfilOpp?.[slug];
+        if (this._perfilOppActive && on !== undefined) {
+            const oppPct = (on * 100).toFixed(0);
+            const oppColor = this._oppColor(on);
+            const oppLabel = on >= 0.66 ? 'Alvo prioritário' : on >= 0.33 ? 'Boa oportunidade' : on >= 0.10 ? 'Moderada' : 'Baixa / já forte';
+            html += `<div class="tooltip-row" style="margin-bottom:4px"><span class="tooltip-label">Oportunidade</span> <span class="tooltip-value" style="color:${oppColor};font-weight:bold">${oppLabel} (${oppPct})</span></div>`;
+            html += `<div style="height:6px;background:#e2e8f0;border-radius:3px;margin-bottom:4px;overflow:hidden"><div style="width:${oppPct}%;height:100%;background:${oppColor};border-radius:3px;transition:width .3s"></div></div>`;
+            const penTxt = c.penetration !== undefined ? `${c.penetration.toFixed(1)}%` : '—';
+            html += `<div class="tooltip-row" style="margin-bottom:6px;font-size:.62rem;color:#94a3b8"><span class="tooltip-label" style="color:#94a3b8">Penetração 2022</span> <span class="tooltip-value" style="color:#94a3b8">${penTxt} · ${(c.apoiadores || 0).toLocaleString('pt-BR')} apoiadores</span></div>`;
+        }
+
         const LABELS = {
             governador_1t: 'Gov. 1T', governador_2t: 'Gov. 2T', senador_1t: 'Senador',
             pib: 'PIB p/c', renda: 'Renda p/c', bf: 'Bolsa Fam.', meis: 'MEIs',
             pop_urbana_pct: '% Urbana', idosos_pct: '% Idosos', jovens_pct: '% Jovens',
-            escolaridade: 'Escolaridade',
+            escolaridade: 'Alfabetiz.',
         };
 
         // Dados eleitorais selecionados
@@ -639,7 +660,7 @@ class SCMap {
                 else if (key === 'pop_urbana_pct') val = (c.pop_urbana_pct_raw || 0).toFixed(1) + '%';
                 else if (key === 'idosos_pct') val = (c.idosos_pct_raw || 0).toFixed(1) + '%';
                 else if (key === 'jovens_pct') val = (c.jovens_pct_raw || 0).toFixed(1) + '%';
-                else if (key === 'escolaridade') val = (c.escolaridade_raw || 0).toFixed(1) + ' anos';
+                else if (key === 'escolaridade') val = (c.escolaridade_raw || 0).toFixed(1) + '% alfabetiz.';
                 else val = (c[key] * 100).toFixed(1) + '%';
                 html += `<div class="tooltip-row"><span class="tooltip-label">${LABELS[key] || key}</span> <span class="tooltip-value">${val}</span></div>`;
             }

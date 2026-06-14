@@ -1,0 +1,24 @@
+name: Sincronizar indicadores (mensal)
+
+# Atualiza os indicadores municipais com dados reais do IBGE e roda a auditoria.
+# Cadência MENSAL — os dados oficiais (IBGE anual, Bolsa Família mensal) não mudam
+# com mais frequência, então rodar todo dia só desperdiça requisição.
+on:
+  schedule:
+    # Dia 5 de cada mês, 06:00 UTC (03:00 BRT). Dá tempo das fontes publicarem.
+    - cron: '0 6 5 * *'
+  workflow_dispatch: {}   # permite rodar manualmente pelo botão do GitHub
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar Railway CLI
+        run: npm i -g @railway/cli
+
+      - name: Rodar sync_indicadores na produção (Railway)
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway run python manage.py sync_indicadores

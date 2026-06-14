@@ -385,6 +385,9 @@
     [data-help] { cursor: help; }
     .mode-btn[data-help] { cursor: pointer; }
     #mapHelpPop b { color: #fcd34d; }
+    /* selo de dado estimado (derivado do PIB, não medido) */
+    .est-badge { font-size: .58rem; font-weight: 700; color: #b45309; background: #fef3c7;
+        border-radius: 4px; padding: 1px 4px; vertical-align: middle; letter-spacing: .3px; }
 </style>
 {% endblock %}
 
@@ -459,40 +462,40 @@
         </div>
         <div id="perfilPanel" style="display:none;position:absolute;top:14px;left:14px;z-index:500;background:rgba(255,255,255,.97);backdrop-filter:blur(2px);border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;box-shadow:0 6px 20px rgba(15,23,42,.12);width:280px;font-size:.8rem;max-height:calc(100% - 28px);overflow-y:auto;">
             <!-- Presets -->
-            <div style="font-size:.66rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Cenários</div>
+            <div style="font-size:.66rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;" data-help="pf:cenarios">Cenários</div>
             <div id="perfilPresets" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;">
-                <button class="preset-btn" data-preset="base" style="font-size:.68rem;padding:4px 8px;border:1px solid #cbd5e1;border-radius:5px;background:#f8fafc;color:#334155;cursor:pointer;transition:all .15s;" title="Cidades ultra conservadoras com alta pop.">Base garantida</button>
-                <button class="preset-btn" data-preset="investir" style="font-size:.68rem;padding:4px 8px;border:1px solid #cbd5e1;border-radius:5px;background:#f8fafc;color:#334155;cursor:pointer;transition:all .15s;" title="Moderadas com pop. alta e poucos apoiadores">Onde investir</button>
-                <button class="preset-btn" data-preset="disputar" style="font-size:.68rem;padding:4px 8px;border:1px solid #cbd5e1;border-radius:5px;background:#f8fafc;color:#334155;cursor:pointer;transition:all .15s;" title="Menos conservadoras - requer estratégia">A disputar</button>
-                <button class="preset-btn" data-preset="completo" style="font-size:.68rem;padding:4px 8px;border:1px solid #cbd5e1;border-radius:5px;background:#f8fafc;color:#334155;cursor:pointer;transition:all .15s;" title="Todos os dados, peso igual">Visão completa</button>
-                <button class="preset-btn" data-preset="limpar" style="font-size:.68rem;padding:4px 8px;border:1px solid #cbd5e1;border-radius:5px;background:#f8fafc;color:#94a3b8;cursor:pointer;transition:all .15s;" title="Desmarcar tudo">Limpar</button>
+                <button class="preset-btn" data-preset="base" data-help="cen:base" style="font-size:.68rem;padding:4px 8px;border:1px solid #cbd5e1;border-radius:5px;background:#f8fafc;color:#334155;cursor:pointer;transition:all .15s;">Base garantida</button>
+                <button class="preset-btn" data-preset="investir" data-help="cen:investir" style="font-size:.68rem;padding:4px 8px;border:1px solid #cbd5e1;border-radius:5px;background:#f8fafc;color:#334155;cursor:pointer;transition:all .15s;">Onde investir</button>
+                <button class="preset-btn" data-preset="disputar" data-help="cen:disputar" style="font-size:.68rem;padding:4px 8px;border:1px solid #cbd5e1;border-radius:5px;background:#f8fafc;color:#334155;cursor:pointer;transition:all .15s;">A disputar</button>
+                <button class="preset-btn" data-preset="completo" data-help="cen:completo" style="font-size:.68rem;padding:4px 8px;border:1px solid #cbd5e1;border-radius:5px;background:#f8fafc;color:#334155;cursor:pointer;transition:all .15s;">Visão completa</button>
+                <button class="preset-btn" data-preset="limpar" data-help="cen:limpar" style="font-size:.68rem;padding:4px 8px;border:1px solid #cbd5e1;border-radius:5px;background:#f8fafc;color:#94a3b8;cursor:pointer;transition:all .15s;">Limpar</button>
             </div>
             <div style="border-top:1px solid #e2e8f0;margin-bottom:10px;"></div>
             <!-- Checkboxes eleitorais -->
-            <div style="font-size:.66rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Dados Eleitorais</div>
+            <div style="font-size:.66rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;" data-help="sec:eleitoral">Dados Eleitorais</div>
             <div id="perfilElectoralChecks">
-                <div style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="governador_1t" data-group="eleitoral" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">Governador 1º turno</label></div>
-                <div style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="governador_2t" data-group="eleitoral" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">Governador 2º turno</label></div>
-                <div style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="senador_1t" data-group="eleitoral" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">Senador</label></div>
+                <div data-help="pf:gov1t" style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="governador_1t" data-group="eleitoral" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">Governador 1º turno</label></div>
+                <div data-help="pf:gov2t" style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="governador_2t" data-group="eleitoral" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">Governador 2º turno</label></div>
+                <div data-help="pf:senador" style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="senador_1t" data-group="eleitoral" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">Senador</label></div>
             </div>
             <!-- Checkboxes socioeconômicos -->
-            <div style="font-size:.66rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.6px;margin:10px 0 6px;">Dados Socioeconômicos</div>
+            <div style="font-size:.66rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.6px;margin:10px 0 6px;" data-help="sec:socio">Dados Socioeconômicos</div>
             <div id="perfilSocioChecks">
-                <div style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="pib" data-group="socio" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">PIB per capita</label></div>
-                <div style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="renda" data-group="socio" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">Renda per capita</label></div>
-                <div style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="bf" data-group="socio" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">Bolsa Família (menos = mais conservador)</label></div>
-                <div style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="meis" data-group="socio" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">MEIs ativos</label></div>
+                <div data-help="pf:pib" style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="pib" data-group="socio" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">PIB per capita</label></div>
+                <div data-help="pf:renda" style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="renda" data-group="socio" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">Renda per capita</label></div>
+                <div data-help="pf:bf" style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="bf" data-group="socio" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">Bolsa Família (menos = mais conservador) <span class="est-badge">est.</span></label></div>
+                <div data-help="pf:meis" style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="meis" data-group="socio" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">MEIs ativos <span class="est-badge">est.</span></label></div>
             </div>
             <!-- Checkboxes demográficos -->
-            <div style="font-size:.66rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.6px;margin:10px 0 6px;">Dados Demográficos</div>
+            <div style="font-size:.66rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.6px;margin:10px 0 6px;" data-help="sec:demo">Dados Demográficos</div>
             <div id="perfilDemoChecks">
-                <div style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="pop_urbana_pct" data-group="socio" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">% Pop. urbana</label></div>
-                <div style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="idosos_pct" data-group="socio" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">% Idosos (60+)</label></div>
-                <div style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="jovens_pct" data-group="socio" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">% Jovens (18-29)</label></div>
-                <div style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="escolaridade" data-group="socio" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">Escolaridade média</label></div>
+                <div data-help="pf:urbana" style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="pop_urbana_pct" data-group="socio" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">% Pop. urbana</label></div>
+                <div data-help="pf:idosos" style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="idosos_pct" data-group="socio" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">% Idosos (60+)</label></div>
+                <div data-help="pf:jovens" style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="jovens_pct" data-group="socio" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">% Jovens (18-29)</label></div>
+                <div data-help="pf:escolaridade" style="display:flex;align-items:center;gap:7px;padding:3px 0;cursor:pointer;"><input type="checkbox" data-key="escolaridade" data-group="socio" style="accent-color:#1e40af;cursor:pointer;width:15px;height:15px;"><label style="cursor:pointer;color:#334155;flex:1;">Alfabetização</label></div>
             </div>
             <!-- Slider peso -->
-            <div style="margin-top:12px;border-top:1px solid #e2e8f0;padding-top:10px;">
+            <div style="margin-top:12px;border-top:1px solid #e2e8f0;padding-top:10px;" data-help="pf:slider">
                 <div style="display:flex;justify-content:space-between;font-size:.7rem;color:#64748b;margin-bottom:4px;">
                     <span>Socioecon.</span>
                     <span id="perfilPesoLabel">50% / 50%</span>
@@ -510,9 +513,13 @@
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                     <span style="font-size:.66rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.6px;">Ranking</span>
                     <div style="display:flex;gap:4px;">
-                        <button id="rankTopBtn" class="rank-tab active" style="font-size:.6rem;padding:2px 6px;border:1px solid #cbd5e1;border-radius:3px;background:#1e40af;color:#fff;cursor:pointer;">Top 10</button>
-                        <button id="rankBottomBtn" class="rank-tab" style="font-size:.6rem;padding:2px 6px;border:1px solid #cbd5e1;border-radius:3px;background:#f8fafc;color:#334155;cursor:pointer;">Bottom 10</button>
+                        <button id="rankTopBtn" class="rank-tab active" data-help="pf:top10" style="font-size:.6rem;padding:2px 6px;border:1px solid #cbd5e1;border-radius:3px;background:#1e40af;color:#fff;cursor:pointer;">Top 10</button>
+                        <button id="rankBottomBtn" class="rank-tab" data-help="pf:bottom10" style="font-size:.6rem;padding:2px 6px;border:1px solid #cbd5e1;border-radius:3px;background:#f8fafc;color:#334155;cursor:pointer;">Bottom 10</button>
                     </div>
+                </div>
+                <div style="display:flex;gap:4px;margin-bottom:7px;" data-help="leg:opp:metric">
+                    <button id="rankMetricPerfil" style="flex:1;font-size:.6rem;padding:3px 8px;border:1px solid #cbd5e1;border-radius:3px;background:#1e40af;color:#fff;cursor:pointer;">Perfil</button>
+                    <button id="rankMetricOpp" style="flex:1;font-size:.6rem;padding:3px 8px;border:1px solid #cbd5e1;border-radius:3px;background:#f8fafc;color:#334155;cursor:pointer;">🎯 Oportunidade</button>
                 </div>
                 <div id="perfilRankList" style="font-size:.72rem;"></div>
             </div>
@@ -730,7 +737,7 @@
                 '<div style="display:flex;justify-content:space-between;font-size:.72rem;color:#64748b;"><span>Menos conservador</span><span>Ultra conservador</span></div>',
             example: '<strong>Cenários sugeridos:</strong><br><br>' +
                 '<strong style="color:#1565C0;">Base garantida</strong> — Cidades ultra conservadoras com boa estrutura econômica. <em>Ação: manter presença.</em><br><br>' +
-                '<strong style="color:#FF7043;">Onde investir</strong> — Cidades moderadas com população alta e poucos apoiadores. <em>Ação: maior retorno por real investido.</em><br><br>' +
+                '<strong style="color:#FF7043;">Onde investir</strong> — Liga a métrica <strong>🎯 Oportunidade</strong>: ranqueia e pinta o mapa por <em>conservadorismo × tamanho do eleitorado × déficit de presença</em> (penetração 2022 + apoiadores baixos). O topo da lista são os alvos de maior retorno por real. <em>Alterne Perfil ⇄ Oportunidade no Ranking a qualquer momento.</em><br><br>' +
                 '<strong style="color:#E53935;">A disputar</strong> — Territórios menos conservadores. <em>Ação: ajustar comunicação, pautas locais.</em><br><br>' +
                 '<strong>Cruzamento estratégico (novo):</strong> Agora cada cidade no tooltip e na comparação mostra a <strong>classificação estratégica</strong> (Base Forte, Aliado Fraco, etc.) e o <strong>nível da Rede PL</strong> (forte, moderada, fraca, ausente). Isso permite identificar contradições poderosas:<br>' +
                 '&bull; Cidade com perfil ideológico conservador + classificação "Neutro" + Rede PL ausente = <strong>alvo prioritário de expansão</strong><br>' +
@@ -908,6 +915,12 @@
             {color: '#FFD54F', label: 'Conservador', h: 'leg:perf:conserv'},
             {color: '#66BB6A', label: 'Muito conserv.', h: 'leg:perf:muito'},
             {color: '#1565C0', label: 'Ultra conserv.', h: 'leg:perf:ultra'},
+        ],
+        oportunidade: [
+            {color: '#b91c1c', label: 'Alvo prioritário', h: 'leg:opp:alta'},
+            {color: '#fb923c', label: 'Boa oportunidade', h: 'leg:opp:media'},
+            {color: '#fde68a', label: 'Moderada', h: 'leg:opp:moderada'},
+            {color: '#f1f5f9', label: 'Baixa / já forte', h: 'leg:opp:baixa'},
         ],
         concorrencia: [
             {color: '#14532d', label: 'Muito forte', h: 'leg:conc:muito'},
@@ -2745,13 +2758,8 @@ case 'transferencia':
         map._perfilActiveEl = elChecks;
         map._perfilActiveSo = soChecks;
 
-        // Atualizar cores
-        map.g.selectAll('path.perfil-city')
-            .transition().duration(400)
-            .attr('fill', d => {
-                const s = scores[d.properties.slug];
-                return s !== undefined ? map._perfilColor(s) : '#e2e8f0';
-            });
+        // Oportunidade: conservadorismo × eleitorado × déficit de presença
+        map._perfilOpp = computeOpportunity(scores);
 
         // Status
         const totalSel = elChecks.length + soChecks.length;
@@ -2761,15 +2769,84 @@ case 'transferencia':
         // Mostrar botão exportar
         document.getElementById('perfilExportBtn').style.display = 'inline-block';
 
-        // Legenda
-        renderLegend('perfil_ideologico');
-
-        // Ranking
+        // Cores + legenda (dependem da métrica ativa) e ranking
+        applyPerfilColoring();
         updatePerfilRanking(scores);
+    }
+
+    // ── Oportunidade (camada gap) ────────────────────────────────
+    // Onde investir = perfil conservador × tamanho do eleitorado × déficit de
+    // presença (penetração 2022 + densidade de apoiadores baixas). Resultado 0-1.
+    function computeOpportunity(scores) {
+        if (!_perfilData) return {};
+        const cidades = _perfilData.cidades;
+        const entries = Object.entries(scores).filter(([slug]) => cidades[slug]);
+
+        let maxPop = 1, maxPen = 0, maxApDens = 0;
+        for (const [slug] of entries) {
+            const c = cidades[slug];
+            if ((c.pop || 0) > maxPop) maxPop = c.pop;
+            if ((c.penetration || 0) > maxPen) maxPen = c.penetration;
+            const apDens = (c.apoiadores || 0) / (c.pop || 1);
+            if (apDens > maxApDens) maxApDens = apDens;
+        }
+        maxPen = maxPen || 1;
+        maxApDens = maxApDens || 1;
+
+        const raw = {};
+        let maxOpp = 0;
+        for (const [slug, score] of entries) {
+            const c = cidades[slug];
+            // sqrt na população: capitais pesam mais, sem eclipsar o resto
+            const popNorm = Math.sqrt(c.pop || 0) / Math.sqrt(maxPop);
+            // força atual (já estou presente?) = penetração eleitoral + estrutura CRM
+            const penStrength = Math.min((c.penetration || 0) / maxPen, 1);
+            const apStrength = Math.min(((c.apoiadores || 0) / (c.pop || 1)) / maxApDens, 1);
+            const strength = penStrength * 0.6 + apStrength * 0.4;
+            const deficit = 1 - strength;
+            const opp = (score || 0) * popNorm * deficit;
+            raw[slug] = opp;
+            if (opp > maxOpp) maxOpp = opp;
+        }
+        maxOpp = maxOpp || 1;
+        const out = {};
+        for (const slug in raw) out[slug] = raw[slug] / maxOpp;
+        return out;
+    }
+
+    function applyPerfilColoring() {
+        if (!map._perfilScores) return;
+        const opp = _rankMetric === 'oportunidade';
+        map._perfilOppActive = opp;
+        map.g.selectAll('path.perfil-city')
+            .transition().duration(400)
+            .attr('fill', d => {
+                const slug = d.properties.slug;
+                if (opp) {
+                    const o = map._perfilOpp?.[slug];
+                    return o !== undefined ? map._oppColor(o) : '#e2e8f0';
+                }
+                const s = map._perfilScores[slug];
+                return s !== undefined ? map._perfilColor(s) : '#e2e8f0';
+            });
+        renderLegend(opp ? 'oportunidade' : 'perfil_ideologico');
+    }
+
+    function setRankMetric(metric, recalc = true) {
+        _rankMetric = metric;
+        const activeCss = 'flex:1;font-size:.6rem;padding:3px 8px;border:1px solid #cbd5e1;border-radius:3px;background:#1e40af;color:#fff;cursor:pointer;';
+        const idleCss = 'flex:1;font-size:.6rem;padding:3px 8px;border:1px solid #cbd5e1;border-radius:3px;background:#f8fafc;color:#334155;cursor:pointer;';
+        document.getElementById('rankMetricPerfil').style.cssText = metric === 'oportunidade' ? idleCss : activeCss;
+        document.getElementById('rankMetricOpp').style.cssText = metric === 'oportunidade' ? activeCss : idleCss;
+        if (recalc && map._perfilScores) {
+            applyPerfilColoring();
+            updatePerfilRanking(map._perfilScores);
+        }
     }
 
     // ── Ranking ──────────────────────────────────────────────────
     let _rankShowTop = true;
+    let _rankMetric = 'perfil'; // 'perfil' | 'oportunidade'
 
     function updatePerfilRanking(scores) {
         if (!scores || !_perfilData) {
@@ -2778,23 +2855,25 @@ case 'transferencia':
         }
         document.getElementById('perfilRanking').style.display = 'block';
 
+        const oppMode = _rankMetric === 'oportunidade';
+        const valMap = oppMode ? (map._perfilOpp || {}) : scores;
         const cidades = _perfilData.cidades;
-        const sorted = Object.entries(scores)
+        const sorted = Object.entries(valMap)
             .filter(([slug]) => cidades[slug])
-            .map(([slug, score]) => ({
+            .map(([slug, val]) => ({
                 slug,
                 nome: cidades[slug].nome,
-                score,
+                val,
                 pop: cidades[slug].pop || 0,
                 apoiadores: cidades[slug].apoiadores || 0,
             }))
-            .sort((a, b) => _rankShowTop ? b.score - a.score : a.score - b.score);
+            .sort((a, b) => _rankShowTop ? b.val - a.val : a.val - b.val);
 
         const top10 = sorted.slice(0, 10);
         const listEl = document.getElementById('perfilRankList');
         listEl.innerHTML = top10.map((c, i) => {
-            const color = map._perfilColor(c.score);
-            const pct = (c.score * 100).toFixed(0);
+            const color = oppMode ? map._oppColor(c.val) : map._perfilColor(c.val);
+            const pct = (c.val * 100).toFixed(0);
             return `<div class="rank-item" data-slug="${c.slug}" style="display:flex;align-items:center;gap:6px;padding:3px 0;cursor:pointer;border-bottom:1px solid #f1f5f9;" title="Clique para comparar">
                 <span style="color:#94a3b8;width:16px;text-align:right;font-size:.65rem;">${i + 1}.</span>
                 <span style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;"></span>
@@ -2820,16 +2899,22 @@ case 'transferencia':
         // Resetar
         all.forEach(cb => cb.checked = false);
 
+        // A maioria dos cenários mostra o perfil; "investir" usa a métrica de oportunidade.
+        let metric = 'perfil';
+
         switch (preset) {
             case 'base': // Ultra conservadoras
                 elInputs.forEach(cb => cb.checked = true);
                 soInputs.forEach(cb => { if (['pib', 'renda'].includes(cb.dataset.key)) cb.checked = true; });
                 slider.value = 70;
                 break;
-            case 'investir': // Moderadas com oportunidade
-                elInputs.forEach(cb => { if (cb.dataset.key === 'governador_2t') cb.checked = true; });
-                soInputs.forEach(cb => cb.checked = true);
-                slider.value = 40;
+            case 'investir': // Onde investir: maior retorno por real
+                // Base de conservadorismo = voto real (eleitoral) + renda/BF como proxy.
+                // A população e o déficit de presença entram pela métrica de oportunidade.
+                elInputs.forEach(cb => cb.checked = true);
+                soInputs.forEach(cb => { if (['renda', 'bf'].includes(cb.dataset.key)) cb.checked = true; });
+                slider.value = 60; // peso maior ao voto real do que ao proxy socioeconômico
+                metric = 'oportunidade';
                 break;
             case 'disputar': // Menos conservadoras
                 elInputs.forEach(cb => cb.checked = true);
@@ -2843,6 +2928,9 @@ case 'transferencia':
                 slider.value = 50;
                 break;
         }
+
+        // Define a métrica (sem recalc — recalcPerfilMap abaixo já recolore)
+        setRankMetric(metric, false);
 
         // Atualizar label do slider
         const v = slider.value;
@@ -2865,19 +2953,23 @@ case 'transferencia':
         const elChecks = [...document.querySelectorAll('#perfilElectoralChecks input:checked')].map(c => c.dataset.key);
         const soChecks = [...document.querySelectorAll('#perfilSocioChecks input:checked')].map(c => c.dataset.key);
 
+        const opp = map._perfilOpp || {};
+
         // Cabeçalho
-        let headers = ['Cidade', 'Score', 'Perfil', 'Populacao', 'Apoiadores', 'Demandas'];
+        let headers = ['Cidade', 'Score', 'Perfil', 'Oportunidade', 'Penetracao_pct', 'Populacao', 'Apoiadores', 'Demandas'];
         for (const k of elChecks) headers.push(k + '_pct_dir');
         for (const k of soChecks) headers.push(k + '_raw');
 
-        // Dados ordenados
-        const rows = Object.entries(scores)
-            .filter(([slug]) => cidades[slug])
-            .sort((a, b) => b[1] - a[1])
-            .map(([slug, score]) => {
+        // Dados ordenados — pela métrica ativa (oportunidade ou perfil)
+        const valMap = _rankMetric === 'oportunidade' ? opp : scores;
+        const rows = Object.keys(valMap)
+            .filter(slug => cidades[slug])
+            .sort((a, b) => valMap[b] - valMap[a])
+            .map((slug) => {
+                const score = scores[slug];
                 const c = cidades[slug];
                 const label = score <= 0.20 ? 'Menos conservador' : score <= 0.40 ? 'Moderado' : score <= 0.60 ? 'Conservador' : score <= 0.80 ? 'Muito conservador' : 'Ultra conservador';
-                let row = [c.nome, (score * 100).toFixed(1), label, c.pop || 0, c.apoiadores || 0, c.demandas || 0];
+                let row = [c.nome, (score * 100).toFixed(1), label, (opp[slug] !== undefined ? (opp[slug] * 100).toFixed(1) : ''), (c.penetration !== undefined ? c.penetration.toFixed(1) : ''), c.pop || 0, c.apoiadores || 0, c.demandas || 0];
                 for (const k of elChecks) row.push(c[k] !== undefined ? (c[k] * 100).toFixed(1) : '');
                 for (const k of soChecks) {
                     if (k === 'pib') row.push(c.pib_raw || 0);
@@ -3016,6 +3108,10 @@ case 'transferencia':
         if (map._perfilScores) updatePerfilRanking(map._perfilScores);
     });
 
+    // Métrica do ranking/mapa: Perfil ⇄ Oportunidade
+    document.getElementById('rankMetricPerfil').addEventListener('click', () => setRankMetric('perfil'));
+    document.getElementById('rankMetricOpp').addEventListener('click', () => setRankMetric('oportunidade'));
+
     // Exportar
     document.getElementById('perfilExportBtn').addEventListener('click', exportPerfilCSV);
 
@@ -3088,6 +3184,37 @@ case 'transferencia':
         'leg:perf:conserv': {t:'Conservador', o:'Inclinação conservadora.', j:'Pautas de ordem, família e segurança rendem.'},
         'leg:perf:muito': {t:'Muito conservador', o:'Forte perfil conservador.', j:'Terreno fértil para o discurso do LS.'},
         'leg:perf:ultra': {t:'Ultra conservador', o:'Conservador ao extremo.', j:'Reduto ideológico: mobilize a base.'},
+        // ── Legenda: Oportunidade (modo gap) ────────────────────
+        'leg:opp:metric': {t:'Perfil ⇄ Oportunidade', o:'Perfil pinta o quão conservadora é a cidade. Oportunidade pinta onde vale investir = conservadorismo × tamanho do eleitorado × déficit de presença (penetração 2022 + apoiadores baixos).', j:'Use Perfil para calibrar a mensagem; Oportunidade para escolher onde atacar.'},
+        'leg:opp:alta': {t:'Alvo prioritário', o:'Cidade conservadora, populosa e onde você está sub-representado.', j:'Topo da lista de ataque: leve compromisso + estrutura para cá. Maior voto novo por real.'},
+        'leg:opp:media': {t:'Boa oportunidade', o:'Bom potencial de voto novo com presença ainda fraca.', j:'Segunda onda de investimento depois dos alvos prioritários.'},
+        'leg:opp:moderada': {t:'Oportunidade moderada', o:'Retorno médio — perfil ou tamanho ou déficit não somam tanto.', j:'Entre se já estiver passando perto num roteiro.'},
+        'leg:opp:baixa': {t:'Baixa / já forte', o:'Pouco eleitorado, perfil adverso, ou você já domina.', j:'Não gaste energia de conquista; no máximo manutenção.'},
+        // ── Painel Perfil: cenários ─────────────────────────────
+        'pf:cenarios': {t:'Cenários', o:'Atalhos que marcam os dados e o peso por você, em vez de escolher caixinha por caixinha.', j:'Comece sempre por um cenário; ajuste fino depois nas caixinhas.'},
+        'cen:base': {t:'Base garantida', o:'Liga voto à direita + PIB/Renda, peso no eleitoral. Pinta as cidades mais conservadoras e prósperas.', j:'São seus redutos naturais. Ação: manter presença, usar como palanque — não gastar energia conquistando o que já é seu.'},
+        'cen:investir': {t:'🎯 Onde investir', o:'Liga a métrica de Oportunidade: ranqueia por conservadorismo × tamanho do eleitorado × o quanto você ainda está fraco lá.', j:'O topo da lista é onde cada real rende mais voto novo. É daqui que saem seus roteiros de ataque.'},
+        'cen:disputar': {t:'A disputar', o:'Usa só o voto real, sem os dados socioeconômicos. Mostra o terreno menos conservador.', j:'Não entre pela ideologia aqui — entre por demanda local concreta e ajuste o tom do discurso.'},
+        'cen:completo': {t:'Visão completa', o:'Liga todos os dados com peso igual. Retrato geral, sem foco.', j:'Bom para explorar; troque por um cenário específico na hora de decidir ação.'},
+        'cen:limpar': {t:'Limpar', o:'Desmarca tudo e volta o mapa ao cinza.', j:'Use para recomeçar uma combinação do zero.'},
+        // ── Painel Perfil: seções e dados ───────────────────────
+        'sec:eleitoral': {t:'Dados Eleitorais', o:'Como a cidade votou de fato em 2022 (proporção de voto à direita).', j:'É o sinal mais confiável de inclinação — pesa mais que os indicadores socioeconômicos.'},
+        'sec:socio': {t:'Dados Socioeconômicos', o:'PIB e Renda são reais (IBGE Censo 2022). Bolsa Família e MEIs (marcados "est.") ainda são estimados a partir do PIB.', j:'Renda real já é independente do PIB — combine PIB + Renda faz sentido agora. Evite empilhar os "est.".'},
+        'sec:demo': {t:'Dados Demográficos', o:'Todos reais do Censo 2022: % Idosos, % Jovens, % Urbana e Alfabetização (IBGE).', j:'Idade calibra canal/pauta; urbanização e alfabetização ajudam a ler o território.'},
+        'pf:gov1t': {t:'Governador 1º turno', o:'Proporção de votos em candidatos de direita no 1º turno de 2022.', j:'Mostra a preferência espontânea, com o leque completo de candidatos.'},
+        'pf:gov2t': {t:'Governador 2º turno', o:'Proporção de voto à direita no 2º turno — disputa polarizada esquerda × direita.', j:'O retrato mais limpo do "lado" que a cidade escolhe quando só há dois.'},
+        'pf:senador': {t:'Senador', o:'Proporção de voto à direita na disputa ao Senado de 2022.', j:'Cruze com o governador: se divergem, o eleitor vota na pessoa, não no partido.'},
+        'pf:pib': {t:'PIB per capita ✓ real', o:'Único indicador socioeconômico medido de verdade (IBGE). Riqueza por habitante; maior = puxa o perfil para conservador.', j:'É a base de todos os campos "est.". Cuidado: distorce onde a população está errada (PIB ÷ 1 habitante vira gigante).'},
+        'pf:renda': {t:'Renda per capita ✓ real', o:'Rendimento nominal médio mensal domiciliar per capita (IBGE Censo 2022, R$). Agora é dado real e independente do PIB.', j:'Bom proxy de poder aquisitivo; combine com voto para ler o eleitorado.'},
+        'pf:bf': {t:'Bolsa Família ⚠ est.', o:'ESTIMADO por fórmula (48000÷PIB), não são beneficiários reais do CadÚnico. Quanto menor o PIB, maior o índice supõe.', j:'É uma suposição derivada do PIB — confira contra o voto antes de confiar.'},
+        'pf:meis': {t:'MEIs ativos ⚠ est.', o:'ESTIMADO a partir do PIB per capita (não é a contagem real da Receita).', j:'Carrega quase a mesma informação do PIB; pouco valor adicional.'},
+        'pf:urbana': {t:'% Pop. urbana ✓ real', o:'Proporção urbana/rural medida pelo Censo 2022 (IBGE). Dado real.', j:'Mais rural costuma ser mais conservador; mais urbano, mais disputado.'},
+        'pf:idosos': {t:'% Idosos (60+)', o:'Peso do eleitorado idoso.', j:'Define canal e pauta (saúde, previdência) mais do que lado ideológico.'},
+        'pf:jovens': {t:'% Jovens (18-29)', o:'Peso do eleitorado jovem.', j:'Eleitorado mais volátil — exige comunicação digital e pautas próprias.'},
+        'pf:escolaridade': {t:'Alfabetização ✓ real', o:'Taxa de alfabetização das pessoas de 15+ anos (IBGE Censo 2022, %). Dado real.', j:'Calibra a complexidade da mensagem e o canal; não é medida de ideologia.'},
+        'pf:slider': {t:'Barra de peso', o:'Define quanto o voto real (Eleitoral) pesa contra os indicadores (Socioecon.) no índice final.', j:'Na dúvida, puxe para o Eleitoral: voto registrado vale mais que correlação socioeconômica.'},
+        'pf:top10': {t:'Top 10', o:'As 10 cidades de maior valor na métrica ativa (Perfil ou Oportunidade).', j:'Em Oportunidade = sua lista de ataque. Em Perfil = seus redutos mais conservadores.'},
+        'pf:bottom10': {t:'Bottom 10', o:'As 10 de menor valor.', j:'Em Perfil = terreno menos conservador (entre por demanda). Em Oportunidade = onde não vale gastar agora.'},
         // ── Legenda: Concorrência ───────────────────────────────
         'leg:conc:muito': {t:'Rival muito forte', o:'Adversário direto domina a cidade.', j:'Evite desgaste; só dispute virada real.'},
         'leg:conc:forte': {t:'Rival forte', o:'Adversário com boa votação.', j:'Disputa dura: escolha bem as batalhas.'},
