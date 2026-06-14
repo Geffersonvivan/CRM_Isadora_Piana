@@ -546,8 +546,8 @@
     </div>
 </div>
 
-<script src="{% static 'js/map/api.js' %}?v=23"></script>
-<script src="{% static 'js/map/sc-map.js' %}?v=23"></script>
+<script src="{% static 'js/map/api.js' %}?v=24"></script>
+<script src="{% static 'js/map/sc-map.js' %}?v=24"></script>
 <script>
 (function() {
     const map = new SCMap('map-container');
@@ -1532,10 +1532,10 @@ case 'transferencia': {
         }
 
         html += '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">';
-        html += `<a href="/agenda/compromissos/?cidade=${d.id}&data=${dataSel}" style="flex:1;text-align:center;background:#002776;color:#fff;border-radius:8px;padding:8px 10px;font-size:.76rem;font-weight:700;text-decoration:none;">+ Compromisso</a>`;
-        html += `<button onclick="addRotStopFromPanel('${d.slug}')" style="flex:1;background:#fff;border:1px solid #002776;color:#002776;border-radius:8px;padding:8px 10px;font-size:.76rem;font-weight:700;cursor:pointer;">🧭 + Roteiro</button>`;
+        html += `<a href="/agenda/compromissos/?cidade=${d.id}&data=${dataSel}" data-help="acao:compromisso" style="flex:1;text-align:center;background:#002776;color:#fff;border-radius:8px;padding:8px 10px;font-size:.76rem;font-weight:700;text-decoration:none;">+ Compromisso</a>`;
+        html += `<button onclick="addRotStopFromPanel('${d.slug}')" data-help="acao:roteiro" style="flex:1;background:#fff;border:1px solid #002776;color:#002776;border-radius:8px;padding:8px 10px;font-size:.76rem;font-weight:700;cursor:pointer;">🧭 + Roteiro</button>`;
         html += '</div>';
-        html += `<a href="/tarefas/promessas/nova/?cidade=${d.id}" onclick="return openFormModal(this.href, 'Nova Promessa')" style="display:block;text-align:center;margin-top:8px;background:#fff;border:1px solid #16a34a;color:#16a34a;border-radius:8px;padding:8px 10px;font-size:.76rem;font-weight:700;text-decoration:none;">🤝 + Registrar promessa do eleitor</a>`;
+        html += `<a href="/tarefas/promessas/nova/?cidade=${d.id}" onclick="return openFormModal(this.href, 'Nova Promessa')" data-help="acao:promessa" style="display:block;text-align:center;margin-top:8px;background:#fff;border:1px solid #16a34a;color:#16a34a;border-radius:8px;padding:8px 10px;font-size:.76rem;font-weight:700;text-decoration:none;">🤝 + Registrar promessa do eleitor</a>`;
         body.innerHTML = html;
     }
 
@@ -3047,6 +3047,10 @@ case 'transferencia':
         'proximo_compromisso': {t:'Próximo compromisso', o:'Próxima agenda marcada aqui.', j:'Cidade-alvo sem nada marcado? Agende.'},
         'quem_visitar': {t:'Quem visitar primeiro', o:'Contatos com relacionamento mais vencido — fila de prioridade.', j:'Comece por eles na próxima passagem pela cidade.'},
         'promessas': {t:'Promessas ao eleitor', o:'Compromissos assumidos com a cidade e seu status.', j:'Entregar = voto. Cobre andamento das pendentes.'},
+        // ── Botões de ação do painel ────────────────────────────
+        'acao:compromisso': {t:'Marque presença com propósito', o:'Seja estratégico: agende o LS para quando um aliado forte desta cidade tiver evento (palanque conjunto) e puxe junto os contatos “vencidos / nunca” listados acima.', j:'Ativa a base local, gera interação automática no cadastro e converte reduto de aliado em voto seu.'},
+        'acao:roteiro': {t:'Transforme a cidade em rota de colheita', o:'Seja estratégico: encadeie esta cidade com alvos próximos num único dia de estrada e comece pelos relacionamentos mais frios.', j:'Menos quilômetro rodado, mais contatos por viagem e cobertura das oportunidades órfãs antes do adversário.'},
+        'acao:promessa': {t:'Registre hoje, cobre voto amanhã', o:'Seja estratégico: anote o que a cidade pediu (obra, demanda, pauta) com prazo e responsável, e acompanhe até entregar.', j:'Promessa cumprida vira prova de trabalho e fideliza voto; pendência rastreada evita o desgaste de “prometeu e sumiu”.'},
     };
 
     let pop = null;
