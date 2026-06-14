@@ -1961,34 +1961,33 @@ class CompeticaoMapAPI(APIView):
                 'shared_cities': shared_cities,
             }
 
-        # Overlap dos candidatos a ESTADUAL (rivais reais de 2026) vs base
-        # geográfica do LS (votos federais 2022). Métrica de SHARE (cargo-agnóstica):
-        # sobreposição = Σ min(share_LS_cidade, share_rival_cidade) → 0–100%.
+        # Overlap dos candidatos a ESTADUAL (rivais reais de 2026) vs base do LS
+        # (votos federais 2022), PONDERADO pelos redutos do LS: cada cidade pesa
+        # pelos votos do LS ali, então onde o LS é forte conta muito mais.
+        #   ameaca = Σ[ votos_LS · min(votos_LS, votos_rival) ] / Σ[ votos_LS² ]
+        # Usa min() em votos absolutos → candidato pequeno não infla; normalizado
+        # para LS-vs-LS = 100% e naturalmente limitado a 0–100%.
         est_overlap = {}
         if ls_total > 0:
-            ls_share = {slug: v / ls_total for slug, v in ls_by_city.items()}
+            ls_sq = sum(v * v for v in ls_by_city.values()) or 1  # Σ votos_LS²
             est_results = (
                 ResultadoCandidato.objects
                 .filter(eleicao__ano=2022, eleicao__turno=1, eleicao__tipo='deputado_estadual')
                 .values('candidato_nome', 'cidade__slug', 'votos')
             )
             est_cities = defaultdict(dict)
-            est_total = defaultdict(int)
             for r in est_results:
-                v = r['votos'] or 0
-                est_cities[r['candidato_nome']][r['cidade__slug']] = v
-                est_total[r['candidato_nome']] += v
+                est_cities[r['candidato_nome']][r['cidade__slug']] = r['votos'] or 0
             for name, cv in est_cities.items():
-                tot = est_total[name] or 1
-                ov = 0.0
+                num = 0.0
                 shared = 0
-                for slug, v in cv.items():
-                    lss = ls_share.get(slug, 0)
-                    if lss > 0 and v > 0:
-                        ov += min(lss, v / tot)
+                for slug, rv in cv.items():
+                    lv = ls_by_city.get(slug, 0)
+                    if lv > 0 and rv > 0:
+                        num += lv * min(lv, rv)
                         shared += 1
                 est_overlap[name] = {
-                    'overlap_pct': round(ov * 100, 1),
+                    'overlap_pct': round(num / ls_sq * 100, 1),
                     'shared_cities': shared,
                 }
 
