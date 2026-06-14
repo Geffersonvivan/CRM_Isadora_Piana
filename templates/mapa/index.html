@@ -380,6 +380,11 @@
         font-weight: 700;
         color: #fff;
     }
+    /* micro-ajuda no hover */
+    .hlp { border-bottom: 1px dotted currentColor; cursor: help; }
+    [data-help] { cursor: help; }
+    .mode-btn[data-help] { cursor: pointer; }
+    #mapHelpPop b { color: #fcd34d; }
 </style>
 {% endblock %}
 
@@ -393,17 +398,17 @@
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
             <div class="mode-bar-wrap">
                 <div class="mode-bar" id="modeBar">
-                    <button class="mode-btn" data-mode="eleicoes_2022">Eleições 2022</button>
-                    <button class="mode-btn" data-mode="vitoria">Vitória 2026</button>
-                    <button class="mode-btn" data-mode="calor">Mapa de Calor</button>
-                    <button class="mode-btn" data-mode="demandas">Demandas</button>
-                    <button class="mode-btn" data-mode="roteiros">Roteiros</button>
-                    <button class="mode-btn" data-mode="estrategico">Estratégico</button>
-<button class="mode-btn" data-mode="transferencia">Transferência</button>
-                    <button class="mode-btn" data-mode="deputados">Dep. Aliados</button>
-                    <button class="mode-btn" data-mode="doacoes">Doações</button>
-                    <button class="mode-btn" data-mode="concorrencia">Concorrência</button>
-                    <button class="mode-btn" data-mode="perfil_ideologico">Perfil Ideológico</button>
+                    <button class="mode-btn" data-mode="eleicoes_2022" data-help="mode:eleicoes_2022">Eleições 2022</button>
+                    <button class="mode-btn" data-mode="vitoria" data-help="mode:vitoria">Vitória 2026</button>
+                    <button class="mode-btn" data-mode="calor" data-help="mode:calor">Mapa de Calor</button>
+                    <button class="mode-btn" data-mode="demandas" data-help="mode:demandas">Demandas</button>
+                    <button class="mode-btn" data-mode="roteiros" data-help="mode:roteiros">Roteiros</button>
+                    <button class="mode-btn" data-mode="estrategico" data-help="mode:estrategico">Estratégico</button>
+<button class="mode-btn" data-mode="transferencia" data-help="mode:transferencia">Transferência</button>
+                    <button class="mode-btn" data-mode="deputados" data-help="mode:deputados">Dep. Aliados</button>
+                    <button class="mode-btn" data-mode="doacoes" data-help="mode:doacoes">Doações</button>
+                    <button class="mode-btn" data-mode="concorrencia" data-help="mode:concorrencia">Concorrência</button>
+                    <button class="mode-btn" data-mode="perfil_ideologico" data-help="mode:perfil_ideologico">Perfil Ideológico</button>
                 </div>
                 <button class="btn-help" id="btnHelp" title="O que este mapa mostra?">?</button>
             </div>
@@ -541,8 +546,8 @@
     </div>
 </div>
 
-<script src="{% static 'js/map/api.js' %}?v=21"></script>
-<script src="{% static 'js/map/sc-map.js' %}?v=21"></script>
+<script src="{% static 'js/map/api.js' %}?v=22"></script>
+<script src="{% static 'js/map/sc-map.js' %}?v=22"></script>
 <script>
 (function() {
     const map = new SCMap('map-container');
@@ -824,71 +829,71 @@
     // ── Legends ─────────────────────────────────────────────────
     const legends = {
         eleicoes_2022: [
-            {color: '#15803d', label: '1º Lugar'},
-            {color: '#22c55e', label: 'Top 3'},
-            {color: '#eab308', label: 'Top 5'},
-            {color: '#f97316', label: 'Top 10'},
-            {color: '#ef4444', label: '11º+'},
+            {color: '#15803d', label: '1º Lugar', h: 'leg:el:1'},
+            {color: '#22c55e', label: 'Top 3', h: 'leg:el:3'},
+            {color: '#eab308', label: 'Top 5', h: 'leg:el:5'},
+            {color: '#f97316', label: 'Top 10', h: 'leg:el:10'},
+            {color: '#ef4444', label: '11º+', h: 'leg:el:11'},
         ],
         regioes: [],
         vitoria: [
-            {color: '#f87171', label: 'Muita lacuna'},
-            {color: '#fdba74', label: 'Alta'},
-            {color: '#fde68a', label: 'Média'},
-            {color: '#bbf7d0', label: 'Baixa'},
-            {color: '#e2e8f0', label: 'Saturada'},
+            {color: '#f87171', label: 'Muita lacuna', h: 'leg:vit:muita'},
+            {color: '#fdba74', label: 'Alta', h: 'leg:vit:alta'},
+            {color: '#fde68a', label: 'Média', h: 'leg:vit:media'},
+            {color: '#bbf7d0', label: 'Baixa', h: 'leg:vit:baixa'},
+            {color: '#e2e8f0', label: 'Saturada', h: 'leg:vit:sat'},
         ],
         calor: [],
         demandas: [
-            {color: '#ef4444', label: 'Em atraso'},
-            {color: '#22c55e', label: 'Em dia'},
-            {color: '#d1d5db', label: 'Sem demandas'},
+            {color: '#ef4444', label: 'Em atraso', h: 'leg:dem:atraso'},
+            {color: '#22c55e', label: 'Em dia', h: 'leg:dem:dia'},
+            {color: '#d1d5db', label: 'Sem demandas', h: 'leg:dem:sem'},
         ],
         roteiros: [
-            {color: '#3b82f6', label: 'Planejado (tracejado)'},
-            {color: '#f97316', label: 'Em andamento'},
-            {color: '#22c55e', label: 'Concluído'},
+            {color: '#3b82f6', label: 'Planejado (tracejado)', h: 'leg:rot:plan'},
+            {color: '#f97316', label: 'Em andamento', h: 'leg:rot:and'},
+            {color: '#22c55e', label: 'Concluído', h: 'leg:rot:conc'},
         ],
         estrategico: [
-            {color: '#15803d', label: 'Base Forte'},
-            {color: '#86efac', label: 'Aliado Fraco'},
-            {color: '#eab308', label: 'Potencial Oculto'},
-            {color: '#dc2626', label: 'Território Hostil'},
-            {color: '#9ca3af', label: 'Neutro'},
+            {color: '#15803d', label: 'Base Forte', h: 'leg:est:base'},
+            {color: '#86efac', label: 'Aliado Fraco', h: 'leg:est:fraco'},
+            {color: '#eab308', label: 'Potencial Oculto', h: 'leg:est:oculto'},
+            {color: '#dc2626', label: 'Território Hostil', h: 'leg:est:hostil'},
+            {color: '#9ca3af', label: 'Neutro', h: 'leg:est:neutro'},
         ],
         transferencia: [
-            {color: '#7c3aed', label: '🎤 Palanque conjunto'},
-            {color: '#f59e0b', label: '🤝 Reduto de aliado'},
-            {color: '#15803d', label: '🏠 Polo do LS'},
-            {color: '#d1d5db', label: '⚪ Sem carona'},
+            {color: '#7c3aed', label: '🎤 Palanque conjunto', h: 'leg:tr:palanque'},
+            {color: '#f59e0b', label: '🤝 Reduto de aliado', h: 'leg:tr:reduto'},
+            {color: '#15803d', label: '🏠 Polo do LS', h: 'leg:tr:polo'},
+            {color: '#d1d5db', label: '⚪ Sem carona', h: 'leg:tr:sem'},
         ],
         deputados: [
-            {color: '#f59e0b', label: 'Ponte Forte'},
-            {color: '#15803d', label: 'Base Conjunta'},
-            {color: '#2563eb', label: 'Território Dep.'},
-            {color: '#86efac', label: 'Território LS'},
-            {color: '#d1d5db', label: 'Sem Presença'},
+            {color: '#f59e0b', label: 'Ponte Forte', h: 'leg:dep:ponte'},
+            {color: '#15803d', label: 'Base Conjunta', h: 'leg:dep:base'},
+            {color: '#2563eb', label: 'Território Dep.', h: 'leg:dep:terr_dep'},
+            {color: '#86efac', label: 'Território LS', h: 'leg:dep:terr_ls'},
+            {color: '#d1d5db', label: 'Sem Presença', h: 'leg:dep:sem'},
         ],
         doacoes: [
-            {color: '#1e3a8a', label: 'Alto'},
-            {color: '#2563eb', label: 'Médio'},
-            {color: '#60a5fa', label: 'Baixo'},
-            {color: '#dbeafe', label: 'Mínimo'},
-            {color: '#e2e8f0', label: 'Nenhuma'},
+            {color: '#1e3a8a', label: 'Alto', h: 'leg:doa:alto'},
+            {color: '#2563eb', label: 'Médio', h: 'leg:doa:medio'},
+            {color: '#60a5fa', label: 'Baixo', h: 'leg:doa:baixo'},
+            {color: '#dbeafe', label: 'Mínimo', h: 'leg:doa:minimo'},
+            {color: '#e2e8f0', label: 'Nenhuma', h: 'leg:doa:nenhuma'},
         ],
         perfil_ideologico: [
-            {color: '#E53935', label: 'Menos conservador'},
-            {color: '#FF7043', label: 'Moderado'},
-            {color: '#FFD54F', label: 'Conservador'},
-            {color: '#66BB6A', label: 'Muito conserv.'},
-            {color: '#1565C0', label: 'Ultra conserv.'},
+            {color: '#E53935', label: 'Menos conservador', h: 'leg:perf:menos'},
+            {color: '#FF7043', label: 'Moderado', h: 'leg:perf:moderado'},
+            {color: '#FFD54F', label: 'Conservador', h: 'leg:perf:conserv'},
+            {color: '#66BB6A', label: 'Muito conserv.', h: 'leg:perf:muito'},
+            {color: '#1565C0', label: 'Ultra conserv.', h: 'leg:perf:ultra'},
         ],
         concorrencia: [
-            {color: '#14532d', label: 'Muito forte'},
-            {color: '#16a34a', label: 'Forte'},
-            {color: '#22c55e', label: 'Médio'},
-            {color: '#86efac', label: 'Fraco'},
-            {color: '#e2e8f0', label: 'Sem votos'},
+            {color: '#14532d', label: 'Muito forte', h: 'leg:conc:muito'},
+            {color: '#16a34a', label: 'Forte', h: 'leg:conc:forte'},
+            {color: '#22c55e', label: 'Médio', h: 'leg:conc:medio'},
+            {color: '#86efac', label: 'Fraco', h: 'leg:conc:fraco'},
+            {color: '#e2e8f0', label: 'Sem votos', h: 'leg:conc:sem'},
         ],
     };
 
@@ -896,7 +901,7 @@
         const el = document.getElementById('mapLegend');
         const items = legends[mode] || [];
         el.innerHTML = items.map(i =>
-            `<span class="legend-item"><span class="legend-dot" style="background:${i.color}"></span>${i.label}</span>`
+            `<span class="legend-item"${i.h ? ` data-help="${i.h}"` : ''}><span class="legend-dot" style="background:${i.color}"></span>${i.label}</span>`
         ).join('');
     }
 
@@ -1473,12 +1478,12 @@ case 'transferencia': {
         const tc = map.voteTransferEnabled && (map._voteTransferData?.cities || []).find(x => x.slug === slug);
         if (tc) {
             html += '<div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:10px;padding:10px 12px;margin-bottom:10px;">';
-            html += `<div style="font-weight:700;color:#6d28d9;margin-bottom:5px;">${map._strategicColor ? '' : ''}🎤 Carona de chapa</div>`;
+            html += `<div style="font-weight:700;color:#6d28d9;margin-bottom:5px;" data-help="carona">🎤 Carona de chapa</div>`;
             for (const a of (tc.aliados || [])) {
                 const forte = (tc.aliados_fortes || []).includes(a.nome);
-                html += `<div style="display:flex;justify-content:space-between;font-size:.76rem;color:#475569;"><span style="color:${a.cor};font-weight:${forte?'700':'400'}">${a.nome}${forte?' ★':''}</span><span>${(a.votes||0).toLocaleString('pt-BR')} (${a.pct||0}%)</span></div>`;
+                html += `<div style="display:flex;justify-content:space-between;font-size:.76rem;color:#475569;"><span style="color:${a.cor};font-weight:${forte?'700':'400'}"${forte?' data-help="estrela_forte"':''}>${a.nome}${forte?' ★':''}</span><span>${(a.votes||0).toLocaleString('pt-BR')} (${a.pct||0}%)</span></div>`;
             }
-            if (tc.votos_carona) html += `<div style="display:flex;justify-content:space-between;font-size:.78rem;color:#7c3aed;font-weight:700;border-top:1px solid #e9d5ff;margin-top:4px;padding-top:4px;"><span>Votos de carona</span><span>${tc.votos_carona.toLocaleString('pt-BR')}</span></div>`;
+            if (tc.votos_carona) html += `<div style="display:flex;justify-content:space-between;font-size:.78rem;color:#7c3aed;font-weight:700;border-top:1px solid #e9d5ff;margin-top:4px;padding-top:4px;"><span data-help="votos_carona">Votos de carona</span><span>${tc.votos_carona.toLocaleString('pt-BR')}</span></div>`;
             if ((tc.agenda_aliados || []).length) {
                 html += '<div style="margin-top:6px;font-size:.72rem;color:#dc2626;font-weight:700;">📅 Visita marcada de aliado:</div>';
                 for (const ev of tc.agenda_aliados) html += `<div style="font-size:.72rem;color:#374151;">• ${ev.aliado} — ${ev.data}${ev.titulo ? ' (' + ev.titulo + ')' : ''}</div>`;
@@ -1492,22 +1497,22 @@ case 'transferencia': {
         if (map.victoryEnabled && vc) {
             html += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;margin-bottom:10px;">';
             html += `<div style="font-weight:700;color:#0f172a;margin-bottom:4px;">${map._quadLabel(vc.quadrante)}</div>`;
-            html += `<div style="display:flex;justify-content:space-between;font-size:.76rem;color:#475569;"><span>Votos 2022</span><strong>${(vc.votos_2022||0).toLocaleString('pt-BR')}</strong></div>`;
-            html += `<div style="display:flex;justify-content:space-between;font-size:.76rem;color:#475569;"><span>Potencial</span><strong>${(vc.meta||0).toLocaleString('pt-BR')}</strong></div>`;
-            html += `<div style="display:flex;justify-content:space-between;font-size:.78rem;color:#dc2626;font-weight:700;border-top:1px solid #e2e8f0;margin-top:4px;padding-top:4px;"><span>Votos disponíveis</span><span>+${(vc.gap||0).toLocaleString('pt-BR')}</span></div>`;
+            html += `<div style="display:flex;justify-content:space-between;font-size:.76rem;color:#475569;"><span data-help="votos_2022">Votos 2022</span><strong>${(vc.votos_2022||0).toLocaleString('pt-BR')}</strong></div>`;
+            html += `<div style="display:flex;justify-content:space-between;font-size:.76rem;color:#475569;"><span data-help="potencial">Potencial</span><strong>${(vc.meta||0).toLocaleString('pt-BR')}</strong></div>`;
+            html += `<div style="display:flex;justify-content:space-between;font-size:.78rem;color:#dc2626;font-weight:700;border-top:1px solid #e2e8f0;margin-top:4px;padding-top:4px;"><span data-help="votos_disponiveis">Votos disponíveis</span><span>+${(vc.gap||0).toLocaleString('pt-BR')}</span></div>`;
             if (vc.alerta === 'orfa') html += '<div style="margin-top:6px;font-size:.72rem;color:#dc2626;font-weight:700;">🚨 Oportunidade órfã — sem nenhuma estrutura aqui</div>';
             if (vc.alerta === 'esfriando') html += '<div style="margin-top:6px;font-size:.72rem;color:#ea580c;font-weight:700;">⚠️ Base esfriando — relacionamento vencido</div>';
             html += '</div>';
         }
         html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">';
-        html += `<span style="background:#fee2e2;color:#991b1b;font-weight:700;border-radius:8px;padding:3px 9px;font-size:.74rem;">${d.vencidos} vencidos</span>`;
-        html += `<span style="background:#fef3c7;color:#92400e;border-radius:8px;padding:3px 9px;font-size:.74rem;">${d.nunca} nunca</span>`;
-        if (d.alta) html += `<span style="background:#ffedd5;color:#c2410c;border-radius:8px;padding:3px 9px;font-size:.74rem;">⭐ ${d.alta} alta</span>`;
+        html += `<span style="background:#fee2e2;color:#991b1b;font-weight:700;border-radius:8px;padding:3px 9px;font-size:.74rem;" data-help="vencidos">${d.vencidos} vencidos</span>`;
+        html += `<span style="background:#fef3c7;color:#92400e;border-radius:8px;padding:3px 9px;font-size:.74rem;" data-help="nunca">${d.nunca} nunca</span>`;
+        if (d.alta) html += `<span style="background:#ffedd5;color:#c2410c;border-radius:8px;padding:3px 9px;font-size:.74rem;" data-help="alta">⭐ ${d.alta} alta</span>`;
         html += '</div>';
-        html += `<div style="font-size:.76rem;color:#475569;margin-bottom:4px;">Última visita do candidato: <strong>${d.ultima_visita_dias === null ? 'nunca' : 'há ' + d.ultima_visita_dias + ' dias'}</strong></div>`;
-        html += `<div style="font-size:.76rem;color:#475569;margin-bottom:10px;">Próximo compromisso: <strong>${d.proximo ? d.proximo.data + ' — ' + d.proximo.titulo : 'nenhum'}</strong></div>`;
+        html += `<div style="font-size:.76rem;color:#475569;margin-bottom:4px;"><span data-help="ultima_visita">Última visita do candidato</span>: <strong>${d.ultima_visita_dias === null ? 'nunca' : 'há ' + d.ultima_visita_dias + ' dias'}</strong></div>`;
+        html += `<div style="font-size:.76rem;color:#475569;margin-bottom:10px;"><span data-help="proximo_compromisso">Próximo compromisso</span>: <strong>${d.proximo ? d.proximo.data + ' — ' + d.proximo.titulo : 'nenhum'}</strong></div>`;
         if (d.top_vencidos.length) {
-            html += '<div style="font-size:.7rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px;">Quem visitar primeiro</div>';
+            html += '<div style="font-size:.7rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px;" data-help="quem_visitar">Quem visitar primeiro</div>';
             for (const c of d.top_vencidos) {
                 const badge = c.dias === null ? '<span style="color:#991b1b;font-weight:700;">Nunca</span>' : `<span style="color:#c2410c;font-weight:700;">${c.dias}d</span>`;
                 html += `<div style="display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid #f8fafc;font-size:.78rem;">` +
@@ -1519,7 +1524,7 @@ case 'transferencia': {
 
         // Promessas ao eleitor nesta cidade
         if ((d.promessas || []).length) {
-            html += `<div style="font-size:.7rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.4px;margin:12px 0 5px;">🤝 Promessas (${d.prom_entregues} entregues · ${d.prom_pendentes} pendentes)</div>`;
+            html += `<div style="font-size:.7rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.4px;margin:12px 0 5px;" data-help="promessas">🤝 Promessas (${d.prom_entregues} entregues · ${d.prom_pendentes} pendentes)</div>`;
             for (const pr of d.promessas) {
                 const cor = pr.status === 'entregue' ? '#16a34a' : pr.status === 'cancelada' ? '#94a3b8' : '#ea580c';
                 html += `<div style="display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px solid #f8fafc;font-size:.76rem;"><span>${pr.descricao}${pr.bairro ? ' <span style=\"color:#94a3b8;\">('+pr.bairro+')</span>' : ''}</span><span style="color:${cor};font-weight:700;white-space:nowrap;">${pr.status_label}</span></div>`;
@@ -2123,7 +2128,7 @@ case 'transferencia': {
 
         let html = '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;">';
         html += '<span style="font-size:.88rem;font-weight:700;color:#1e293b;">Carona de chapa — palanque compartilhado</span>';
-        html += '<span style="font-size:.75rem;color:#94a3b8;margin-left:auto;">' + fmt.number(sum.votos_carona_total || 0) + ' votos de carona nos redutos aliados</span>';
+        html += '<span style="font-size:.75rem;color:#94a3b8;margin-left:auto;" data-help="votos_carona">' + fmt.number(sum.votos_carona_total || 0) + ' votos de carona nos redutos aliados</span>';
         html += '</div>';
 
         // seletor de aliados (toggles)
@@ -2137,9 +2142,10 @@ case 'transferencia': {
 
         // cards de classe (filtro)
         html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:10px;">';
+        const _trHelp = {palanque_conjunto:'leg:tr:palanque', reduto_aliado:'leg:tr:reduto', polo_ls:'leg:tr:polo', sem_carona:'leg:tr:sem'};
         for (const key of ['palanque_conjunto','reduto_aliado','polo_ls','sem_carona']) {
             const ativo = _transferFiltro === key;
-            html += `<div onclick="filtrarTransfer('${key}')" style="cursor:pointer;border:2px solid ${transferColors[key]};background:${ativo?transferColors[key]:'#fff'};border-radius:10px;padding:9px 11px;">`;
+            html += `<div onclick="filtrarTransfer('${key}')" data-help="${_trHelp[key]}" style="cursor:pointer;border:2px solid ${transferColors[key]};background:${ativo?transferColors[key]:'#fff'};border-radius:10px;padding:9px 11px;">`;
             html += `<div style="font-size:1.3rem;font-weight:800;color:${ativo?'#fff':transferColors[key]};">${sum[key]||0}</div>`;
             html += `<div style="font-size:.72rem;font-weight:700;color:${ativo?'#fff':'#1e293b'};">${transferLabels[key]}</div>`;
             html += `<div style="font-size:.62rem;color:${ativo?'rgba(255,255,255,.85)':'#94a3b8'};line-height:1.2;margin-top:2px;">${transferDesc[key]}</div>`;
@@ -2953,6 +2959,145 @@ case 'transferencia':
         document.getElementById('map-container').innerHTML =
             '<div style="padding:40px;text-align:center;color:#ef4444;font-size:.9rem;">Erro ao carregar mapa: ' + err.message + '</div>';
     });
+})();
+</script>
+
+<!-- Micro-ajuda estratégica no hover (glossário + popover instantâneo) -->
+<script>
+(function () {
+    const H = {
+        // ── Modos ───────────────────────────────────────────────
+        'mode:eleicoes_2022': {t:'Eleições 2022', o:'Onde o LS ficou em cada cidade na última eleição (ranking entre os candidatos).', j:'Veja onde já é forte (defender) e onde ficou para trás (atacar).'},
+        'mode:vitoria': {t:'Vitória 2026', o:'Cruza seus votos de 2022 com a meta possível e revela a lacuna de votos a conquistar.', j:'Priorize cidades com muito voto disponível e pouca estrutura sua — cada visita rende mais.'},
+        'mode:calor': {t:'Mapa de Calor', o:'Intensidade da sua presença/força por camada (votos, estrutura, força política).', j:'Enxergue concentração e vazios: reforce os polos e ocupe os buracos.'},
+        'mode:demandas': {t:'Demandas', o:'Onde há pedidos/promessas registrados e se estão em dia ou atrasados.', j:'Entregar demanda vira voto. Resolva as atrasadas antes que virem desgaste.'},
+        'mode:roteiros': {t:'Roteiros', o:'Trajetos de visita planejados, em andamento e concluídos.', j:'Transforme as cidades-alvo em roteiro otimizado: menos estrada, mais contato.'},
+        'mode:estrategico': {t:'Estratégico', o:'Classifica cada cidade pela força política viva do cadastro (prefeitos, vereadores, cabos).', j:'Ative aliados adormecidos e construa nos vazios — é o tabuleiro da articulação.'},
+        'mode:transferencia': {t:'Transferência — Carona de chapa', o:'Redutos dos seus aliados de chapa (governador, senador, federal), cujos votos somam com os seus.', j:'Leve o LS junto onde o aliado é forte: você herda parte daquele eleitorado.'},
+        'mode:deputados': {t:'Dep. Aliados', o:'Relação de força entre o LS e os deputados aliados por cidade.', j:'Onde o aliado é a ponte, faça agenda conjunta; onde só você tem base, proteja.'},
+        'mode:doacoes': {t:'Doações', o:'De onde vem o apoio financeiro da campanha, por cidade.', j:'Mapeie polos de recurso e cidades a desenvolver para captação.'},
+        'mode:concorrencia': {t:'Concorrência', o:'Força dos concorrentes diretos ao mesmo cargo por cidade.', j:'Não gaste energia em reduto consolidado do rival; dispute o que está em aberto.'},
+        'mode:perfil_ideologico': {t:'Perfil Ideológico', o:'Inclinação ideológica do eleitorado de cada cidade (de menos a ultra conservador).', j:'Calibre o discurso por região — fale a língua de cada eleitorado.'},
+        // ── Legenda: Eleições 2022 ──────────────────────────────
+        'leg:el:1': {t:'1º Lugar', o:'O LS foi o mais votado da cidade.', j:'Reduto consolidado: blindar e usar como vitrine.'},
+        'leg:el:3': {t:'Top 3', o:'Ficou entre os 3 mais votados.', j:'Base forte: pequeno empurrão garante a liderança.'},
+        'leg:el:5': {t:'Top 5', o:'Entre os 5 primeiros.', j:'Boa presença; cresce com estrutura.'},
+        'leg:el:10': {t:'Top 10', o:'Entre os 10 primeiros.', j:'Presença média: avaliar se vale investir.'},
+        'leg:el:11': {t:'11º ou mais', o:'Fora dos 10 primeiros.', j:'Voto fraco: só invista se houver oportunidade nova.'},
+        // ── Legenda: Vitória 2026 ───────────────────────────────
+        'leg:vit:muita': {t:'Muita lacuna', o:'Grande diferença entre seus votos e o potencial da cidade.', j:'Maior espaço de crescimento — alvo prioritário.'},
+        'leg:vit:alta': {t:'Lacuna alta', o:'Bastante voto disponível ainda.', j:'Vale entrar com estrutura e agenda.'},
+        'leg:vit:media': {t:'Lacuna média', o:'Espaço moderado de crescimento.', j:'Mantenha presença e colha o possível.'},
+        'leg:vit:baixa': {t:'Lacuna baixa', o:'Já está perto do potencial.', j:'Defender o que tem; pouco a ganhar.'},
+        'leg:vit:sat': {t:'Saturada', o:'Você já colhe quase todo o voto possível.', j:'Não desperdice energia — apenas conserve.'},
+        // ── Legenda: Demandas ───────────────────────────────────
+        'leg:dem:atraso': {t:'Em atraso', o:'Há promessas/demandas vencidas sem entrega.', j:'Risco de desgaste: priorize resolver.'},
+        'leg:dem:dia': {t:'Em dia', o:'Demandas sendo atendidas no prazo.', j:'Comunique as entregas — vira voto.'},
+        'leg:dem:sem': {t:'Sem demandas', o:'Nenhuma demanda registrada.', j:'Ouça a cidade: registre o que o eleitor pede.'},
+        // ── Legenda: Roteiros ───────────────────────────────────
+        'leg:rot:plan': {t:'Planejado', o:'Roteiro montado, ainda não executado.', j:'Confirme contatos e datas antes de rodar.'},
+        'leg:rot:and': {t:'Em andamento', o:'Roteiro em execução.', j:'Acompanhe e registre cada visita feita.'},
+        'leg:rot:conc': {t:'Concluído', o:'Roteiro finalizado.', j:'Gere as interações e marque o follow-up.'},
+        // ── Legenda: Estratégico ────────────────────────────────
+        'leg:est:base': {t:'Base Forte', o:'Você tem prefeito/vereadores/cabos atuando aqui.', j:'Máquina pronta: acione para puxar voto.'},
+        'leg:est:fraco': {t:'Aliado Fraco', o:'Há aliado, mas sem estrutura mobilizada.', j:'Aliado adormecido: cobre engajamento e cabos.'},
+        'leg:est:oculto': {t:'Potencial Oculto', o:'Voto possível sem estrutura sua ainda.', j:'Construa presença — terreno a conquistar.'},
+        'leg:est:hostil': {t:'Território Hostil', o:'Domínio adversário consolidado.', j:'Só dispute pontos reais de virada.'},
+        'leg:est:neutro': {t:'Neutro', o:'Sem definição clara de força.', j:'Sonde e teste antes de investir pesado.'},
+        // ── Legenda: Transferência ──────────────────────────────
+        'leg:tr:palanque': {t:'Palanque conjunto', o:'2 ou mais aliados fortes na mesma cidade.', j:'Palco perfeito: leve o LS num evento com eles.'},
+        'leg:tr:reduto': {t:'Reduto de aliado', o:'Um aliado é forte e o LS ainda é fraco.', j:'Maior oportunidade de transferência — colher voto novo.'},
+        'leg:tr:polo': {t:'Polo do LS', o:'O LS já é forte aqui.', j:'Defender e usar como base de irradiação.'},
+        'leg:tr:sem': {t:'Sem carona', o:'Nem aliado forte nem LS forte.', j:'Baixa prioridade na lógica de chapa.'},
+        // ── Legenda: Dep. Aliados ───────────────────────────────
+        'leg:dep:ponte': {t:'Ponte Forte', o:'O aliado é o elo dominante na cidade.', j:'Faça agenda casada — entre pela mão do aliado.'},
+        'leg:dep:base': {t:'Base Conjunta', o:'LS e aliado fortes juntos.', j:'Reduto da chapa: consolidar.'},
+        'leg:dep:terr_dep': {t:'Território do Deputado', o:'Domínio do aliado, LS fraco.', j:'Negocie apoio para abrir espaço.'},
+        'leg:dep:terr_ls': {t:'Território do LS', o:'O LS domina, aliado fraco.', j:'Sua base; ofereça carona ao aliado.'},
+        'leg:dep:sem': {t:'Sem Presença', o:'Nenhum dos dois tem força.', j:'Terreno aberto a construir.'},
+        // ── Legenda: Doações ────────────────────────────────────
+        'leg:doa:alto': {t:'Doação Alta', o:'Forte volume de doações.', j:'Polo de recurso: cultive os doadores.'},
+        'leg:doa:medio': {t:'Doação Média', o:'Volume intermediário.', j:'Há espaço para ampliar a captação.'},
+        'leg:doa:baixo': {t:'Doação Baixa', o:'Pouca arrecadação.', j:'Ative lideranças locais para captar.'},
+        'leg:doa:minimo': {t:'Doação Mínima', o:'Quase nada arrecadado.', j:'Mapeie possíveis apoiadores financeiros.'},
+        'leg:doa:nenhuma': {t:'Sem Doação', o:'Nenhuma doação registrada.', j:'Oportunidade inexplorada de captação.'},
+        // ── Legenda: Perfil Ideológico ──────────────────────────
+        'leg:perf:menos': {t:'Menos conservador', o:'Eleitorado mais progressista.', j:'Ajuste o tom; foque pautas que dialoguem aqui.'},
+        'leg:perf:moderado': {t:'Moderado', o:'Eleitorado de centro.', j:'Discurso equilibrado conquista o indeciso.'},
+        'leg:perf:conserv': {t:'Conservador', o:'Inclinação conservadora.', j:'Pautas de ordem, família e segurança rendem.'},
+        'leg:perf:muito': {t:'Muito conservador', o:'Forte perfil conservador.', j:'Terreno fértil para o discurso do LS.'},
+        'leg:perf:ultra': {t:'Ultra conservador', o:'Conservador ao extremo.', j:'Reduto ideológico: mobilize a base.'},
+        // ── Legenda: Concorrência ───────────────────────────────
+        'leg:conc:muito': {t:'Rival muito forte', o:'Adversário direto domina a cidade.', j:'Evite desgaste; só dispute virada real.'},
+        'leg:conc:forte': {t:'Rival forte', o:'Adversário com boa votação.', j:'Disputa dura: escolha bem as batalhas.'},
+        'leg:conc:medio': {t:'Rival médio', o:'Força intermediária do rival.', j:'Cidade em aberto — vale disputar.'},
+        'leg:conc:fraco': {t:'Rival fraco', o:'Rival com pouca presença.', j:'Espaço livre para crescer.'},
+        'leg:conc:sem': {t:'Rival sem votos', o:'Concorrente sem força aqui.', j:'Terreno seu a ocupar primeiro.'},
+        // ── Termos do painel da cidade ──────────────────────────
+        'carona': {t:'Carona de chapa', o:'Votos dos seus aliados de chapa nesta cidade — somam com os seus, não competem.', j:'Use os redutos deles para apresentar o LS a um eleitorado já alinhado.'},
+        'estrela_forte': {t:'★ Aliado forte aqui', o:'O aliado fez mais voto que a média dele neste município — é reduto real dele.', j:'Cidade onde a carona vale mais: priorize agenda conjunta.'},
+        'votos_carona': {t:'Votos de carona', o:'Soma dos votos dos aliados fortes nesta cidade.', j:'Tamanho do eleitorado que você pode herdar levando o LS junto.'},
+        'votos_2022': {t:'Votos 2022', o:'Quanto o LS fez aqui na última eleição.', j:'Ponto de partida para medir crescimento.'},
+        'potencial': {t:'Potencial', o:'Meta de votos estimada para a cidade.', j:'Teto realista a perseguir com estrutura.'},
+        'votos_disponiveis': {t:'Votos disponíveis', o:'Diferença entre o potencial e o que você já tem.', j:'Voto novo ao seu alcance — foco aqui rende mais.'},
+        'vencidos': {t:'Contatos vencidos', o:'Lideranças sem interação há muito tempo.', j:'Base esfriando: reaqueça antes de perder.'},
+        'nunca': {t:'Nunca contatados', o:'Cadastrados que ainda não receberam nenhuma interação.', j:'Primeiro toque pendente — abra relacionamento.'},
+        'alta': {t:'Prioridade alta', o:'Contatos marcados como prioridade alta.', j:'Não deixe esfriar: visite primeiro.'},
+        'ultima_visita': {t:'Última visita do candidato', o:'Há quanto tempo o LS esteve nesta cidade.', j:'Muito tempo sem ir? Hora de reaparecer.'},
+        'proximo_compromisso': {t:'Próximo compromisso', o:'Próxima agenda marcada aqui.', j:'Cidade-alvo sem nada marcado? Agende.'},
+        'quem_visitar': {t:'Quem visitar primeiro', o:'Contatos com relacionamento mais vencido — fila de prioridade.', j:'Comece por eles na próxima passagem pela cidade.'},
+        'promessas': {t:'Promessas ao eleitor', o:'Compromissos assumidos com a cidade e seu status.', j:'Entregar = voto. Cobre andamento das pendentes.'},
+    };
+
+    let pop = null;
+    function ensure() {
+        if (!pop) {
+            pop = document.createElement('div');
+            pop.id = 'mapHelpPop';
+            pop.style.cssText = 'position:fixed;z-index:6000;max-width:290px;background:#0f172a;color:#fff;padding:10px 12px;border-radius:10px;font-size:.76rem;line-height:1.42;box-shadow:0 12px 34px rgba(0,0,0,.4);pointer-events:none;display:none;';
+            document.body.appendChild(pop);
+        }
+        return pop;
+    }
+    function show(key, x, y) {
+        const h = H[key]; if (!h) return;
+        const el = ensure();
+        el.innerHTML = '<div style="font-weight:700;margin-bottom:3px;">' + h.t + '</div>'
+            + '<div style="opacity:.9;">' + h.o + '</div>'
+            + (h.j ? '<div style="margin-top:5px;color:#fcd34d;"><b>🎯</b> ' + h.j + '</div>' : '');
+        el.style.display = 'block';
+        move(x, y);
+    }
+    function move(x, y) {
+        if (!pop) return;
+        const w = pop.offsetWidth, hh = pop.offsetHeight, vw = innerWidth, vh = innerHeight;
+        let nx = x + 14, ny = y + 16;
+        if (nx + w > vw - 8) nx = x - w - 14;
+        if (ny + hh > vh - 8) ny = y - hh - 16;
+        if (nx < 6) nx = 6; if (ny < 6) ny = 6;
+        pop.style.left = nx + 'px'; pop.style.top = ny + 'px';
+    }
+    function hide() { if (pop) pop.style.display = 'none'; }
+
+    const touch = matchMedia('(hover:none)').matches;
+    document.addEventListener('mouseover', e => {
+        if (touch) return;
+        const t = e.target.closest('[data-help]');
+        if (t) show(t.getAttribute('data-help'), e.clientX, e.clientY);
+    });
+    document.addEventListener('mousemove', e => {
+        if (pop && pop.style.display === 'block') move(e.clientX, e.clientY);
+    });
+    document.addEventListener('mouseout', e => {
+        if (e.target.closest('[data-help]')) hide();
+    });
+    document.addEventListener('click', e => {
+        if (!touch) return;
+        const t = e.target.closest('[data-help]');
+        if (t) { show(t.getAttribute('data-help'), e.clientX, e.clientY); setTimeout(hide, 4000); }
+        else hide();
+    });
+    window.addEventListener('scroll', hide, true);
 })();
 </script>
 {% endblock %}
