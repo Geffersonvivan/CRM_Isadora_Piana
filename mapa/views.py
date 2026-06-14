@@ -1961,6 +1961,37 @@ class CompeticaoMapAPI(APIView):
                 'shared_cities': shared_cities,
             }
 
+        # Overlap dos candidatos a ESTADUAL (rivais reais de 2026) vs base
+        # geográfica do LS (votos federais 2022). Métrica de SHARE (cargo-agnóstica):
+        # sobreposição = Σ min(share_LS_cidade, share_rival_cidade) → 0–100%.
+        est_overlap = {}
+        if ls_total > 0:
+            ls_share = {slug: v / ls_total for slug, v in ls_by_city.items()}
+            est_results = (
+                ResultadoCandidato.objects
+                .filter(eleicao__ano=2022, eleicao__turno=1, eleicao__tipo='deputado_estadual')
+                .values('candidato_nome', 'cidade__slug', 'votos')
+            )
+            est_cities = defaultdict(dict)
+            est_total = defaultdict(int)
+            for r in est_results:
+                v = r['votos'] or 0
+                est_cities[r['candidato_nome']][r['cidade__slug']] = v
+                est_total[r['candidato_nome']] += v
+            for name, cv in est_cities.items():
+                tot = est_total[name] or 1
+                ov = 0.0
+                shared = 0
+                for slug, v in cv.items():
+                    lss = ls_share.get(slug, 0)
+                    if lss > 0 and v > 0:
+                        ov += min(lss, v / tot)
+                        shared += 1
+                est_overlap[name] = {
+                    'overlap_pct': round(ov * 100, 1),
+                    'shared_cities': shared,
+                }
+
         candidatos = []
         for r in qs:
             entry = {
@@ -1971,18 +2002,25 @@ class CompeticaoMapAPI(APIView):
                 'cargo_label': self.CARGO_LABELS.get(r['eleicao__tipo'], r['eleicao__tipo']),
                 'total_votos': r['total'] or 0,
             }
-            ov = dep_fed_overlap.get(r['candidato_nome'])
-            if ov and r['eleicao__tipo'] == 'deputado_federal':
-                entry['overlap_votes'] = ov['overlap_votes']
-                entry['overlap_pct'] = ov['overlap_pct']
-                entry['shared_cities'] = ov['shared_cities']
+            if r['eleicao__tipo'] == 'deputado_federal':
+                ov = dep_fed_overlap.get(r['candidato_nome'])
+                if ov:
+                    entry['overlap_votes'] = ov['overlap_votes']
+                    entry['overlap_pct'] = ov['overlap_pct']
+                    entry['shared_cities'] = ov['shared_cities']
+            elif r['eleicao__tipo'] == 'deputado_estadual':
+                ov = est_overlap.get(r['candidato_nome'])
+                if ov:
+                    entry['overlap_pct'] = ov['overlap_pct']
+                    entry['shared_cities'] = ov['shared_cities']
             candidatos.append(entry)
 
-        # Sort dep. federal by overlap_pct descending for threat ranking
-        dep_fed_cands = [c for c in candidatos if c['cargo'] == 'deputado_federal' and 'overlap_pct' in c]
-        dep_fed_cands.sort(key=lambda c: c['overlap_pct'], reverse=True)
-        for i, c in enumerate(dep_fed_cands, 1):
-            c['threat_rank'] = i
+        # Ranking de ameaça por cargo (overlap_pct desc)
+        for cargo in ('deputado_federal', 'deputado_estadual'):
+            ranked = [c for c in candidatos if c['cargo'] == cargo and 'overlap_pct' in c]
+            ranked.sort(key=lambda c: c['overlap_pct'], reverse=True)
+            for i, c in enumerate(ranked, 1):
+                c['threat_rank'] = i
 
         return Response({'candidatos': candidatos})
 
@@ -2011,6 +2049,15 @@ class CompeticaoMapAPI(APIView):
                 'pct': round(float(r['percentual'] or 0), 2),
             }
 
+        # Base geográfica do LS (votos federais 2022) — usada para a lente
+        # Defender×Atacar mesmo quando o rival é de outro cargo (estadual).
+        ls_base = {}
+        for r in (ResultadoCandidato.objects
+                  .filter(eleicao__ano=2022, eleicao__turno=1,
+                          eleicao__tipo='deputado_federal', is_sorgatto=True)
+                  .values('cidade__slug', 'votos')):
+            ls_base[r['cidade__slug']] = r['votos'] or 0
+
         cidades = {}
         max_votos = 0
         total = 0
@@ -2022,8 +2069,9 @@ class CompeticaoMapAPI(APIView):
                 'nome': r['cidade__nome'],
                 'votos': v,
                 'pct': round(float(r['percentual'] or 0), 2),
+                'ls_base_votos': ls_base.get(slug, 0),
             }
-            # LS comparison
+            # LS comparison (mesmo cargo)
             if ls:
                 entry['ls_votos'] = ls['votos']
                 entry['ls_pct'] = ls['pct']

@@ -883,7 +883,8 @@ class SCMap {
             })
             .on('click', (event, d) => {
                 self._hideTip();
-                window.location.href = `/mapa/cidade/${d.properties.slug}/?mapa=${self.mapMode}`;
+                if (self.onCityAction) self.onCityAction(d.properties.slug);
+                else window.location.href = `/mapa/cidade/${d.properties.slug}/?mapa=${self.mapMode}`;
             });
 
         // Merge enter + update, animate color transition
