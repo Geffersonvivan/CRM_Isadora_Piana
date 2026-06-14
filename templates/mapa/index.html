@@ -527,8 +527,8 @@
 <!-- Dashboard contextual abaixo do mapa -->
 <div class="map-wrapper map-dashboard map-dashboard-hidden" id="mapDashboard"></div>
 
-<script src="{% static 'js/map/api.js' %}?v=14"></script>
-<script src="{% static 'js/map/sc-map.js' %}?v=14"></script>
+<script src="{% static 'js/map/api.js' %}?v=15"></script>
+<script src="{% static 'js/map/sc-map.js' %}?v=15"></script>
 <script>
 (function() {
     const map = new SCMap('map-container');
@@ -1439,7 +1439,8 @@ case 'transferencia': {
         const dataSel = document.getElementById('rotBuilderData')?.value || _amanha();
         let html = '';
 
-        // Quem controla? (seletor de controle político)
+        // Quem controla? (seletor de controle político — só no modo Estratégico)
+        if (map.strategicEnabled) {
         const ctrl = d.controle || '';
         const ctrlCores = { aliado: '#15803d', neutro: '#9ca3af', disputado: '#7c3aed', adversario: '#dc2626' };
         html += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:9px 11px;margin-bottom:10px;">';
@@ -1452,6 +1453,7 @@ case 'transferencia': {
         html += '</div>';
         if (d.adversario_nome) html += `<div style="font-size:.72rem;color:#dc2626;margin-top:5px;">Reduto de ${d.adversario_nome} (${d.adversario_partido})</div>`;
         html += '</div>';
+        }
 
         // Cabeçalho de carona (modo Transferência)
         const tc = map.voteTransferEnabled && (map._voteTransferData?.cities || []).find(x => x.slug === slug);

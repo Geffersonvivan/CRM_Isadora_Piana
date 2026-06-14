@@ -1108,11 +1108,14 @@ class SCMap {
             if (city) {
                 let html = `<div class="tooltip-title">${f.properties.name}</div>`;
                 html += `<div class="tooltip-row"><span class="tooltip-label">Classificação</span> <span class="tooltip-value" style="color:${self._transferOppColor(city.opp_class)};font-weight:bold">${self._transferOppLabel(city.opp_class)}</span></div>`;
-                html += `<div class="tooltip-row"><span class="tooltip-label">LS Penetração</span> <span class="tooltip-value" style="color:#15803d;font-weight:bold">${city.penetration}%</span></div>`;
-                html += `<div class="tooltip-row"><span class="tooltip-label">Votos LS</span> <span class="tooltip-value">${city.votes.toLocaleString('pt-BR')}</span></div>`;
-                html += `<div class="tooltip-row"><span class="tooltip-label">Jorginho Melo</span> <span class="tooltip-value" style="color:#2563eb">${(city.jorginho_votes||0).toLocaleString('pt-BR')} (${city.jorginho_pct||0}%)</span></div>`;
-                html += `<div class="tooltip-row"><span class="tooltip-label">Carol De Toni</span> <span class="tooltip-value" style="color:#ec4899">${(city.carol_votes||0).toLocaleString('pt-BR')} (${city.carol_pct||0}%)</span></div>`;
-                html += `<div class="tooltip-row"><span class="tooltip-label">Eleitores</span> <span class="tooltip-value">${city.voters.toLocaleString('pt-BR')}</span></div>`;
+                html += `<div class="tooltip-row"><span class="tooltip-label">LS Penetração</span> <span class="tooltip-value" style="color:#15803d;font-weight:bold">${city.penetration}% (${(city.votes||0).toLocaleString('pt-BR')})</span></div>`;
+                for (const a of (city.aliados || [])) {
+                    const forte = (city.aliados_fortes || []).includes(a.nome);
+                    html += `<div class="tooltip-row"><span class="tooltip-label">${a.nome}</span> <span class="tooltip-value" style="color:${a.cor};font-weight:${forte?'700':'400'}">${(a.votes||0).toLocaleString('pt-BR')} (${a.pct||0}%)${forte?' ★':''}</span></div>`;
+                }
+                if (city.votos_carona) html += `<div class="tooltip-row"><span class="tooltip-label">Votos de carona</span> <span class="tooltip-value" style="color:#7c3aed;font-weight:700">${city.votos_carona.toLocaleString('pt-BR')}</span></div>`;
+                if ((city.agenda_aliados||[]).length) html += `<div class="tooltip-row"><span class="tooltip-value" style="color:#dc2626;font-weight:700">📅 Aliado com visita marcada!</span></div>`;
+                html += '<div class="tooltip-row"><span class="tooltip-label" style="color:#9ca3af">Clique para agendar com o aliado</span></div>';
                 tipHtmls.set(f.properties.slug, html);
             } else {
                 tipHtmls.set(f.properties.slug, `<div class="tooltip-title">${f.properties.name}</div><div class="tooltip-row"><span class="tooltip-label" style="color:#9ca3af">Sem dados</span></div>`);

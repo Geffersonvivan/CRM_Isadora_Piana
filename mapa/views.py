@@ -1336,8 +1336,8 @@ class ZoneRankingAPI(APIView):
 
 
 class VoteTransferAPI(APIView):
-    """Transferência de votos — 6 classes de oportunidade + deputados aliados + perfil socioeconômico."""
-    @method_decorator(cache_page(60 * 60 * 24))  # dados eleitorais 2022 são estáticos
+    """Carona de chapa — redutos dos aliados cruzados com a agenda e o LS."""
+    @method_decorator(cache_page(60))  # cache curto: reflete toggles de aliado e agenda
     def get(self, request):
         cities = (
             Cidade.objects
