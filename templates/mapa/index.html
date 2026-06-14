@@ -546,8 +546,8 @@
     </div>
 </div>
 
-<script src="{% static 'js/map/api.js' %}?v=24"></script>
-<script src="{% static 'js/map/sc-map.js' %}?v=24"></script>
+<script src="{% static 'js/map/api.js' %}?v=25"></script>
+<script src="{% static 'js/map/sc-map.js' %}?v=25"></script>
 <script>
 (function() {
     const map = new SCMap('map-container');
@@ -1578,13 +1578,13 @@ case 'transferencia': {
 
         html += '<div style="display:flex;gap:18px;flex-wrap:wrap;margin:6px 0 12px;align-items:flex-end;">';
         const big = [
-            ['Base 2022', s.votos_2022.toLocaleString('pt-BR'), '#1e293b'],
-            ['Meta da campanha', s.meta_campanha.toLocaleString('pt-BR'), '#002776'],
-            ['Faltam p/ a meta', s.falta_meta.toLocaleString('pt-BR'), '#dc2626'],
-            ['Potencial mapeado', s.potencial.toLocaleString('pt-BR'), '#64748b'],
+            ['Base 2022', s.votos_2022.toLocaleString('pt-BR'), '#1e293b', 'vit:base2022'],
+            ['Meta da campanha', s.meta_campanha.toLocaleString('pt-BR'), '#002776', 'vit:meta'],
+            ['Faltam p/ a meta', s.falta_meta.toLocaleString('pt-BR'), '#dc2626', 'vit:falta'],
+            ['Potencial mapeado', s.potencial.toLocaleString('pt-BR'), '#64748b', 'vit:potencial'],
         ];
-        for (const [lbl, val, cor] of big) {
-            html += `<div><div style="font-size:1.5rem;font-weight:800;color:${cor};line-height:1;">${val}</div><div style="font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.4px;">${lbl}</div></div>`;
+        for (const [lbl, val, cor, help] of big) {
+            html += `<div data-help="${help}"><div style="font-size:1.5rem;font-weight:800;color:${cor};line-height:1;">${val}</div><div style="font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.4px;">${lbl}</div></div>`;
         }
         html += '</div>';
 
@@ -1593,7 +1593,7 @@ case 'transferencia': {
         for (const q of ['mina_ouro','celeiro','fortaleza','marginal']) {
             const info = QUAD_INFO[q];
             const ativo = _victoryQuadFiltro === q;
-            html += `<div onclick="filtrarQuadrante('${q}')" style="cursor:pointer;background:${ativo ? info.cor : '#fff'};border:2px solid ${info.cor};border-radius:10px;padding:10px 12px;transition:all .15s;">`;
+            html += `<div onclick="filtrarQuadrante('${q}')" data-help="quad:${q}" style="cursor:pointer;background:${ativo ? info.cor : '#fff'};border:2px solid ${info.cor};border-radius:10px;padding:10px 12px;transition:all .15s;">`;
             html += `<div style="font-size:1.3rem;font-weight:800;color:${ativo ? '#fff' : info.cor};">${data.quadrantes[q] || 0}</div>`;
             html += `<div style="font-size:.74rem;font-weight:700;color:${ativo ? '#fff' : '#1e293b'};">${info.label}</div>`;
             html += `<div style="font-size:.66rem;color:${ativo ? 'rgba(255,255,255,.85)' : '#94a3b8'};">${info.desc}</div>`;
@@ -1603,8 +1603,8 @@ case 'transferencia': {
 
         // Alertas
         html += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">';
-        html += `<span onclick="filtrarAlerta('orfa')" style="cursor:pointer;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:8px;padding:6px 12px;font-size:.76rem;font-weight:700;">🚨 ${data.alertas.orfas} oportunidades órfãs</span>`;
-        html += `<span onclick="filtrarAlerta('esfriando')" style="cursor:pointer;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:8px;padding:6px 12px;font-size:.76rem;font-weight:700;">⚠️ ${data.alertas.esfriando} bases esfriando</span>`;
+        html += `<span onclick="filtrarAlerta('orfa')" data-help="vit:orfas" style="cursor:pointer;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:8px;padding:6px 12px;font-size:.76rem;font-weight:700;">🚨 ${data.alertas.orfas} oportunidades órfãs</span>`;
+        html += `<span onclick="filtrarAlerta('esfriando')" data-help="vit:esfriando" style="cursor:pointer;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:8px;padding:6px 12px;font-size:.76rem;font-weight:700;">⚠️ ${data.alertas.esfriando} bases esfriando</span>`;
         if (_victoryQuadFiltro || _victoryAlertaFiltro) html += `<span onclick="limparFiltroVitoria()" style="cursor:pointer;color:#64748b;border:1px solid #e2e8f0;border-radius:8px;padding:6px 12px;font-size:.76rem;">Limpar filtro</span>`;
         html += '</div>';
 
@@ -1685,7 +1685,7 @@ case 'transferencia': {
         html += '<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:10px;">';
         for (const key of ['maquina_voto','aliado_ativar','construir','disputa','hostil','neutro']) {
             const ativo = _stratFiltro === key;
-            html += `<div onclick="filtrarEstrategico('${key}')" style="cursor:pointer;border:2px solid ${strategicColors[key]};background:${ativo ? strategicColors[key] : '#fff'};border-radius:10px;padding:9px 11px;">`;
+            html += `<div onclick="filtrarEstrategico('${key}')" data-help="est:${key}" style="cursor:pointer;border:2px solid ${strategicColors[key]};background:${ativo ? strategicColors[key] : '#fff'};border-radius:10px;padding:9px 11px;">`;
             html += `<div style="font-size:1.3rem;font-weight:800;color:${ativo ? '#fff' : strategicColors[key]};">${summary[key] || 0}</div>`;
             html += `<div style="font-size:.72rem;font-weight:700;color:${ativo ? '#fff' : '#1e293b'};">${strategicLabels[key]}</div>`;
             html += `<div style="font-size:.62rem;color:${ativo ? 'rgba(255,255,255,.85)' : '#94a3b8'};line-height:1.2;margin-top:2px;">${strategicDesc[key]}</div>`;
@@ -1696,7 +1696,7 @@ case 'transferencia': {
         // Destaque: aliados dormindo (a maior alavanca)
         const dormindo = cities.filter(c => c.classification === 'aliado_ativar');
         if (dormindo.length) {
-            html += `<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:.78rem;color:#92400e;">🤝 <strong>${dormindo.length} cidades têm aliado político mas nenhum cabo engajado.</strong> Cada um é uma máquina de voto esperando ser ligada — a alavanca mais barata da campanha.</div>`;
+            html += `<div data-help="est:dormindo" style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:.78rem;color:#92400e;">🤝 <strong>${dormindo.length} cidades têm aliado político mas nenhum cabo engajado.</strong> Cada um é uma máquina de voto esperando ser ligada — a alavanca mais barata da campanha.</div>`;
         }
         if (tp.meta_transferir) {
             html += `<div style="font-size:.8rem;color:#1e293b;margin-bottom:10px;">Meta de transferência somada: <strong>${tp.meta_transferir.toLocaleString('pt-BR')} votos</strong> dos aliados.</div>`;
@@ -3051,6 +3051,25 @@ case 'transferencia':
         'acao:compromisso': {t:'Marque presença com propósito', o:'Seja estratégico: agende o LS para quando um aliado forte desta cidade tiver evento (palanque conjunto) e puxe junto os contatos “vencidos / nunca” listados acima.', j:'Ativa a base local, gera interação automática no cadastro e converte reduto de aliado em voto seu.'},
         'acao:roteiro': {t:'Transforme a cidade em rota de colheita', o:'Seja estratégico: encadeie esta cidade com alvos próximos num único dia de estrada e comece pelos relacionamentos mais frios.', j:'Menos quilômetro rodado, mais contatos por viagem e cobertura das oportunidades órfãs antes do adversário.'},
         'acao:promessa': {t:'Registre hoje, cobre voto amanhã', o:'Seja estratégico: anote o que a cidade pediu (obra, demanda, pauta) com prazo e responsável, e acompanhe até entregar.', j:'Promessa cumprida vira prova de trabalho e fideliza voto; pendência rastreada evita o desgaste de “prometeu e sumiu”.'},
+        // ── Vitória 2026: métricas, quadrantes e alertas ────────
+        'vit:base2022': {t:'Base 2022', o:'Total de votos que o LS fez no estado na última eleição.', j:'Seu piso. Toda a estratégia parte daqui para crescer.'},
+        'vit:meta': {t:'Meta da campanha', o:'Quantidade de votos definida como alvo para 2026.', j:'Norte de toda a operação — distribua-a por cidade.'},
+        'vit:falta': {t:'Faltam p/ a meta', o:'Quantos votos ainda separam você do alvo.', j:'Esse é o tamanho real do desafio: cubra-o nas mina de ouro.'},
+        'vit:potencial': {t:'Potencial mapeado', o:'Soma dos votos alcançáveis em todas as cidades.', j:'Teto teórico; mostra se a meta cabe no território.'},
+        'quad:mina_ouro': {t:'💰 Mina de ouro', o:'Cidade grande onde o LS é fraco.', j:'Maior retorno por esforço — ataque prioritário.'},
+        'quad:celeiro': {t:'🛡️ Celeiro', o:'Cidade grande onde o LS já é forte.', j:'Defenda a base: aqui se ganha em volume.'},
+        'quad:fortaleza': {t:'✅ Fortaleza', o:'Cidade pequena onde o LS é forte.', j:'Manutenção barata — só não deixe esfriar.'},
+        'quad:marginal': {t:'⚪ Marginal', o:'Cidade pequena onde o LS é fraco.', j:'Baixa prioridade — pouco voto a colher.'},
+        'vit:orfas': {t:'🚨 Oportunidades órfãs', o:'Cidades com muito voto disponível e nenhuma estrutura sua.', j:'Plante estrutura aqui antes do adversário — terreno vazio e rico.'},
+        'vit:esfriando': {t:'⚠️ Bases esfriando', o:'Cidades onde você é forte mas o relacionamento está vencido.', j:'Reaqueça antes de perder o que já é seu.'},
+        // ── Estratégico: classes e destaque ─────────────────────
+        'est:maquina_voto': {t:'🏭 Máquina de voto', o:'Aliado político com cabos trabalhando.', j:'Estrutura pronta: cobre resultado e colha o voto.'},
+        'est:aliado_ativar': {t:'🤝 Aliado a ativar', o:'Tem aliado político, mas sem cabo engajado.', j:'A alavanca mais barata: ligue essa máquina parada.'},
+        'est:construir': {t:'🏗️ Construir', o:'Voto disponível e nenhum aliado ainda.', j:'Recrute liderança local — terreno a montar.'},
+        'est:disputa': {t:'⚔️ Em disputa', o:'Eleitorado dividido entre forças.', j:'Batalha pelo voto: invista onde dá para virar.'},
+        'est:hostil': {t:'🚫 Hostil', o:'Reduto adversário consolidado.', j:'Baixo retorno — não desperdice energia.'},
+        'est:neutro': {t:'⚪ Neutro', o:'Sem aliados e pouca oportunidade.', j:'Sonde antes de investir.'},
+        'est:dormindo': {t:'Aliados dormindo', o:'Cidades com aliado político mas nenhum cabo engajado.', j:'Cada uma é uma máquina de voto esperando ser ligada — ative os cabos primeiro.'},
     };
 
     let pop = null;
