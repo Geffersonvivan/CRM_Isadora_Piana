@@ -2,6 +2,7 @@
 function apiGet(url) {
     return fetch(url, {
         credentials: 'same-origin',
+        cache: 'no-store',
         headers: {'X-Requested-With': 'XMLHttpRequest'},
     }).then(r => {
         if (!r.ok) throw new Error(`API ${r.status}: ${url}`);
