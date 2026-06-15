@@ -1093,7 +1093,9 @@ def api_estrategia_agenda(request):
     for c in cidades:
         pen = (c.votos_sorgatto_2022 / c.eleitores) if c.eleitores else 0
         deficit = max(0.0, 1 - (pen / maxpen if maxpen else 0))
-        opp = deficit * math.sqrt(c.eleitores or 0)
+        # log (não sqrt) amortece o peso do eleitorado: as capitais param de dominar
+        # e a cidade média, conservadora e esquecida sobe no ranking.
+        opp = deficit * math.log10((c.eleitores or 0) + 10)
         maxopp = max(maxopp, opp)
         rows.append({'c': c, 'pen': pen, 'opp': opp, 'ap': ap.get(c.id, 0),
                      'fut': c.id in comp_fut, 'ever': c.id in comp_ever})
