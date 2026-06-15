@@ -55,7 +55,11 @@ Reais do IBGE Censo 2022 (comandos dedicados, todos rodam no sync):
 > no painel o rótulo é "Alfabetização".
 
 Ainda **estimados** a partir do PIB (selo `est.` no painel):
-- **Bolsa Família** e **MEIs** — as fontes (MDS e Receita Federal) exigem **token**
-  de API (Portal da Transparência) ou download em massa. Para torná-los reais:
-  registrar uma `chave-api-dados` no Portal da Transparência e criar um
-  `import_bolsa_familia_real` análogo aos demais.
+- **Bolsa Família** — comando `import_bolsa_familia_real` já existe (API do Portal da
+  Transparência). Exige um **token gratuito**:
+  1. Cadastre o e-mail em https://portaldatransparencia.gov.br/api-de-dados/cadastrar-email
+  2. Configure o token na produção: `railway variables --set PORTAL_TRANSPARENCIA_TOKEN=xxxx`
+     (e como secret do GitHub Actions, se usar o cron).
+  3. Rode: `PORTAL_TRANSPARENCIA_TOKEN=xxxx python manage.py import_bolsa_familia_real`.
+  O `sync_indicadores` roda esse passo automaticamente **quando o token está presente**.
+- **MEIs** — fonte é a Receita Federal (dump grande); segue estimado.

@@ -18,6 +18,7 @@ Uso:
     railway run python manage.py sync_indicadores      # na produção
 """
 import json
+import os
 import urllib.request
 
 from django.core.management import call_command
@@ -61,6 +62,12 @@ class Command(BaseCommand):
             self._run_step('import_renda_real', dry)          # renda real (não mais PIB)
             self._run_step('import_urbano_real', dry)         # urbano/rural real
             self._run_step('import_alfabetizacao_real', dry)  # alfabetização real
+            # ── Etapa 3d: Bolsa Família real — só se houver token configurado ──
+            if os.getenv('PORTAL_TRANSPARENCIA_TOKEN'):
+                self._run_step('import_bolsa_familia_real', dry)
+            else:
+                self.stdout.write(self.style.WARNING(
+                    '  [*] import_bolsa_familia_real pulado (sem PORTAL_TRANSPARENCIA_TOKEN)'))
             # ── Etapa 3c: coordenadas faltantes pelo centroide do geojson ──
             self._run_step('preencher_coordenadas', dry)
 
