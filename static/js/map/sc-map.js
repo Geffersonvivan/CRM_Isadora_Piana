@@ -654,8 +654,14 @@ class SCMap {
                 if (c[key] === undefined) continue;
                 let val = '';
                 if (key === 'pib') val = 'R$ ' + (c.pib_raw || 0).toLocaleString('pt-BR', {maximumFractionDigits: 0});
-                else if (key === 'renda') val = 'R$ ' + (c.renda_raw || 0).toLocaleString('pt-BR', {maximumFractionDigits: 0});
-                else if (key === 'bf') val = (c.bf_raw || 0).toLocaleString('pt-BR') + ' fam.';
+                else if (key === 'renda') val = 'R$ ' + (c.renda_raw || 0).toLocaleString('pt-BR', {maximumFractionDigits: 0}) + '/mês';
+                else if (key === 'bf') {
+                    const fam = c.bf_raw || 0;
+                    // ~2,8 pessoas por domicílio (média Censo 2022) para estimar cobertura
+                    const pct = c.pop ? (fam * 2.8 / c.pop * 100) : 0;
+                    val = fam.toLocaleString('pt-BR') + ' fam.' +
+                        (c.pop ? ` <span style="color:#94a3b8;font-weight:400">≈ ${pct.toFixed(0)}% da pop.</span>` : '');
+                }
                 else if (key === 'meis') val = (c.meis_raw || 0).toLocaleString('pt-BR');
                 else if (key === 'pop_urbana_pct') val = (c.pop_urbana_pct_raw || 0).toFixed(1) + '%';
                 else if (key === 'idosos_pct') val = (c.idosos_pct_raw || 0).toFixed(1) + '%';
