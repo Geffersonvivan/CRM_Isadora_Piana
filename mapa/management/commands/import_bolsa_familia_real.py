@@ -24,7 +24,8 @@ from django.core.management.base import BaseCommand, CommandError
 from liderancas.models import Cidade
 from mapa.models import IndicadorMunicipal
 
-BASE = 'https://api.portaldatransparencia.gov.br/api-de-dados/bolsa-familia-por-municipio'
+# "Novo Bolsa Família" (2023+). Os endpoints bolsa-familia/auxilio-brasil têm só dados antigos.
+BASE = 'https://api.portaldatransparencia.gov.br/api-de-dados/novo-bolsa-familia-por-municipio'
 ANO_IND = 2022
 
 

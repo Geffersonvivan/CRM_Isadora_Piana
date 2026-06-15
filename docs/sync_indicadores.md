@@ -46,20 +46,22 @@ O serviço de cron sobe, roda o comando e encerra — não fica de pé como o `w
 
 ## O que é REAL e o que ainda é estimado
 
-Reais do IBGE Censo 2022 (comandos dedicados, todos rodam no sync):
-- **População** (4714), **PIB** (5938), **Renda per capita** (3563),
+Reais (comandos dedicados, todos rodam no sync):
+- IBGE Censo 2022: **População** (4714), **PIB** (5938), **Renda per capita** (3563),
   **Urbano/rural** (9923), **Idosos/Jovens** (9514), **Alfabetização** (10091).
+- **Bolsa Família** — nº real de famílias no Novo Bolsa Família por município
+  (Portal da Transparência/CGU, endpoint `novo-bolsa-familia-por-municipio`, mensal).
 - **lat/lng** — centroide do geojson (`preencher_coordenadas`, sem API).
 
 > Obs.: o campo `anos_estudo_medio` passou a guardar a **taxa de alfabetização (%)**;
 > no painel o rótulo é "Alfabetização".
 
-Ainda **estimados** a partir do PIB (selo `est.` no painel):
-- **Bolsa Família** — comando `import_bolsa_familia_real` já existe (API do Portal da
-  Transparência). Exige um **token gratuito**:
-  1. Cadastre o e-mail em https://portaldatransparencia.gov.br/api-de-dados/cadastrar-email
-  2. Configure o token na produção: `railway variables --set PORTAL_TRANSPARENCIA_TOKEN=xxxx`
-     (e como secret do GitHub Actions, se usar o cron).
-  3. Rode: `PORTAL_TRANSPARENCIA_TOKEN=xxxx python manage.py import_bolsa_familia_real`.
-  O `sync_indicadores` roda esse passo automaticamente **quando o token está presente**.
+**Bolsa Família — token (já configurado):** o endpoint exige a `chave-api-dados`
+(API restrita, 180 req/min — o comando respeita com delay). O token está em
+`PORTAL_TRANSPARENCIA_TOKEN` (variável do Railway). Para renovar: gerar nova chave em
+https://portaldatransparencia.gov.br/api-de-dados/cadastrar-email e
+`railway variables --set PORTAL_TRANSPARENCIA_TOKEN=xxxx`. O `sync_indicadores` roda o
+passo automaticamente quando o token está presente.
+
+Ainda **estimado** a partir do PIB (selo `est.` no painel):
 - **MEIs** — fonte é a Receita Federal (dump grande); segue estimado.
