@@ -43,6 +43,13 @@ class Usuario(AbstractUser):
         blank=True,
         help_text='Lista de seções da sidebar que o usuário pode acessar',
     )
+    areas_tarefas = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name='Áreas de tarefas',
+        help_text='Setores cujas tarefas o usuário enxerga. Só as marcadas; '
+                  'nenhuma marcada = não vê nenhuma tarefa. Admin sempre vê todas.',
+    )
 
     class Meta:
         verbose_name = 'Usuário'
@@ -52,25 +59,18 @@ class Usuario(AbstractUser):
     def __str__(self):
         return self.get_full_name() or self.username
 
-    def save(self, *args, **kwargs):
-        if not self.secoes_permitidas:
-            self.secoes_permitidas = self.get_secoes_padrao()
-        super().save(*args, **kwargs)
+    # Seções padrão sugeridas por perfil. NÃO é aplicado automaticamente no save
+    # (vazio = nenhum acesso, por decisão explícita). É usado como sugestão ao
+    # CRIAR pelo formulário (botão "Aplicar padrão do perfil") e pelo cadastro PWA.
+    SECOES_PADRAO = {
+        'admin': ['dashboard', 'demandas', 'equipes', 'liderancas', 'mapa', 'config'],
+        'coordenador': ['dashboard', 'demandas', 'equipes', 'liderancas', 'mapa'],
+        'lideranca': ['demandas', 'equipes', 'liderancas'],
+        'operador': ['demandas', 'equipes'],
+    }
 
     def get_secoes_padrao(self):
-        mapa = {
-            'admin': [
-                'dashboard', 'demandas', 'equipes',
-                'liderancas', 'mapa', 'config',
-            ],
-            'coordenador': [
-                'dashboard', 'demandas', 'equipes',
-                'liderancas', 'mapa',
-            ],
-            'lideranca': ['demandas', 'equipes', 'liderancas'],
-            'operador': ['demandas', 'equipes'],
-        }
-        return mapa.get(self.perfil, [])
+        return list(self.SECOES_PADRAO.get(self.perfil, []))
 
     def pode_acessar(self, secao):
         if self.perfil == 'admin':

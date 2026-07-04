@@ -14,27 +14,22 @@ SECOES_CHOICES = [
     ('demandas:eventos', '— Eventos'),
     ('demandas:roteiros', '— Roteiros'),
     ('demandas:tarefas', '— Tarefas'),
-    ('demandas:promessas', '— Promessas'),
     # Equipes
     ('equipes', 'Equipes'),
     ('equipes:mobilizacao', '— Mobilização'),
+    ('equipes:aprovar', '— Aprovar voluntários do app'),
     # Lideranças
     ('liderancas', 'Lideranças'),
-    ('liderancas:apoiadores', '— Apoiadores'),
-    ('liderancas:cabos_eleitorais', '— Cabos Eleitorais'),
-    ('liderancas:coordenador_regional', '— Coordenador Regional'),
-    ('liderancas:egressos', '— Egressos'),
-    ('liderancas:fila', '— Fila de Relacionamento'),
-    ('liderancas:lassberg', '— Lassberg'),
+    ('liderancas:lista', '— Lideranças'),
+    ('liderancas:aprovar', '— Aprovar leads do app'),
     # Mapa
     ('mapa', 'Mapa'),
     ('mapa:demandas', '— Demandas'),
     ('mapa:dep_aliados', '— Dep. Aliados'),
-    ('mapa:doacoes', '— Doações'),
     ('mapa:eleicoes_2022', '— Eleições 2022'),
     ('mapa:estrategico', '— Estratégico'),
     ('mapa:mapa_calor', '— Mapa de Calor'),
-    ('mapa:rede_pl', '— Rede PL'),
+    ('mapa:rede_pl', '— Rede NOVO'),
     ('mapa:regioes', '— Regiões'),
     ('mapa:roteiros', '— Roteiros'),
     ('mapa:transferencia', '— Transferência'),
@@ -52,6 +47,16 @@ SECOES_CHOICES = [
 ]
 
 
+AREAS_TAREFAS_CHOICES = [
+    ('financeiro', 'Financeiro'),
+    ('administrativo', 'Administrativo'),
+    ('comunicacao', 'Comunicação'),
+    ('mobilizacao', 'Mobilização'),
+    ('estrategico', 'Estratégico'),
+    ('eventos', 'Eventos'),
+]
+
+
 class UsuarioCreateForm(forms.ModelForm):
     password1 = forms.CharField(label='Senha', widget=forms.PasswordInput(attrs={
         'class': 'form-input',
@@ -64,6 +69,12 @@ class UsuarioCreateForm(forms.ModelForm):
         widget=forms.CheckboxSelectMultiple,
         required=False,
         label='Seções permitidas',
+    )
+    areas = forms.MultipleChoiceField(
+        choices=AREAS_TAREFAS_CHOICES,
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label='Áreas de tarefas',
     )
 
     class Meta:
@@ -93,7 +104,7 @@ class UsuarioCreateForm(forms.ModelForm):
         ]
         # Todos obrigatórios exceto foto e seções
         for name, field in self.fields.items():
-            if name not in ('foto', 'secoes', 'is_active'):
+            if name not in ('foto', 'secoes', 'areas', 'is_active'):
                 field.required = True
                 if hasattr(field.widget, 'attrs'):
                     field.widget.attrs['required'] = 'required'
@@ -122,6 +133,7 @@ class UsuarioCreateForm(forms.ModelForm):
         user = super().save(commit=False)
         user.set_password(self.cleaned_data['password1'])
         user.secoes_permitidas = self.cleaned_data.get('secoes', [])
+        user.areas_tarefas = self.cleaned_data.get('areas', [])
         if commit:
             user.save()
         return user
@@ -138,6 +150,12 @@ class UsuarioEditForm(forms.ModelForm):
         widget=forms.CheckboxSelectMultiple,
         required=False,
         label='Seções permitidas',
+    )
+    areas = forms.MultipleChoiceField(
+        choices=AREAS_TAREFAS_CHOICES,
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label='Áreas de tarefas',
     )
 
     class Meta:
@@ -168,7 +186,7 @@ class UsuarioEditForm(forms.ModelForm):
         ]
         # Todos obrigatórios exceto foto, senha, seções e is_active
         for name, field in self.fields.items():
-            if name not in ('foto', 'password', 'secoes', 'is_active'):
+            if name not in ('foto', 'password', 'secoes', 'areas', 'is_active'):
                 field.required = True
                 if hasattr(field.widget, 'attrs'):
                     field.widget.attrs['required'] = 'required'
@@ -187,6 +205,7 @@ class UsuarioEditForm(forms.ModelForm):
                 self.fields['cidade'].queryset = Cidade.objects.none()
         if self.instance.pk:
             self.fields['secoes'].initial = self.instance.secoes_permitidas
+            self.fields['areas'].initial = self.instance.areas_tarefas
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -194,6 +213,7 @@ class UsuarioEditForm(forms.ModelForm):
         if password:
             user.set_password(password)
         user.secoes_permitidas = self.cleaned_data.get('secoes', [])
+        user.areas_tarefas = self.cleaned_data.get('areas', [])
         if commit:
             user.save()
         return user
@@ -241,6 +261,9 @@ class UsuarioPWACreateForm(forms.ModelForm):
         user = super().save(commit=False)
         user.set_password(self.cleaned_data['password1'])
         user.perfil = 'operador'
+        # Preserva o acesso mínimo do operador do app (antes vinha do auto-fill do save).
+        if not user.secoes_permitidas:
+            user.secoes_permitidas = user.get_secoes_padrao()
         if commit:
             user.save()
         return user

@@ -1,3 +1,4 @@
+import json
 from functools import wraps
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -83,6 +84,8 @@ def usuario_create(request):
     return render(request, 'usuarios/form.html', {
         'form': form,
         'titulo': 'Novo Usuário',
+        'is_create': True,
+        'perfil_secoes_json': json.dumps(Usuario.SECOES_PADRAO),
     })
 
 
@@ -101,6 +104,8 @@ def usuario_edit(request, pk):
         'form': form,
         'titulo': f'Editar: {usuario}',
         'usuario_obj': usuario,
+        'is_create': False,
+        'perfil_secoes_json': json.dumps(Usuario.SECOES_PADRAO),
     })
 
 
@@ -120,7 +125,7 @@ def usuario_toggle(request, pk):
 def usuario_pwa_list(request):
     from django.db.models import Q, Count
     usuarios = Usuario.objects.filter(vinculo__in=['coordenador', 'cabo', 'replicador']).annotate(
-        total_apoiadores=Count('apoiadores_cadastrados')
+        total_apoiadores=Count('liderancas_cadastradas', filter=Q(liderancas_cadastradas__papel='apoiador', liderancas_cadastradas__aprovacao='aprovado'))
     )
 
     busca = request.GET.get('busca', '')

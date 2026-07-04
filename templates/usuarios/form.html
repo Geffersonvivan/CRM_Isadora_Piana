@@ -31,6 +31,7 @@
         {% endif %}
 
         <div class="form-grid">
+            <div class="form-section-sep">Dados da conta</div>
             <div class="form-group required">
                 <label for="id_first_name">Nome</label>
                 {{ form.first_name }}
@@ -105,21 +106,37 @@
             </div>
             {% endif %}
 
+            <div class="form-section-sep">Acesso às seções
+                <span>marque o que esta pessoa pode abrir · vazio = nenhum acesso</span>
+                <button type="button" id="btn-perfil-padrao" class="btn btn-outline btn-sm" style="margin-left:auto;font-size:0.72rem;padding:5px 12px;">Aplicar padrão do perfil</button>
+            </div>
             <div class="form-group full">
-                <label>Seções permitidas</label>
-                <div class="secoes-grid" id="secoes-grid">
+                <div class="secoes-list" id="secoes-grid">
                     {% for checkbox in form.secoes %}
                     {% if "—" in checkbox.choice_label %}
-                    <label class="secao-filho">{{ checkbox.tag }} {{ checkbox.choice_label }}</label>
+                    <label class="secao-filho">{{ checkbox.tag }} {{ checkbox.choice_label|cut:"— " }}</label>
                     {% else %}
-                    {% if not forloop.first %}</div>{% endif %}
+                    {% if not forloop.first %}</div></div>{% endif %}
                     <div class="secoes-group">
                     <label class="secao-pai">{{ checkbox.tag }} {{ checkbox.choice_label }}</label>
+                    <div class="secao-filhos">
                     {% endif %}
-                    {% if forloop.last %}</div>{% endif %}
+                    {% if forloop.last %}</div></div>{% endif %}
                     {% endfor %}
                 </div>
+                <div id="secoes-hint" class="perm-hint"></div>
                 {{ form.secoes.errors }}
+            </div>
+
+            <div class="form-section-sep">Áreas de tarefas <span>quais tarefas esta pessoa enxerga</span></div>
+            <div class="form-group full">
+                <div class="area-chips" id="area-chips">
+                    {% for checkbox in form.areas %}
+                    <label>{{ checkbox.tag }} {{ checkbox.choice_label }}</label>
+                    {% endfor %}
+                </div>
+                <div id="areas-hint" class="perm-hint"></div>
+                {{ form.areas.errors }}
             </div>
         </div>
 
@@ -133,7 +150,65 @@
 
 {% block extra_js %}
 <script>
+const PERFIL_SECOES = {{ perfil_secoes_json|default:"{}"|safe }};
+const IS_CREATE = {{ is_create|yesno:"true,false" }};
+
 document.addEventListener('DOMContentLoaded', () => {
+    // ── Acesso às seções: padrão do perfil + aviso "vazio = sem acesso" ──
+    const perfilSel = document.getElementById('id_perfil');
+    const secoesGrid = document.getElementById('secoes-grid');
+    const secoesHint = document.getElementById('secoes-hint');
+    const btnPadrao = document.getElementById('btn-perfil-padrao');
+
+    function aplicarPadraoPerfil() {
+        if (!secoesGrid) return;
+        const alvo = new Set(PERFIL_SECOES[perfilSel ? perfilSel.value : ''] || []);
+        secoesGrid.querySelectorAll('input[type=checkbox]').forEach(cb => {
+            cb.checked = alvo.has(cb.value);   // só marca as seções-pai do padrão
+        });
+        updSecoesHint();
+    }
+    function updSecoesHint() {
+        if (!secoesHint) return;
+        if (perfilSel && perfilSel.value === 'admin') {
+            secoesHint.className = 'perm-hint perm-hint-all';
+            secoesHint.innerHTML = '🛡️ <b>Administrador</b> acessa tudo — as marcações abaixo não se aplicam a ele.';
+            return;
+        }
+        const n = secoesGrid ? secoesGrid.querySelectorAll('input:checked').length : 0;
+        if (n === 0) {
+            secoesHint.className = 'perm-hint perm-hint-warn';
+            secoesHint.innerHTML = '⚠️ Nada marcado → esta pessoa <b>não abre nenhuma seção</b> (fica sem acesso ao sistema).';
+        } else {
+            secoesHint.className = 'perm-hint';
+            secoesHint.innerHTML = 'Pode abrir <b>' + n + '</b> item(ns) marcado(s).';
+        }
+    }
+    if (btnPadrao) btnPadrao.addEventListener('click', aplicarPadraoPerfil);
+    if (secoesGrid) secoesGrid.addEventListener('change', updSecoesHint);
+    if (perfilSel) perfilSel.addEventListener('change', () => { IS_CREATE ? aplicarPadraoPerfil() : updSecoesHint(); });
+    // Ao CRIAR, começa com o padrão do perfil selecionado; ao editar, respeita o que está salvo.
+    if (IS_CREATE) aplicarPadraoPerfil(); else updSecoesHint();
+
+    // Aviso dinâmico das Áreas de tarefas: nada marcado = vê TODAS.
+    const areasWrap = document.getElementById('area-chips');
+    const areasHint = document.getElementById('areas-hint');
+    if (areasWrap && areasHint) {
+        const upd = () => {
+            const marcadas = [...areasWrap.querySelectorAll('input:checked')]
+                .map(i => i.closest('label').textContent.trim());
+            if (marcadas.length === 0) {
+                areasHint.className = 'perm-hint perm-hint-warn';
+                areasHint.innerHTML = '⚠️ Nada marcado → esta pessoa <b>não vê nenhuma tarefa</b>.';
+            } else {
+                areasHint.className = 'perm-hint';
+                areasHint.innerHTML = 'Vê tarefas só de: <b>' + marcadas.join(', ') + '</b>.';
+            }
+        };
+        areasWrap.addEventListener('change', upd);
+        upd();
+    }
+
     const tel = document.getElementById('id_telefone');
     if (!tel) return;
 
