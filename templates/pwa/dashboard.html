@@ -1,368 +1,201 @@
 {% extends 'pwa/base.html' %}
 {% block nav_home %}active{% endblock %}
-{% block title %}Início — LS Apoiadores{% endblock %}
+{% block title %}Início — {{ campanha.candidato_primeiro_nome }} {{ campanha.partido_numero }}{% endblock %}
 
 {% block extra_css %}
 <style>
-    /* Hero card */
-    .hero-card {
-        background: linear-gradient(135deg, #002776, #003da5);
-        border-radius: 20px;
-        padding: 28px 24px 24px;
-        color: #fff;
-        margin-bottom: 20px;
+    /* ---------- Cabeçalho: chip "22" + fio + contagem (espelha o CRM) ---------- */
+    .pwa-topstrip {
         position: relative;
-        overflow: hidden;
+        display: flex; align-items: center; justify-content: center;
+        min-height: 24px; padding-bottom: 12px; margin-bottom: 16px;
+        border-bottom: 1px solid var(--line);
     }
-    .hero-card::after {
-        content: '';
-        position: absolute;
-        top: -40px;
-        right: -40px;
-        width: 120px;
-        height: 120px;
-        background: rgba(255,255,255,0.06);
-        border-radius: 50%;
+    .pwa-topstrip::after {
+        content: ''; position: absolute; left: 0; bottom: -1px;
+        width: 44px; height: 2px; border-radius: 2px; background: var(--ouro);
     }
-    .hero-top {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 20px;
+    .pwa-ts-chip {
+        position: absolute; left: 0; top: 0;
+        font-weight: 800; font-size: .68rem; letter-spacing: .5px;
+        color: var(--navy-900); background: var(--ouro);
+        padding: 3px 8px; border-radius: 6px; line-height: 1;
     }
-    .hero-number {
-        font-size: 3.2rem;
-        font-weight: 800;
-        line-height: 1;
+    .pwa-ts-count {
+        margin: 0; font-size: .72rem; color: var(--muted); letter-spacing: .3px;
+        font-variant-numeric: tabular-nums;
     }
-    .hero-label {
-        font-size: 0.82rem;
-        opacity: 0.75;
-        margin-top: 4px;
-    }
-    .hero-rank {
-        background: rgba(255,255,255,0.15);
-        backdrop-filter: blur(4px);
-        padding: 8px 16px;
-        border-radius: 14px;
-        text-align: center;
-    }
-    .hero-rank-pos {
-        font-size: 1.4rem;
-        font-weight: 800;
-        line-height: 1.1;
-    }
-    .hero-rank-label {
-        font-size: 0.65rem;
-        opacity: 0.75;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
+    .pwa-ts-count b { color: var(--ink); font-weight: 700; }
 
-    /* Action buttons */
-    .action-buttons {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-        margin-bottom: 20px;
+    /* ---------- Placar de campanha (assinatura) ---------- */
+    .scoreboard {
+        position: relative; overflow: hidden;
+        background: linear-gradient(160deg, #E25E00 0%, #2B2B2B 100%);
+        border-radius: 22px; padding: 22px 22px 20px; color: #fff;
+        margin-bottom: 18px;
+        box-shadow: 0 20px 40px -22px rgba(2,19,51,.8);
     }
-    .action-btn {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 10px;
-        padding: 22px 14px;
-        background: #fff;
-        border-radius: 16px;
-        text-decoration: none;
-        color: #1a1a1a;
-        font-weight: 600;
-        font-size: 0.85rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-        border: 1.5px solid transparent;
-        transition: all 0.15s;
+    .scoreboard::before {  /* marca d'água do número */
+        content: '{{ campanha.partido_numero }}'; position: absolute; right: -10px; bottom: -34px;
+        font-size: 12rem; font-weight: 800; line-height: 1;
+        color: rgba(255,255,255,.05); letter-spacing: -8px; pointer-events: none;
     }
-    .action-btn:active { transform: scale(0.97); }
-    .action-btn .action-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 14px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+    .sb-eyebrow {
+        display: flex; align-items: center; gap: 8px;
+        font-size: .64rem; font-weight: 800; letter-spacing: 1.4px;
+        text-transform: uppercase; color: var(--ouro); margin-bottom: 16px;
     }
-    .action-btn .action-icon svg { width: 24px; height: 24px; }
-    .action-btn.apoiador .action-icon { background: #eff6ff; color: #002776; }
-    .action-btn.apoiador { border-color: #dbeafe; }
-    .action-btn.replicador .action-icon { background: #ecfdf5; color: #047857; }
-    .action-btn.replicador { border-color: #d1fae5; }
-    .action-btn.mobilizacao .action-icon { background: #fff7ed; color: #ea580c; }
-    .action-btn.mobilizacao { border-color: #fed7aa; }
-    .action-btn.doacao .action-icon { background: #f0fdf4; color: #16a34a; }
-    .action-btn.doacao { border-color: #bbf7d0; }
+    .sb-eyebrow::before { content: ''; width: 16px; height: 2px; background: var(--ouro); border-radius: 2px; }
+    .sb-number {
+        font-size: 4.2rem; font-weight: 800; line-height: .9;
+        letter-spacing: -2px; position: relative; z-index: 1;
+    }
+    .sb-rule { width: 46px; height: 4px; background: var(--ouro); border-radius: 3px; margin: 12px 0 9px; }
+    .sb-label { font-size: .9rem; font-weight: 600; color: rgba(255,255,255,.86); position: relative; z-index: 1; }
+    .sb-foot {
+        margin-top: 16px; padding-top: 13px; border-top: 1px solid rgba(255,255,255,.12);
+        font-size: .7rem; letter-spacing: .3px; color: rgba(255,255,255,.6);
+        display: flex; align-items: center; gap: 7px; position: relative; z-index: 1;
+    }
+    .sb-dot { width: 6px; height: 6px; border-radius: 50%; background: #36d07f; box-shadow: 0 0 0 3px rgba(54,208,127,.18); }
 
-    /* Section */
-    .section { margin-bottom: 20px; }
-    .section-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 10px;
-        padding: 0 4px;
+    /* ---------- Ações principais ---------- */
+    .actions { display: flex; flex-direction: column; gap: 11px; margin-bottom: 22px; }
+    .act {
+        display: flex; align-items: center; gap: 14px;
+        background: var(--surface); border-radius: 16px; padding: 15px 16px;
+        text-decoration: none; color: var(--ink);
+        box-shadow: var(--shadow); border: 1px solid rgba(227,232,241,.7);
+        transition: transform .12s;
     }
-    .section-title {
-        font-size: 0.9rem;
-        font-weight: 700;
-        color: #1e293b;
+    .act:active { transform: scale(.985); }
+    .act-icon {
+        width: 46px; height: 46px; border-radius: 13px; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
     }
-    .section-badge {
-        font-size: 0.65rem;
-        font-weight: 600;
-        color: #6b7280;
-        background: #f1f5f9;
-        padding: 3px 10px;
-        border-radius: 10px;
-    }
+    .act-icon svg { width: 23px; height: 23px; }
+    .act.apoiador .act-icon { background: #e9f0ff; color: var(--navy); }
+    .act.mob .act-icon { background: var(--coral-soft); color: var(--coral); }
+    .act-body { flex: 1; min-width: 0; }
+    .act-title { font-size: .98rem; font-weight: 700; letter-spacing: -.2px; }
+    .act-sub { font-size: .74rem; color: var(--muted); margin-top: 1px; }
+    .act-go { color: var(--faint); flex-shrink: 0; }
+    .act-go svg { width: 19px; height: 19px; display: block; }
 
-    /* Ranking */
-    .ranking-list {
-        background: #fff;
-        border-radius: 16px;
-        padding: 4px 0;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-        overflow: hidden;
+    /* ---------- Roster ---------- */
+    .section-head {
+        display: flex; align-items: center; gap: 8px; margin: 0 2px 11px;
+        font-size: .68rem; font-weight: 800; color: var(--muted);
+        text-transform: uppercase; letter-spacing: 1.2px;
     }
-    .ranking-row {
-        display: flex;
-        align-items: center;
-        padding: 12px 16px;
-        gap: 12px;
+    .section-head::before { content: ''; width: 14px; height: 3px; border-radius: 2px; background: var(--ouro); }
+    .roster { background: var(--surface); border-radius: 16px; box-shadow: var(--shadow); border: 1px solid rgba(227,232,241,.7); overflow: hidden; }
+    .roster-item { display: flex; align-items: center; padding: 13px 16px; gap: 13px; }
+    .roster-item:not(:last-child) { border-bottom: 1px solid #f1f4f9; }
+    .roster-av {
+        width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0;
+        background: #e9f0ff; color: var(--navy);
+        display: flex; align-items: center; justify-content: center;
+        font-size: .82rem; font-weight: 800;
     }
-    .ranking-row:not(:last-child) { border-bottom: 1px solid #f3f4f6; }
-    .ranking-row.ranking-me { background: #eff6ff; }
-    .ranking-pos {
-        width: 30px;
-        height: 30px;
-        border-radius: 10px;
-        background: #f1f5f9;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.78rem;
-        font-weight: 700;
-        color: #64748b;
-        flex-shrink: 0;
-    }
-    .ranking-pos.top1 { background: #fef3c7; color: #92400e; }
-    .ranking-pos.top2 { background: #e5e7eb; color: #374151; }
-    .ranking-pos.top3 { background: #fed7aa; color: #9a3412; }
-    .ranking-info { flex: 1; min-width: 0; }
-    .ranking-nome {
-        font-size: 0.85rem;
-        font-weight: 600;
-        color: #1e293b;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    .ranking-vinculo {
-        font-size: 0.68rem;
-        color: #9ca3af;
-        font-weight: 400;
-    }
-    .ranking-total {
-        font-size: 1rem;
-        font-weight: 800;
-        color: #002776;
-        flex-shrink: 0;
-    }
+    .roster-info { flex: 1; min-width: 0; }
+    .roster-nome { font-size: .9rem; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .roster-cidade { font-size: .72rem; color: var(--faint); margin-top: 1px; }
+    .roster-tick { color: var(--ouro-deep); flex-shrink: 0; }
+    .roster-tick svg { width: 16px; height: 16px; display: block; }
 
-    /* Últimos cadastros */
-    .ultimos-list {
-        background: #fff;
-        border-radius: 16px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-        overflow: hidden;
+    .empty-card {
+        background: var(--surface); border: 1px dashed var(--line); border-radius: 16px;
+        padding: 26px 18px; text-align: center; color: var(--muted);
     }
-    .ultimos-item {
-        display: flex;
-        align-items: center;
-        padding: 12px 16px;
-        gap: 12px;
-    }
-    .ultimos-item:not(:last-child) { border-bottom: 1px solid #f3f4f6; }
-    .ultimos-avatar {
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
-        background: #eff6ff;
-        color: #002776;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.78rem;
-        font-weight: 700;
-        flex-shrink: 0;
-    }
-    .ultimos-info { flex: 1; min-width: 0; }
-    .ultimos-nome {
-        font-size: 0.85rem;
-        font-weight: 500;
-        color: #1e293b;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    .ultimos-cidade {
-        font-size: 0.72rem;
-        color: #9ca3af;
-    }
-
-    /* Replicadores */
-    .replicadores-list {
-        background: #fff;
-        border-radius: 16px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-        overflow: hidden;
-    }
-    .replicador-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 12px 16px;
-    }
-    .replicador-row:not(:last-child) { border-bottom: 1px solid #f3f4f6; }
-    .replicador-nome {
-        font-size: 0.85rem;
-        font-weight: 500;
-        color: #1e293b;
-    }
-    .replicador-count {
-        background: #ecfdf5;
-        color: #047857;
-        padding: 4px 12px;
-        border-radius: 10px;
-        font-size: 0.72rem;
-        font-weight: 700;
-    }
-
-    .empty-state {
-        text-align: center;
-        color: #9ca3af;
-        font-size: 0.82rem;
-        padding: 20px 0;
-    }
+    .empty-card strong { display: block; color: var(--ink); font-size: .92rem; margin-bottom: 3px; }
+    .empty-card span { font-size: .8rem; }
 </style>
 {% endblock %}
 
 {% block content %}
-<!-- Hero -->
-<div class="hero-card">
-    <div class="hero-top">
-        <div>
-            <div class="hero-number">{{ meu_total }}</div>
-            <div class="hero-label">apoiadores cadastrados</div>
-        </div>
-        {% if minha_posicao %}
-        <div class="hero-rank">
-            <div class="hero-rank-pos">{{ minha_posicao }}°</div>
-            <div class="hero-rank-label">no ranking</div>
-        </div>
-        {% endif %}
-    </div>
+<!-- Cabeçalho: chip + fio + contagem -->
+<div class="pwa-topstrip rise">
+    <span class="pwa-ts-chip">{{ campanha.partido_numero }}</span>
+    <p class="pwa-ts-count">ELEIÇÕES 2026 · <b id="cd-days">000</b>d <b id="cd-hours">00</b>h <b id="cd-mins">00</b>m <b id="cd-secs">00</b>s</p>
+</div>
+
+<!-- Placar -->
+<div class="scoreboard rise">
+    <div class="sb-eyebrow">Sua rede</div>
+    <div class="sb-number">{{ meu_total }}</div>
+    <div class="sb-rule"></div>
+    <div class="sb-label">{% if meu_total == 1 %}apoiador que você levou pra rede{% else %}apoiadores que você levou pra rede{% endif %}</div>
+    <div class="sb-foot"><span class="sb-dot"></span> Campanha {{ campanha.candidato_nome }} · {{ campanha.uf }}</div>
 </div>
 
 <!-- Ações -->
-<div class="action-buttons">
-    <a href="{% url 'pwa:cadastro_apoiador' %}" class="action-btn apoiador">
-        <div class="action-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+<div class="actions rise rise-2">
+    <a href="{% url 'pwa:cadastro_apoiador' %}" class="act apoiador">
+        <div class="act-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
         </div>
-        Novo Apoiador
+        <div class="act-body">
+            <div class="act-title">Novo Apoiador</div>
+            <div class="act-sub">Some mais um nome à rede</div>
+        </div>
+        <span class="act-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></span>
     </a>
-    <a href="{% url 'pwa:cadastro_replicador' %}" class="action-btn replicador">
-        <div class="action-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+    <a href="{% url 'pwa:cadastro_voluntario' %}" class="act mob">
+        <div class="act-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
         </div>
-        Novo Replicador
-    </a>
-    <a href="{% url 'pwa:cadastro_voluntario' %}" class="action-btn mobilizacao">
-        <div class="action-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        <div class="act-body">
+            <div class="act-title">Mobilização</div>
+            <div class="act-sub">Voluntário pra ação de campo</div>
         </div>
-        Mobilização
-    </a>
-    <a href="{% url 'pwa:cadastro_doacao' %}" class="action-btn doacao">
-        <div class="action-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-        </div>
-        Doação
+        <span class="act-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg></span>
     </a>
 </div>
 
-<!-- Ranking -->
-<div class="section">
-    <div class="section-header">
-        <div class="section-title">Ranking</div>
-        <span class="section-badge">Top 10</span>
-    </div>
-    <div class="ranking-list">
-        {% for r in ranking %}
-        <div class="ranking-row {% if r.cadastrado_por__id == user.id %}ranking-me{% endif %}">
-            <div class="ranking-pos {% if forloop.counter == 1 %}top1{% elif forloop.counter == 2 %}top2{% elif forloop.counter == 3 %}top3{% endif %}">
-                {{ forloop.counter }}
-            </div>
-            <div class="ranking-info">
-                <div class="ranking-nome">
-                    {{ r.cadastrado_por__first_name }} {{ r.cadastrado_por__last_name }}
-                </div>
-                {% if r.cadastrado_por__vinculo_display %}
-                <div class="ranking-vinculo">{{ r.cadastrado_por__vinculo_display }}</div>
-                {% endif %}
-            </div>
-            <div class="ranking-total">{{ r.total }}</div>
-        </div>
-        {% empty %}
-        <div class="empty-state">Nenhum cadastro ainda. Seja o primeiro!</div>
-        {% endfor %}
-    </div>
-</div>
-
-<!-- Últimos cadastros -->
+<!-- Roster -->
 {% if ultimos %}
-<div class="section">
-    <div class="section-header">
-        <div class="section-title">Meus Últimos Cadastros</div>
-    </div>
-    <div class="ultimos-list">
+<div class="rise rise-3">
+    <div class="section-head">Seus últimos cadastros</div>
+    <div class="roster">
         {% for e in ultimos %}
-        <div class="ultimos-item">
-            <div class="ultimos-avatar">{{ e.nome|first }}</div>
-            <div class="ultimos-info">
-                <div class="ultimos-nome">{{ e.nome }}</div>
-                {% if e.cidade %}<div class="ultimos-cidade">{{ e.cidade }}</div>{% endif %}
+        <div class="roster-item">
+            <div class="roster-av">{{ e.nome|first|upper }}</div>
+            <div class="roster-info">
+                <div class="roster-nome">{{ e.nome }}</div>
+                {% if e.cidade %}<div class="roster-cidade">{{ e.cidade }}</div>{% endif %}
             </div>
+            <span class="roster-tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg></span>
         </div>
         {% endfor %}
     </div>
 </div>
+{% else %}
+<div class="empty-card rise rise-3">
+    <strong>Comece sua rede</strong>
+    <span>Toque em "Novo Apoiador" e registre o primeiro nome.</span>
+</div>
 {% endif %}
+{% endblock %}
 
-<!-- Meus replicadores -->
-{% if meus_replicadores %}
-<div class="section">
-    <div class="section-header">
-        <div class="section-title">Meus Replicadores</div>
-        <span class="section-badge">{{ meus_replicadores|length }}</span>
-    </div>
-    <div class="replicadores-list">
-        {% for r in meus_replicadores %}
-        <div class="replicador-row">
-            <span class="replicador-nome">{{ r.first_name }} {{ r.last_name }}</span>
-            <span class="replicador-count">{{ r.total_apoiadores }} cadastros</span>
-        </div>
-        {% endfor %}
-    </div>
-</div>
-{% endif %}
+{% block extra_js %}
+<script>
+// Contagem eleições 2026 — 1º turno 04/10/2026 19:00 BRT
+(function () {
+    var target = new Date('2026-10-04T22:00:00Z').getTime();
+    var d = document.getElementById('cd-days'), h = document.getElementById('cd-hours'),
+        m = document.getElementById('cd-mins'), s = document.getElementById('cd-secs');
+    if (!d) return;
+    function pad(n, l) { return String(n).padStart(l, '0'); }
+    function tick() {
+        var diff = Math.max(0, target - Date.now()), sec = Math.floor(diff / 1000);
+        d.textContent = pad(Math.floor(sec / 86400), 3);
+        h.textContent = pad(Math.floor((sec % 86400) / 3600), 2);
+        m.textContent = pad(Math.floor((sec % 3600) / 60), 2);
+        s.textContent = pad(sec % 60, 2);
+    }
+    tick();
+    setInterval(tick, 1000);
+})();
+</script>
 {% endblock %}

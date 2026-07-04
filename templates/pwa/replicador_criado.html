@@ -1,6 +1,6 @@
 {% extends 'pwa/base.html' %}
 {% block nav_replicador %}active{% endblock %}
-{% block title %}Replicador Criado — LS{% endblock %}
+{% block title %}Replicador Criado — Isadora{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -80,7 +80,7 @@
 <script>
 function shareWhatsApp() {
     const tel = '{{ novo_user.telefone|escapejs }}';
-    const msg = `*LS Apoiadores | PL22*\n\nOlá {{ novo_user.first_name|escapejs }}! Seu acesso foi criado.\n\n*Usuário:* {{ novo_user.username|escapejs }}\n*Senha:* {{ senha|escapejs }}\n\nAcesse: ${window.location.origin}/app/\n\nCadastre o maior número de apoiadores!`;
+    const msg = `*Apoiadores | {{ campanha.partido_sigla }}{{ campanha.partido_numero }}*\n\nOlá {{ novo_user.first_name|escapejs }}! Seu acesso foi criado.\n\n*Usuário:* {{ novo_user.username|escapejs }}\n*Senha:* {{ senha|escapejs }}\n\nAcesse: ${window.location.origin}/app/\n\nCadastre o maior número de apoiadores!`;
     const encoded = encodeURIComponent(msg);
     const phone = tel.replace(/\D/g, '');
     if (phone) {

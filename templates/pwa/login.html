@@ -2,194 +2,115 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#002776">
-    <title>Login — LS Apoiadores</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="theme-color" content="#2B2B2B">
+    <title>Entrar — {{ campanha.candidato_primeiro_nome }} {{ campanha.partido_numero }}</title>
     <style>
+        :root {
+            --navy: #FF6B00; --navy-900: #2B2B2B; --ouro: #C44B00;
+            --ink: #0c1b38; --muted: #6b7890; --line: #e3e8f1;
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; overflow: hidden; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #002776 0%, #003da5 50%, #0052cc 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(120% 90% at 50% -10%, #0a3a8f 0%, transparent 55%),
+                linear-gradient(170deg, #E25E00 0%, #2B2B2B 100%);
+            -webkit-font-smoothing: antialiased;
+        }
+        .stage {
+            position: fixed; inset: 0; overflow: hidden;
+            display: flex; align-items: center; justify-content: center; padding: 24px;
+        }
+        .field-22 {   /* marca d'água do número */
+            position: absolute; right: -30px; bottom: -60px;
+            font-size: 17rem; font-weight: 800; line-height: 1;
+            color: rgba(255,255,255,.04); letter-spacing: -12px; pointer-events: none; z-index: 0;
         }
         .login-card {
-            background: #fff;
-            border-radius: 20px;
-            padding: 36px 28px;
-            width: 100%;
-            max-width: 380px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            position: relative; z-index: 1;
+            background: #fff; border-radius: 22px; padding: 34px 26px 28px;
+            width: 100%; max-width: 380px; overflow: hidden;
+            box-shadow: 0 30px 70px -24px rgba(0,0,0,.55);
         }
-        .login-header {
-            text-align: center;
-            margin-bottom: 32px;
+        .login-card::before {  /* fio dourado — assinatura */
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+            background: linear-gradient(90deg, var(--ouro), #ffe070);
         }
-        .login-logo {
-            font-size: 2rem;
-            font-weight: 800;
-            color: #002776;
-            letter-spacing: -1px;
+        .login-header { text-align: center; margin-bottom: 28px; }
+        .login-wordmark {
+            display: inline-flex; align-items: baseline; gap: 9px;
         }
-        .login-subtitle {
-            font-size: 0.8rem;
-            color: #6b7280;
-            margin-top: 4px;
+        .login-name { font-size: 1.7rem; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: var(--navy); }
+        .login-22 {
+            font-size: .92rem; font-weight: 800; color: var(--navy-900);
+            background: var(--ouro); padding: 3px 9px; border-radius: 7px; line-height: 1;
         }
-        .form-group {
-            margin-bottom: 16px;
-        }
-        .form-label {
-            display: block;
-            font-size: 0.78rem;
-            font-weight: 600;
-            color: #374151;
-            margin-bottom: 6px;
-        }
+        .login-subtitle { font-size: .76rem; color: var(--muted); margin-top: 10px; letter-spacing: .2px; }
+        .form-group { margin-bottom: 14px; }
+        .form-label { display: block; font-size: .74rem; font-weight: 700; color: #3a4a66; margin-bottom: 6px; letter-spacing: .2px; }
         .form-input {
-            width: 100%;
-            padding: 14px 16px;
-            border: 1.5px solid #d1d5db;
-            border-radius: 12px;
-            font-size: 1rem;
-            background: #f9fafb;
-            -webkit-appearance: none;
-            transition: all 0.15s;
+            width: 100%; padding: 14px 15px; border: 1.5px solid var(--line);
+            border-radius: 12px; font-size: 1rem; background: #fbfcfe;
+            -webkit-appearance: none; transition: all .15s;
         }
+        .form-input::placeholder { color: #97a2b5; }
         .form-input:focus {
-            outline: none;
-            border-color: #002776;
-            background: #fff;
-            box-shadow: 0 0 0 3px rgba(0,39,118,0.1);
+            outline: none; border-color: var(--navy); background: #fff;
+            box-shadow: 0 0 0 4px rgba(31,91,214,.13);
         }
         .login-btn {
-            display: block;
-            width: 100%;
-            padding: 14px;
-            background: #002776;
-            color: #fff;
-            border: none;
-            border-radius: 12px;
-            font-size: 1rem;
-            font-weight: 700;
-            cursor: pointer;
-            margin-top: 24px;
-            transition: all 0.15s;
+            display: block; width: 100%; padding: 15px;
+            background: var(--navy); color: #fff; border: none; border-radius: 13px;
+            font-size: 1rem; font-weight: 700; letter-spacing: .3px; cursor: pointer;
+            margin-top: 22px; transition: transform .12s, background .15s;
+            box-shadow: 0 10px 22px -12px rgba(255, 107, 0,.9);
         }
-        .login-btn:hover { background: #003da5; }
-        .login-btn:active { transform: scale(0.98); }
+        .login-btn:active { transform: scale(.985); background: #E25E00; }
         .error-msg {
-            background: #fee2e2;
-            color: #991b1b;
-            padding: 10px 14px;
-            border-radius: 8px;
-            font-size: 0.82rem;
-            margin-bottom: 16px;
-            text-align: center;
+            background: #fdeaea; color: #b4232a; padding: 11px 14px; border-radius: 11px;
+            font-size: .82rem; font-weight: 600; margin-bottom: 14px; text-align: center;
         }
-        .login-footer {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 0.72rem;
-            color: #9ca3af;
-        }
+        .login-footer { text-align: center; margin-top: 22px; font-size: .72rem; color: #97a2b5; letter-spacing: .2px; }
 
         /* Install banner */
         .install-banner {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: #fff;
-            padding: 16px 20px;
-            padding-bottom: max(16px, env(safe-area-inset-bottom));
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
-            border-radius: 16px 16px 0 0;
-            z-index: 200;
-            animation: slideUp 0.3s ease-out;
+            position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+            background: #fff; padding: 16px 20px calc(16px + env(safe-area-inset-bottom));
+            box-shadow: 0 -10px 30px rgba(0,0,0,.2); border-radius: 18px 18px 0 0;
+            animation: slideUp .3s ease-out;
         }
-        @keyframes slideUp {
-            from { transform: translateY(100%); }
-            to { transform: translateY(0); }
-        }
-        .install-banner-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-        .install-banner-title {
-            font-size: 0.9rem;
-            font-weight: 700;
-            color: #1e293b;
-        }
-        .install-banner-close {
-            background: none;
-            border: none;
-            font-size: 1.2rem;
-            color: #9ca3af;
-            cursor: pointer;
-            padding: 4px;
-        }
-        .install-banner-text {
-            font-size: 0.8rem;
-            color: #6b7280;
-            margin-bottom: 14px;
-            line-height: 1.4;
-        }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .install-banner-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .install-banner-title { font-size: .92rem; font-weight: 800; color: var(--ink); }
+        .install-banner-close { background: none; border: none; font-size: 1.3rem; color: #97a2b5; cursor: pointer; padding: 4px; }
+        .install-banner-text { font-size: .8rem; color: var(--muted); margin-bottom: 14px; line-height: 1.45; }
         .install-banner-btn {
-            display: block;
-            width: 100%;
-            padding: 12px;
-            background: #002776;
-            color: #fff;
-            border: none;
-            border-radius: 10px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
+            display: block; width: 100%; padding: 13px; background: var(--navy); color: #fff;
+            border: none; border-radius: 12px; font-size: .92rem; font-weight: 700; cursor: pointer;
         }
-        .install-banner-btn:active { opacity: 0.9; }
-        .install-steps {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: #f1f5f9;
-            border-radius: 10px;
-            padding: 12px 14px;
-            margin-bottom: 6px;
-        }
+        .install-banner-btn:active { opacity: .9; }
+        .install-steps { display: flex; align-items: center; gap: 10px; background: #f1f4fa; border-radius: 12px; padding: 12px 14px; margin-bottom: 7px; }
         .install-step-num {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            background: #002776;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.7rem;
-            font-weight: 700;
-            flex-shrink: 0;
+            width: 24px; height: 24px; border-radius: 50%; background: var(--navy); color: #fff;
+            display: flex; align-items: center; justify-content: center; font-size: .72rem; font-weight: 800; flex-shrink: 0;
         }
-        .install-step-text {
-            font-size: 0.78rem;
-            color: #374151;
-        }
-        .install-step-icon {
-            display: inline-block;
-            vertical-align: middle;
-        }
+        .install-step-text { font-size: .79rem; color: #3a4a66; }
+        .install-step-icon { display: inline-block; vertical-align: middle; }
     </style>
 </head>
 <body>
+    <div class="stage">
+    <div class="field-22">{{ campanha.partido_numero }}</div>
     <div class="login-card">
         <div class="login-header">
-            <div class="login-logo">LS</div>
-            <div class="login-subtitle">Leandro Sorgatto | PL22</div>
+            <div class="login-wordmark">
+                <span class="login-name">{{ campanha.candidato_primeiro_nome }}</span>
+                <span class="login-22">{{ campanha.partido_numero }}</span>
+            </div>
+            <div class="login-subtitle">Operação de campo · {{ campanha.partido_sigla }} · {{ campanha.uf }}</div>
         </div>
 
         {% if messages %}
@@ -211,31 +132,30 @@
             <button type="submit" class="login-btn">Entrar</button>
         </form>
 
-        <div class="login-footer">
-            Pré-candidato a Deputado Federal por SC
-        </div>
+        <div class="login-footer">Pré-candidato a Deputado Federal por SC</div>
+    </div>
     </div>
 
     <!-- Install banner Android -->
     <div class="install-banner" id="installBannerAndroid" style="display:none;">
         <div class="install-banner-header">
-            <span class="install-banner-title">Instalar Aplicativo</span>
+            <span class="install-banner-title">Instalar aplicativo</span>
             <button class="install-banner-close" id="closeAndroid">&times;</button>
         </div>
-        <div class="install-banner-text">Instale o app na sua tela inicial para acesso rápido, sem precisar abrir o navegador.</div>
-        <button class="install-banner-btn" id="installBtn">Instalar Aplicativo</button>
+        <div class="install-banner-text">Adicione o app à tela inicial para abrir num toque, sem o navegador.</div>
+        <button class="install-banner-btn" id="installBtn">Instalar aplicativo</button>
     </div>
 
     <!-- Install banner iOS -->
     <div class="install-banner" id="installBannerIOS" style="display:none;">
         <div class="install-banner-header">
-            <span class="install-banner-title">Instalar Aplicativo</span>
+            <span class="install-banner-title">Instalar aplicativo</span>
             <button class="install-banner-close" id="closeIOS">&times;</button>
         </div>
-        <div class="install-banner-text">Instale o app na sua tela inicial para acesso rápido:</div>
+        <div class="install-banner-text">Adicione o app à tela inicial em dois passos:</div>
         <div class="install-steps">
             <div class="install-step-num">1</div>
-            <div class="install-step-text">Toque em <span class="install-step-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#002776" stroke-width="2"><path d="M4 12v6a2 2 0 002 2h12a2 2 0 002-2v-6"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></span> <strong>Compartilhar</strong></div>
+            <div class="install-step-text">Toque em <span class="install-step-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF6B00" stroke-width="2"><path d="M4 12v6a2 2 0 002 2h12a2 2 0 002-2v-6"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></span> <strong>Compartilhar</strong></div>
         </div>
         <div class="install-steps">
             <div class="install-step-num">2</div>
@@ -245,15 +165,11 @@
 
     <script>
     (function() {
-        // Não mostrar se já instalado como PWA
         if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) return;
-        // Não mostrar se já dispensou
         if (localStorage.getItem('pwa_install_dismissed')) return;
 
         var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        var isAndroid = /Android/.test(navigator.userAgent);
 
-        // Android: capturar evento beforeinstallprompt
         var deferredPrompt = null;
         window.addEventListener('beforeinstallprompt', function(e) {
             e.preventDefault();
@@ -282,10 +198,7 @@
             });
         }
 
-        // iOS: mostrar instruções
-        if (isIOS) {
-            document.getElementById('installBannerIOS').style.display = 'block';
-        }
+        if (isIOS) { document.getElementById('installBannerIOS').style.display = 'block'; }
 
         var closeIOS = document.getElementById('closeIOS');
         if (closeIOS) {

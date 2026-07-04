@@ -170,3 +170,13 @@ CACHES = {
         'OPTIONS': {'MAX_ENTRIES': 2000},
     },
 }
+
+# ---- PWA: transcrição de áudio (Whisper) — opcional, ativa só se a chave existir ----
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
+WHISPER_MODEL = os.environ.get('WHISPER_MODEL', 'whisper-1')
+WHISPER_BASE_URL = os.environ.get('WHISPER_BASE_URL', 'https://api.openai.com/v1')
+
+# ---- Limpeza de texto com IA (Claude) — opcional, ativa só se a chave existir ----
+# Usada para corrigir/organizar o campo Observações (no PWA e na gestão das planilhas).
+ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
+IA_LIMPEZA_MODEL = os.environ.get('IA_LIMPEZA_MODEL', 'claude-haiku-4-5')

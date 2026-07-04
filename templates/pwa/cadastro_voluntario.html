@@ -1,87 +1,106 @@
 {% extends 'pwa/base.html' %}
-{% block nav_home %}active{% endblock %}
-{% block title %}Mobilização — LS{% endblock %}
+{% load static %}
+{% block nav_mob %}active{% endblock %}
+{% block title %}Mobilização — {{ campanha.candidato_primeiro_nome }} {{ campanha.partido_numero }}{% endblock %}
 
 {% block extra_css %}
 <style>
-    .disp-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
+    .form-head { margin: 2px 2px 14px; }
+    .form-head h1 { font-size: 1.32rem; font-weight: 800; letter-spacing: -.4px; color: var(--ink); }
+    .form-head p { font-size: .82rem; color: var(--muted); margin-top: 2px; }
+
+    .sync-bar {
+        display: flex; align-items: center; gap: 9px;
+        font-size: .76rem; font-weight: 700; letter-spacing: .2px;
+        padding: 10px 14px; border-radius: 13px; margin-bottom: 14px;
+        border: 1px solid transparent;
     }
-    .disp-option {
-        position: relative;
-    }
-    .disp-option input[type="checkbox"] {
-        position: absolute;
-        opacity: 0;
-        width: 0;
-        height: 0;
-    }
+    .sync-bar.online { background: #e6f7ee; color: #0a7d54; border-color: #c4ecd6; }
+    .sync-bar.offline { background: #fff4e1; color: #a9620a; border-color: #f6dcab; }
+    .sync-dot { width: 9px; height: 9px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 4px rgba(0,0,0,.04); }
+    .sync-pend { margin-left: auto; background: #fff; border: 1px solid currentColor; border-radius: 999px; padding: 3px 11px; font-size: .72rem; }
+    .sync-pend a { color: inherit; text-decoration: none; }
+
+    /* Disponibilidade — vertical Mobilização (coral) */
+    .disp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+    .disp-option { position: relative; }
+    .disp-option input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; }
     .disp-option label {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 12px;
-        border: 1.5px solid #d1d5db;
-        border-radius: 10px;
-        font-size: 0.82rem;
-        font-weight: 500;
-        color: #374151;
-        cursor: pointer;
-        transition: all 0.15s;
-        background: #fff;
-    }
-    .disp-option input[type="checkbox"]:checked + label {
-        border-color: #ea580c;
-        background: #fff7ed;
-        color: #ea580c;
-        font-weight: 600;
+        display: flex; align-items: center; gap: 9px; padding: 12px 13px;
+        border: 1.5px solid var(--line); border-radius: 12px;
+        font-size: .84rem; font-weight: 600; color: #3a4a66; cursor: pointer;
+        transition: all .15s; background: #fbfcfe;
     }
     .disp-option label::before {
-        content: '';
-        width: 18px;
-        height: 18px;
-        border: 2px solid #d1d5db;
-        border-radius: 4px;
-        flex-shrink: 0;
-        transition: all 0.15s;
+        content: ''; width: 18px; height: 18px; border: 2px solid #cdd5e2;
+        border-radius: 6px; flex-shrink: 0; transition: all .15s;
+    }
+    .disp-option input[type="checkbox"]:checked + label {
+        border-color: var(--coral); background: var(--coral-soft); color: #c2480f; font-weight: 700;
     }
     .disp-option input[type="checkbox"]:checked + label::before {
-        border-color: #ea580c;
-        background: #ea580c;
-        box-shadow: inset 0 0 0 2px #fff;
+        border-color: var(--coral); background: var(--coral); box-shadow: inset 0 0 0 2px #fff;
     }
+
+    .obs-wrap { position: relative; }
+    .mic-btn {
+        position: absolute; right: 9px; bottom: 9px; width: 44px; height: 44px;
+        border-radius: 50%; border: none; background: var(--navy); color: #fff;
+        display: flex; align-items: center; justify-content: center; cursor: pointer;
+        box-shadow: 0 6px 16px -6px rgba(255, 107, 0,.8);
+    }
+    .mic-btn svg { width: 20px; height: 20px; }
+    .mic-btn.recording { background: #dc2626; animation: pulse 1.1s infinite; }
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(220,38,38,.5); } 70% { box-shadow: 0 0 0 11px rgba(220,38,38,0); } 100% { box-shadow: 0 0 0 0 rgba(220,38,38,0); } }
+    .mic-status { font-size: .73rem; color: var(--muted); margin-top: 6px; min-height: 15px; font-weight: 500; }
+    #id_observacoes { padding-right: 62px; min-height: 84px; resize: none; }
+
+    .pwa-btn-mob { background: var(--coral); color: #fff; box-shadow: 0 8px 18px -10px rgba(124, 58, 237,.9); }
+    .pwa-btn-mob:active { transform: scale(.985); background: #db5a25; }
+
+    .toast {
+        position: fixed; left: 50%; bottom: calc(78px + env(safe-area-inset-bottom));
+        transform: translateX(-50%) translateY(20px);
+        background: var(--ink); color: #fff; padding: 12px 18px; border-radius: 999px;
+        font-size: .85rem; font-weight: 600; opacity: 0; transition: all .25s; z-index: 300;
+        pointer-events: none; max-width: 90%; text-align: center; box-shadow: 0 12px 30px -10px rgba(4,16,45,.6);
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast.success { background: #0a7d54; }
+    .toast.error { background: #b4232a; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="card">
-    <div class="card-title">Cadastrar Voluntário</div>
-    <form method="post" id="formVoluntario">
+<div class="form-head rise">
+    <h1>Mobilização</h1>
+    <p>Voluntário pra ação de campo — funciona offline.</p>
+</div>
+
+<div class="sync-bar online rise" id="syncBar">
+    <span class="sync-dot"></span>
+    <span id="syncText">Online</span>
+    <span class="sync-pend" id="syncPend" style="display:none;"><a href="#" onclick="LSPWAVol.sync();return false;"><span id="pendCount">0</span> pendente(s) — enviar</a></span>
+    <span class="sync-pend" id="syncErr" style="display:none;"><a href="#" onclick="if(confirm('Descartar os cadastros rejeitados? Os dados serão apagados deste aparelho.'))LSPWAVol.discardErros();return false;"><span id="errCount">0</span> com erro — descartar</a></span>
+</div>
+
+<div class="card rise rise-2">
+    <form method="post" id="formVoluntario" novalidate>
         {% csrf_token %}
 
         <div class="pwa-form-group">
             <label class="pwa-label">Nome *</label>
             {{ form.nome }}
-            {{ form.nome.errors }}
         </div>
 
         <div class="pwa-form-group">
             <label class="pwa-label">Telefone *</label>
             {{ form.telefone }}
-            {{ form.telefone.errors }}
         </div>
 
         <div class="pwa-form-group">
-            <label class="pwa-label">Região</label>
-            {{ form.regiao }}
-        </div>
-
-        <div class="pwa-form-group">
-            <label class="pwa-label">Cidade</label>
+            <label class="pwa-label">Cidade *</label>
             {{ form.cidade }}
-            {{ form.cidade.errors }}
         </div>
 
         <div class="pwa-form-group">
@@ -94,36 +113,26 @@
                 </div>
                 {% endfor %}
             </div>
-            {{ form.disponibilidades.errors }}
         </div>
 
-        <div class="pwa-form-group">
+        <div class="pwa-form-group" style="margin-bottom:18px;">
             <label class="pwa-label">Observações</label>
-            {{ form.observacoes }}
+            <div class="obs-wrap">
+                {{ form.observacoes }}
+                <button type="button" class="mic-btn" id="micBtn" title="Gravar e transcrever">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                </button>
+            </div>
+            <div class="mic-status" id="micStatus"></div>
         </div>
 
-        <button type="submit" class="pwa-btn pwa-btn-primary">Cadastrar Voluntário</button>
+        <button type="submit" class="pwa-btn pwa-btn-mob">Cadastrar Voluntário</button>
     </form>
 </div>
+
+<div class="toast" id="toast"></div>
 {% endblock %}
 
 {% block extra_js %}
-<script>
-document.getElementById('id_regiao').addEventListener('change', function() {
-    const regiaoId = this.value;
-    const cidadeSelect = document.getElementById('id_cidade');
-    cidadeSelect.innerHTML = '<option value="">Selecione...</option>';
-    if (!regiaoId) return;
-    fetch(`/app/api/cidades/${regiaoId}/`)
-        .then(r => r.json())
-        .then(cidades => {
-            cidades.forEach(c => {
-                const opt = document.createElement('option');
-                opt.value = c.id;
-                opt.textContent = c.nome;
-                cidadeSelect.appendChild(opt);
-            });
-        });
-});
-</script>
+<script src="{% static 'pwa/app_voluntario.js' %}"></script>
 {% endblock %}

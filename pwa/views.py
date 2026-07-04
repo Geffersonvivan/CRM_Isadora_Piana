@@ -1,16 +1,20 @@
 import os
+import json
 from functools import wraps
 from django.conf import settings as django_settings
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.http import JsonResponse, FileResponse
+from django.db import IntegrityError
 from django.db.models import Count
-from django.utils import timezone
+from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import ensure_csrf_cookie
 from core.views import api_cidades as core_api_cidades
 from core.services import calcular_scores_rede, score_usuario
-from liderancas.models import Apoiador, Cidade
-from .forms import ApoiadorPWAForm, ReplicadorForm, VoluntarioPWAForm, DoacaoPWAForm
+from django.db.models import Q
+from liderancas.models import Lideranca, Cidade, Voluntario
+from .forms import ApoiadorPWAForm, ReplicadorForm, VoluntarioPWAForm
 
 
 def pwa_login_required(view_func):
@@ -46,70 +50,36 @@ def pwa_logout(request):
 def dashboard(request):
     user = request.user
 
-    from usuarios.models import Usuario
-
+    # Meu placar (apoiadores cadastrados por mim — só aprovados contam)
     diretos_map, convidados_map = calcular_scores_rede()
-
-    # Meu placar (diretos + rede)
-    meus_diretos, meus_rede, meu_total, _ = score_usuario(user.id, diretos_map, convidados_map)
-
-    # Ranking geral (top 10) — score = cadastros diretos + cadastros dos replicadores
-    vinculo_map = dict(Usuario.VINCULO_CHOICES)
-    pwa_users = Usuario.objects.filter(
-        vinculo__in=['coordenador', 'cabo', 'replicador'],
-    ).select_related('regiao')
-
-    ranking = []
-    for u in pwa_users:
-        diretos, rede, total, _ = score_usuario(u.id, diretos_map, convidados_map)
-        if total > 0:
-            vinculo_label = vinculo_map.get(u.vinculo, u.vinculo or '')
-            regiao_sigla = u.regiao.sigla if u.regiao else ''
-            ranking.append({
-                'cadastrado_por__id': u.id,
-                'cadastrado_por__first_name': u.first_name,
-                'cadastrado_por__last_name': u.last_name,
-                'cadastrado_por__vinculo_display': f'{vinculo_label} {regiao_sigla}'.strip() if vinculo_label else '',
-                'total': total,
-                'diretos': diretos,
-                'rede': rede,
-            })
-
-    ranking.sort(key=lambda x: x['total'], reverse=True)
-
-    # Posição do usuário
-    minha_posicao = None
-    for i, r in enumerate(ranking, 1):
-        if r['cadastrado_por__id'] == user.id:
-            minha_posicao = i
-            break
-
-    ranking = ranking[:10]
+    _, _, meu_total, _ = score_usuario(user.id, diretos_map, convidados_map)
 
     # Meus últimos cadastros
-    ultimos = Apoiador.objects.filter(cadastrado_por=user).select_related('cidade')[:5]
-
-    # Meus replicadores
-    meus_replicadores = user.convidados.all().annotate(
-        total_apoiadores=Count('apoiadores_cadastrados')
-    ).order_by('-total_apoiadores')
+    ultimos = Lideranca.objects.filter(
+        papel='apoiador', cadastrado_por=user,
+    ).select_related('cidade')[:5]
 
     return render(request, 'pwa/dashboard.html', {
         'meu_total': meu_total,
-        'minha_posicao': minha_posicao,
-        'ranking': ranking,
         'ultimos': ultimos,
-        'meus_replicadores': meus_replicadores,
     })
 
 
+@ensure_csrf_cookie
 @pwa_login_required
 def cadastro_apoiador(request):
+    # POST tradicional é só fallback (sem JS). O fluxo normal usa a fila offline
+    # do app.js → /app/api/sync/. Garantimos o cookie CSRF para o sync funcionar.
     if request.method == 'POST':
         form = ApoiadorPWAForm(request.POST, user=request.user)
         if form.is_valid():
             apoiador = form.save(commit=False)
             apoiador.cadastrado_por = request.user
+            # Cadastro de campo nasce pendente na fila de moderação (CLAUDE.md §3.1),
+            # igual ao api_sync e ao fallback de voluntário — não pular a moderação.
+            apoiador.origem = 'pwa'
+            apoiador.aprovacao = 'pendente'
+            apoiador.status = 'ativo'
             apoiador.save()
             messages.success(request, f'{apoiador.nome} cadastrado com sucesso!')
             return redirect('pwa:cadastro_apoiador')
@@ -133,15 +103,18 @@ def cadastro_replicador(request):
     return render(request, 'pwa/cadastro_replicador.html', {'form': form})
 
 
+@ensure_csrf_cookie
 @pwa_login_required
 def cadastro_voluntario(request):
+    # POST tradicional é fallback (sem JS). O fluxo normal usa a fila offline
+    # do app_voluntario.js → /app/api/sync-voluntario/.
     if request.method == 'POST':
         form = VoluntarioPWAForm(request.POST)
         if form.is_valid():
             vol = form.save(commit=False)
-            vol.regiao = form.cleaned_data['regiao']
-            vol.disponibilidades = form.cleaned_data['disponibilidades']
             vol.cadastrado_por = request.user
+            vol.origem = 'pwa'
+            vol.aprovacao = 'pendente'
             vol.save()
             messages.success(request, f'{vol.nome} cadastrado para mobilização!')
             return redirect('pwa:cadastro_voluntario')
@@ -150,30 +123,151 @@ def cadastro_voluntario(request):
     return render(request, 'pwa/cadastro_voluntario.html', {'form': form})
 
 
-@pwa_login_required
-def cadastro_doacao(request):
-    if request.method == 'POST':
-        form = DoacaoPWAForm(request.POST)
-        if form.is_valid():
-            doacao = form.save(commit=False)
-            doacao.data = timezone.now()
-            doacao.status = 'pendente'
-            regiao_id = request.POST.get('regiao')
-            if regiao_id:
-                doacao.regiao_id = regiao_id
-            # Vincular ao apoiador do usuário logado, se existir
-            apoiador = Apoiador.objects.filter(cadastrado_por=request.user).first()
-            if apoiador:
-                doacao.apoiador = apoiador
-            doacao.save()
-            messages.success(request, f'Doação de R$ {doacao.valor} registrada com sucesso!')
-            return redirect('pwa:cadastro_doacao')
-    else:
-        form = DoacaoPWAForm()
-    return render(request, 'pwa/cadastro_doacao.html', {'form': form})
-
-
 api_cidades = core_api_cidades
+
+
+@pwa_login_required
+@require_POST
+def api_sync(request):
+    """Recebe a fila de cadastros offline (JSON) e cria as Lideranças.
+    Idempotente por `client_id` (UUID gerado no aparelho) — reenvio não duplica."""
+    try:
+        payload = json.loads(request.body or '{}')
+    except ValueError:
+        return JsonResponse({'error': 'JSON inválido'}, status=400)
+
+    tipos_validos = {c[0] for c in Lideranca.TIPO_CHOICES}
+    results = []
+    criados = 0
+    for rec in (payload.get('records') or [])[:200]:
+        cid = (rec.get('client_id') or '').strip()
+        if not cid:
+            results.append({'client_id': rec.get('client_id'), 'status': 'erro', 'error': 'sem client_id'})
+            continue
+        if Lideranca.all_objects.filter(pwa_client_id=cid).exists():
+            results.append({'client_id': cid, 'status': 'ok'})  # já sincronizado
+            continue
+        nome = (rec.get('nome') or '').strip()
+        cidade_id = rec.get('cidade_id')
+        if not nome or not cidade_id:
+            results.append({'client_id': cid, 'status': 'erro', 'error': 'Nome e cidade são obrigatórios'})
+            continue
+        cidade = Cidade.objects.select_related('regiao').filter(pk=cidade_id).first()
+        if not cidade:
+            results.append({'client_id': cid, 'status': 'erro', 'error': 'Cidade inválida'})
+            continue
+        tipo = (rec.get('tipo') or '').strip()
+        if tipo not in tipos_validos:
+            tipo = 'comunitario'
+        try:
+            Lideranca.objects.create(
+                papel='apoiador', nome=nome, cidade=cidade, regiao=cidade.regiao,
+                telefone=(rec.get('telefone') or '').strip(),
+                tipo=tipo, observacoes=(rec.get('observacoes') or '').strip(),
+                status='ativo', cadastrado_por=request.user, pwa_client_id=cid,
+                origem='pwa', aprovacao='pendente',
+            )
+            criados += 1
+            results.append({'client_id': cid, 'status': 'ok'})
+        except IntegrityError:
+            results.append({'client_id': cid, 'status': 'ok'})  # corrida: já criado
+        except Exception as e:  # noqa
+            results.append({'client_id': cid, 'status': 'erro', 'error': str(e)[:120]})
+
+    if criados:
+        from notificacoes.views import criar_notificacao_lead_pwa
+        criar_notificacao_lead_pwa(request.user, criados)
+
+    return JsonResponse({'results': results})
+
+
+@pwa_login_required
+@require_POST
+def api_sync_voluntario(request):
+    """Recebe a fila offline de voluntários (JSON) e cria os Voluntários.
+    Idempotente por `client_id`; entram como 'pendente' (origem pwa)."""
+    try:
+        payload = json.loads(request.body or '{}')
+    except ValueError:
+        return JsonResponse({'error': 'JSON inválido'}, status=400)
+
+    disp_validas = {c[0] for c in Voluntario.DISPONIBILIDADE_CHOICES}
+    results = []
+    criados = 0
+    for rec in (payload.get('records') or [])[:200]:
+        cid = (rec.get('client_id') or '').strip()
+        if not cid:
+            results.append({'client_id': rec.get('client_id'), 'status': 'erro', 'error': 'sem client_id'})
+            continue
+        if Voluntario.all_objects.filter(pwa_client_id=cid).exists():
+            results.append({'client_id': cid, 'status': 'ok'})
+            continue
+        nome = (rec.get('nome') or '').strip()
+        telefone = (rec.get('telefone') or '').strip()
+        cidade_id = rec.get('cidade_id')
+        if not nome or not telefone or not cidade_id:
+            results.append({'client_id': cid, 'status': 'erro', 'error': 'Nome, telefone e cidade são obrigatórios'})
+            continue
+        cidade = Cidade.objects.select_related('regiao').filter(pk=cidade_id).first()
+        if not cidade:
+            results.append({'client_id': cid, 'status': 'erro', 'error': 'Cidade inválida'})
+            continue
+        disp = [d for d in (rec.get('disponibilidades') or []) if d in disp_validas]
+        try:
+            Voluntario.objects.create(
+                nome=nome, telefone=telefone, cidade=cidade, regiao=cidade.regiao,
+                disponibilidades=disp, observacoes=(rec.get('observacoes') or '').strip(),
+                cadastrado_por=request.user, pwa_client_id=cid,
+                origem='pwa', aprovacao='pendente',
+            )
+            criados += 1
+            results.append({'client_id': cid, 'status': 'ok'})
+        except IntegrityError:
+            results.append({'client_id': cid, 'status': 'ok'})
+        except Exception as e:  # noqa
+            results.append({'client_id': cid, 'status': 'erro', 'error': str(e)[:120]})
+
+    if criados:
+        from notificacoes.views import criar_notificacao_voluntario_pwa
+        criar_notificacao_voluntario_pwa(request.user, criados)
+
+    return JsonResponse({'results': results})
+
+
+@pwa_login_required
+@require_POST
+def api_transcrever(request):
+    """Transcreve um áudio (online) via Whisper e devolve o texto p/ Observações.
+    Requer OPENAI_API_KEY no servidor (configurável: WHISPER_MODEL / WHISPER_BASE_URL)."""
+    audio = request.FILES.get('audio')
+    if not audio:
+        return JsonResponse({'error': 'Nenhum áudio enviado.'}, status=400)
+
+    key = getattr(django_settings, 'OPENAI_API_KEY', '')
+    if not key:
+        return JsonResponse({'error': 'Transcrição não configurada no servidor.'}, status=503)
+
+    import requests
+    base = getattr(django_settings, 'WHISPER_BASE_URL', 'https://api.openai.com/v1').rstrip('/')
+    model = getattr(django_settings, 'WHISPER_MODEL', 'whisper-1')
+    try:
+        resp = requests.post(
+            f'{base}/audio/transcriptions',
+            headers={'Authorization': f'Bearer {key}'},
+            files={'file': (audio.name or 'audio.m4a', audio.read(), audio.content_type or 'audio/m4a')},
+            data={'model': model, 'language': 'pt', 'response_format': 'json'},
+            timeout=90,
+        )
+    except requests.RequestException:
+        return JsonResponse({'error': 'Falha de rede ao transcrever.'}, status=502)
+
+    if resp.status_code != 200:
+        return JsonResponse({'error': f'Serviço de transcrição retornou {resp.status_code}.'}, status=502)
+    try:
+        data = resp.json()
+    except ValueError:
+        return JsonResponse({'error': 'Resposta inválida do serviço de transcrição.'}, status=502)
+    return JsonResponse({'text': (data.get('text') or '').strip()})
 
 
 def manifest_json(request):

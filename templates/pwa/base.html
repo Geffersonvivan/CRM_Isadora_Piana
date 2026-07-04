@@ -2,266 +2,216 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#002776">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="theme-color" content="#2B2B2B">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="{{ campanha.candidato_primeiro_nome }} {{ campanha.partido_numero }}">
+    <link rel="apple-touch-icon" href="/static/pwa/icon-192.png">
     <link rel="manifest" href="/app/manifest.json">
-    <title>{% block title %}LS Apoiadores{% endblock %}</title>
+    <title>{% block title %}{{ campanha.candidato_primeiro_nome }} {{ campanha.partido_numero }}{% endblock %}</title>
     <style>
+        :root {
+            --navy: #FF6B00;
+            --navy-700: #E25E00;
+            --navy-900: #2B2B2B;
+            --azul: #1f5bd6;
+            --ouro: #C44B00;
+            --ouro-deep: #A33D00;
+            --coral: #7c3aed;
+            --coral-soft: #f3edfd;
+            --ink: #0c1b38;
+            --muted: #6b7890;
+            --faint: #97a2b5;
+            --paper: #eaeef5;
+            --surface: #ffffff;
+            --line: #e3e8f1;
+            --shadow: 0 1px 2px rgba(4,16,45,.05), 0 14px 30px -20px rgba(4,16,45,.35);
+            --radius: 16px;
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body {
-            height: 100%;
-            overflow: hidden;
-            background: #f0f2f5;
-        }
+        html, body { height: 100%; overflow: hidden; background: var(--navy-900); }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            color: #1a1a1a;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+            color: var(--ink);
             -webkit-tap-highlight-color: transparent;
+            -webkit-font-smoothing: antialiased;
+            font-feature-settings: 'tnum' 1;
         }
-        .pwa-shell {
-            position: fixed;
-            inset: 0;
-            display: flex;
-            flex-direction: column;
-            background: #f0f2f5;
-        }
+        .pwa-shell { position: fixed; inset: 0; display: flex; flex-direction: column; background: var(--paper); }
         .pwa-scroll {
-            flex: 1;
-            overflow-y: auto;
-            overflow-x: hidden;
-            -webkit-overflow-scrolling: touch;
-            overscroll-behavior: contain;
+            flex: 1; overflow-y: auto; overflow-x: hidden;
+            -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
         }
 
-        /* Top bar */
+        /* ---------- App chrome (credencial de campanha) ---------- */
         .topbar {
-            background: linear-gradient(135deg, #002776 0%, #003da5 100%);
+            background: var(--navy-900);
             color: #fff;
-            padding-top: max(8px, env(safe-area-inset-top));
-            position: sticky;
-            top: 0;
-            z-index: 100;
+            padding-top: env(safe-area-inset-top);
+            position: sticky; top: 0; z-index: 100;
+            box-shadow: 0 1px 0 rgba(255,255,255,.04);
+        }
+        .topbar::after {   /* fio dourado — a assinatura */
+            content: ''; display: block; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--ouro) 18%, var(--ouro) 82%, transparent);
+            opacity: .9;
         }
         .topbar-main {
-            text-align: center;
-            padding: 12px 20px 8px;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 13px 18px 11px;
         }
-        .topbar-title {
-            font-size: 1.1rem;
-            font-weight: 700;
-            letter-spacing: -0.3px;
+        .wordmark { display: flex; align-items: baseline; gap: 9px; }
+        .wordmark-name {
+            font-size: 1.02rem; font-weight: 800; letter-spacing: 1.4px;
+            text-transform: uppercase; color: #fff;
         }
-        .topbar-subtitle {
-            font-size: 0.7rem;
-            opacity: 0.8;
-            font-weight: 400;
-        }
-        .topbar-user-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 6px 20px;
-            border-top: 1px solid rgba(255,255,255,0.15);
-            font-size: 0.75rem;
-            opacity: 0.9;
+        .wordmark-22 {
+            font-size: .72rem; font-weight: 800; letter-spacing: .5px;
+            color: var(--navy-900); background: var(--ouro);
+            padding: 2px 7px; border-radius: 6px; line-height: 1;
+            box-shadow: 0 1px 0 rgba(0,0,0,.15) inset;
         }
         .topbar-logout {
-            color: rgba(255,255,255,0.8);
-            text-decoration: none;
-            font-size: 0.7rem;
-            border: 1px solid rgba(255,255,255,0.3);
-            padding: 3px 10px;
-            border-radius: 20px;
-            transition: all 0.2s;
+            color: rgba(255,255,255,.82); text-decoration: none;
+            font-size: .72rem; font-weight: 600; letter-spacing: .2px;
+            border: 1px solid rgba(255,255,255,.22);
+            padding: 5px 12px; border-radius: 999px; transition: all .18s;
         }
-        .topbar-logout:hover {
-            background: rgba(255,255,255,0.1);
+        .topbar-logout:active { background: rgba(255,255,255,.12); }
+        .topbar-greet {
+            font-size: .72rem; color: rgba(255,255,255,.62);
+            padding: 0 18px 9px; letter-spacing: .2px;
         }
+        .topbar-greet b { color: rgba(255,255,255,.92); font-weight: 600; }
 
-        /* Content */
-        .content {
-            width: 100%;
-            max-width: 500px;
-            margin: 0 auto;
-            padding: 16px;
-            padding-bottom: 16px;
-        }
+        /* ---------- Content ---------- */
+        .content { width: 100%; max-width: 520px; margin: 0 auto; padding: 18px 16px 24px; }
 
-        /* Bottom nav */
+        /* ---------- Bottom nav ---------- */
         .bottom-nav {
-            background: #fff;
-            border-top: 1px solid #e5e7eb;
-            display: flex;
-            justify-content: space-around;
-            padding: 8px 0;
-            padding-bottom: max(8px, env(safe-area-inset-bottom));
+            background: rgba(255,255,255,.92);
+            backdrop-filter: saturate(1.4) blur(12px);
+            -webkit-backdrop-filter: saturate(1.4) blur(12px);
+            border-top: 1px solid var(--line);
+            display: flex; justify-content: space-around;
+            padding: 7px 0 calc(7px + env(safe-area-inset-bottom));
             z-index: 100;
         }
         .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-decoration: none;
-            color: #9ca3af;
-            font-size: 0.65rem;
-            font-weight: 500;
-            gap: 2px;
-            padding: 4px 12px;
-            border-radius: 8px;
-            transition: all 0.15s;
+            display: flex; flex-direction: column; align-items: center; gap: 3px;
+            text-decoration: none; color: var(--faint);
+            font-size: .64rem; font-weight: 600; letter-spacing: .2px;
+            padding: 5px 16px; border-radius: 12px; transition: color .15s;
         }
-        .nav-item.active { color: #002776; }
         .nav-item svg { width: 22px; height: 22px; }
+        .nav-item.active { color: var(--navy); }
 
-        /* Cards */
+        /* ---------- Cards ---------- */
         .card {
-            background: #fff;
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            background: var(--surface); border-radius: var(--radius);
+            padding: 18px; margin-bottom: 14px; box-shadow: var(--shadow);
+            border: 1px solid rgba(227,232,241,.7);
         }
         .card-title {
-            font-size: 0.72rem;
-            font-weight: 700;
-            color: #6b7280;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 10px;
+            display: flex; align-items: center; gap: 8px;
+            font-size: .68rem; font-weight: 800; color: var(--muted);
+            text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 14px;
+        }
+        .card-title::before {
+            content: ''; width: 14px; height: 3px; border-radius: 2px;
+            background: var(--ouro); flex-shrink: 0;
         }
 
-        /* Forms */
-        .pwa-form-group {
-            margin-bottom: 14px;
-        }
+        /* ---------- Forms ---------- */
+        .pwa-form-group { margin-bottom: 15px; }
         .pwa-label {
-            display: block;
-            font-size: 0.78rem;
-            font-weight: 600;
-            color: #374151;
-            margin-bottom: 5px;
+            display: block; font-size: .74rem; font-weight: 700; color: #3a4a66;
+            margin-bottom: 6px; letter-spacing: .2px;
         }
         .pwa-input {
-            width: 100%;
-            padding: 12px 14px;
-            border: 1.5px solid #d1d5db;
-            border-radius: 10px;
-            font-size: 1rem;
-            background: #fff;
-            color: #1a1a1a;
-            -webkit-appearance: none;
-            transition: border-color 0.15s;
+            width: 100%; padding: 13px 14px;
+            border: 1.5px solid var(--line); border-radius: 12px;
+            font-size: 1rem; background: #fbfcfe; color: var(--ink);
+            -webkit-appearance: none; transition: border-color .15s, box-shadow .15s, background .15s;
         }
+        .pwa-input::placeholder { color: var(--faint); }
         .pwa-input:focus {
-            outline: none;
-            border-color: #002776;
-            box-shadow: 0 0 0 3px rgba(0,39,118,0.1);
+            outline: none; border-color: var(--navy); background: #fff;
+            box-shadow: 0 0 0 4px rgba(31,91,214,.13);
         }
-        .pwa-input-wrapper {
-            position: relative;
-        }
+        .pwa-input-wrapper { position: relative; }
         .pwa-input-wrapper .pwa-at-prefix {
-            position: absolute;
-            left: 14px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 1rem;
-            color: #6b7280;
-            font-weight: 600;
-            pointer-events: none;
+            position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+            font-size: 1rem; color: var(--muted); font-weight: 600; pointer-events: none;
         }
-        .pwa-input-wrapper .pwa-input {
-            padding-left: 30px;
-        }
+        .pwa-input-wrapper .pwa-input { padding-left: 30px; }
         select.pwa-input {
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 12px center;
-            padding-right: 36px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7890' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 13px center; padding-right: 38px;
         }
 
-        /* Buttons */
+        /* ---------- Buttons ---------- */
         .pwa-btn {
-            display: block;
-            width: 100%;
-            padding: 14px;
-            border: none;
-            border-radius: 12px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            text-align: center;
-            text-decoration: none;
-            transition: all 0.15s;
+            display: block; width: 100%; padding: 15px;
+            border: none; border-radius: 13px;
+            font-size: 1rem; font-weight: 700; letter-spacing: .2px;
+            cursor: pointer; text-align: center; text-decoration: none;
+            transition: transform .12s, background .15s, box-shadow .15s;
         }
         .pwa-btn-primary {
-            background: #002776;
-            color: #fff;
+            background: var(--navy); color: #fff;
+            box-shadow: 0 8px 18px -10px rgba(255, 107, 0,.9);
         }
-        .pwa-btn-primary:hover { background: #003da5; }
-        .pwa-btn-primary:active { transform: scale(0.98); }
-        .pwa-btn-green {
-            background: #047857;
-            color: #fff;
-        }
-        .pwa-btn-green:hover { background: #059669; }
-        .pwa-btn-outline {
-            background: #fff;
-            color: #374151;
-            border: 1.5px solid #d1d5db;
-        }
+        .pwa-btn-primary:active { transform: scale(.985); background: var(--navy-700); }
+        .pwa-btn-green { background: #0a7d54; color: #fff; }
+        .pwa-btn-green:active { transform: scale(.985); }
+        .pwa-btn-outline { background: #fff; color: #3a4a66; border: 1.5px solid var(--line); }
+        .pwa-btn:disabled { opacity: .55; }
 
-        /* Messages */
-        .pwa-messages {
-            list-style: none;
-            margin-bottom: 12px;
-        }
+        /* ---------- Messages / errors ---------- */
+        .pwa-messages { list-style: none; margin-bottom: 14px; }
         .pwa-messages li {
-            padding: 12px 16px;
-            border-radius: 10px;
-            font-size: 0.85rem;
-            font-weight: 500;
+            padding: 13px 16px; border-radius: 12px; font-size: .86rem; font-weight: 600;
+            display: flex; align-items: center; gap: 9px;
         }
-        .pwa-messages .success {
-            background: #d1fae5;
-            color: #047857;
-        }
-        .pwa-messages .error {
-            background: #fee2e2;
-            color: #991b1b;
-        }
+        .pwa-messages li::before { content: ''; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .pwa-messages .success { background: #e3f6ec; color: #0a7d54; }
+        .pwa-messages .success::before { background: #0a7d54; }
+        .pwa-messages .error { background: #fdeaea; color: #b4232a; }
+        .pwa-messages .error::before { background: #b4232a; }
+        .errorlist { list-style: none; color: #d23a3a; font-size: .76rem; font-weight: 600; margin-top: 5px; }
 
-        /* Error list */
-        .errorlist {
-            list-style: none;
-            color: #dc2626;
-            font-size: 0.78rem;
-            margin-top: 4px;
-        }
-
-        {% block extra_css %}{% endblock %}
+        /* ---------- Entrada suave (respeitando reduce motion) ---------- */
+        @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+        .rise { animation: rise .42s cubic-bezier(.2,.7,.3,1) both; }
+        .rise-2 { animation-delay: .06s; }
+        .rise-3 { animation-delay: .12s; }
+        @media (prefers-reduced-motion: reduce) { .rise, .rise-2, .rise-3 { animation: none; } }
     </style>
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
 <div class="pwa-shell">
     <div class="topbar">
         <div class="topbar-main">
-            <div class="topbar-title">Apoiadores Leandro Sorgatto <span class="topbar-subtitle">PL22</span></div>
+            <div class="wordmark">
+                <span class="wordmark-name">{{ campanha.candidato_primeiro_nome }}</span>
+                <span class="wordmark-22">{{ campanha.partido_numero }}</span>
+            </div>
+            {% if user.is_authenticated %}
+            <a href="{% url 'pwa:logout' %}" class="topbar-logout">Sair</a>
+            {% endif %}
         </div>
         {% if user.is_authenticated %}
-        <div class="topbar-user-bar">
-            <span>Olá, {{ user.first_name|default:user.username }}</span>
-            <a href="{% url 'pwa:logout' %}" class="topbar-logout">Sair</a>
-        </div>
+        <div class="topbar-greet">Olá, <b>{{ user.first_name|default:user.username }}</b> — operação de campo</div>
         {% endif %}
     </div>
 
     <div class="pwa-scroll">
         <div class="content">
             {% if messages %}
-            <ul class="pwa-messages">
+            <ul class="pwa-messages rise">
                 {% for message in messages %}
                 <li class="{{ message.tags }}">{{ message }}</li>
                 {% endfor %}
@@ -278,15 +228,43 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             Início
         </a>
+        <a href="{% url 'pwa:cadastro_apoiador' %}" class="nav-item {% block nav_apoiador %}{% endblock %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+            Apoiador
+        </a>
+        <a href="{% url 'pwa:cadastro_voluntario' %}" class="nav-item {% block nav_mob %}{% endblock %}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+            Mobilização
+        </a>
     </div>
     {% endif %}
 </div>
 
     {% block extra_js %}{% endblock %}
     <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/app/sw.js');
+        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/app/sw.js'); }
+    </script>
+    <!-- Máscara de telefone: (00) 00000-0000 enquanto digita -->
+    <script>
+    (function () {
+        function formatTel(value) {
+            var d = (value || '').replace(/\D/g, '').slice(0, 11);
+            if (d.length === 0) return '';
+            if (d.length <= 2) return '(' + d;
+            if (d.length <= 6) return '(' + d.slice(0, 2) + ') ' + d.slice(2);
+            if (d.length <= 10) return '(' + d.slice(0, 2) + ') ' + d.slice(2, 6) + '-' + d.slice(6);
+            return '(' + d.slice(0, 2) + ') ' + d.slice(2, 7) + '-' + d.slice(7);
         }
+        function isTel(t) { return t && t.tagName === 'INPUT' && (t.id === 'id_telefone' || t.name === 'telefone'); }
+        document.addEventListener('input', function (e) { if (isTel(e.target)) e.target.value = formatTel(e.target.value); });
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('#id_telefone, input[name=telefone]').forEach(function (el) {
+                el.setAttribute('inputmode', 'tel');
+                el.setAttribute('maxlength', '16');
+                if (el.value) el.value = formatTel(el.value);
+            });
+        });
+    })();
     </script>
 </body>
 </html>
