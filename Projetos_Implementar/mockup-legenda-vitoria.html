@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Legenda · Vitória 2026 (mockup)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1b2230; --muted:#6a7382; --faint:#9aa3b2;
+    --line:#e7eaf0; --line-soft:#f1f3f7; --surface:#ffffff; --bg:#eef1f5;
+    --marca:#FF6B00;            /* NOVO */
+    --grafite:#2b2b2b;
+    /* escala da lacuna (votos disponíveis) */
+    --g0:#cdd5df; --g1:#86efac; --g2:#eab308; --g3:#f97316; --g4:#ef4444;
+    /* classificação */
+    --ouro:#c98a00; --ouro-bg:#fdf3da;
+    --celeiro:#15803d; --celeiro-bg:#e7f6ec;
+    --fort:#0d9488; --fort-bg:#e3f4f1;
+    --marg:#64748b; --marg-bg:#eef1f5;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--ink);
+    -webkit-font-smoothing:antialiased;padding:40px 20px;line-height:1.5}
+  .wrap{max-width:880px;margin:0 auto}
+  .note{font-size:.72rem;color:var(--faint);text-align:center;margin-bottom:14px;letter-spacing:.2px}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;
+    box-shadow:0 1px 2px rgba(16,24,40,.04),0 12px 32px -18px rgba(16,24,40,.25);overflow:hidden}
+
+  /* header */
+  .hd{padding:18px 22px 14px;border-bottom:1px solid var(--line)}
+  .eyebrow{display:flex;align-items:center;gap:8px;font-size:.66rem;font-weight:700;
+    letter-spacing:.16em;text-transform:uppercase;color:var(--marca)}
+  .eyebrow::before{content:"";width:18px;height:2px;background:var(--marca);border-radius:2px}
+  .hd h1{font-size:1.18rem;font-weight:800;letter-spacing:-.02em;margin-top:6px}
+  .hd p{font-size:.82rem;color:var(--muted);margin-top:2px}
+
+  .body{padding:6px 22px 20px}
+  .sec{padding:16px 0;border-bottom:1px solid var(--line-soft)}
+  .sec:last-child{border-bottom:0}
+  .lbl{display:flex;align-items:baseline;gap:8px;font-size:.7rem;font-weight:700;
+    letter-spacing:.1em;text-transform:uppercase;color:var(--ink);margin-bottom:10px}
+  .lbl .step{font-family:'IBM Plex Mono',monospace;font-size:.7rem;font-weight:600;
+    color:var(--marca)}
+  .lbl small{font-weight:500;letter-spacing:0;text-transform:none;color:var(--faint);font-size:.72rem}
+
+  /* fórmula — typeset como spec */
+  .formula{font-family:'IBM Plex Mono',monospace;font-size:.82rem;line-height:1.85;
+    background:#0f1422;color:#e7ecf5;border-radius:10px;padding:14px 16px}
+  .formula .k{color:#ffb27a;font-weight:600}          /* termo-chave */
+  .formula .op{color:#7c89a3}                          /* operadores */
+  .formula .c{color:#6b7689;font-style:italic}         /* comentário */
+  .formula .r{color:#fca5a5;font-weight:600}           /* resultado/cor */
+  .formula .ex{display:block;margin-top:8px;padding-top:8px;border-top:1px dashed #2a3346;color:#cdd6e6}
+  .formula .ex b{color:#fff}
+
+  .src{margin-top:8px;font-size:.74rem;color:var(--muted)}
+  .src b{color:var(--ink);font-weight:600}
+
+  /* 2x2 matriz — o "cruzou A com B" */
+  .matrix-wrap{display:grid;grid-template-columns:74px 1fr 1fr;gap:8px;align-items:stretch}
+  .axisY{grid-row:span 2;align-self:center;writing-mode:vertical-rl;transform:rotate(180deg);
+    text-align:center;font-size:.64rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+  .colh{font-size:.66rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);
+    text-align:center;padding-bottom:2px}
+  .rowh{display:flex;align-items:center;justify-content:flex-end;font-size:.66rem;font-weight:700;
+    letter-spacing:.08em;text-transform:uppercase;color:var(--faint);padding-right:2px}
+  .cell{border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .cell .t{display:flex;align-items:center;gap:7px;font-weight:700;font-size:.86rem}
+  .cell .act{font-family:'IBM Plex Mono',monospace;font-size:.64rem;font-weight:600;letter-spacing:.04em;
+    text-transform:uppercase;padding:1px 6px;border-radius:5px;margin-left:auto}
+  .cell .d{font-size:.74rem;color:var(--muted);margin-top:3px}
+  .c-ouro{background:var(--ouro-bg);border-color:#f1e2b8} .c-ouro .act{background:#f6e3ad;color:#8a5d00}
+  .c-cel{background:var(--celeiro-bg);border-color:#cdebd6} .c-cel .act{background:#cdebd6;color:var(--celeiro)}
+  .c-fort{background:var(--fort-bg);border-color:#c8ebe4} .c-fort .act{background:#c8ebe4;color:var(--fort)}
+  .c-marg{background:var(--marg-bg);border-color:#dde3ec} .c-marg .act{background:#dde3ec;color:var(--marg)}
+  .axisNote{font-size:.72rem;color:var(--muted);margin-top:10px}
+  .axisNote code{font-family:'IBM Plex Mono',monospace;background:var(--line-soft);
+    padding:1px 5px;border-radius:4px;color:var(--ink);font-size:.72rem}
+
+  /* escala de cor */
+  .scale{display:flex;align-items:center;gap:0;border-radius:8px;overflow:hidden;height:14px;
+    border:1px solid var(--line)}
+  .scale i{flex:1}
+  .scaleLabels{display:flex;justify-content:space-between;font-size:.7rem;color:var(--muted);margin-top:6px}
+
+  /* rodapé: confiança + alertas, compacto */
+  .foot{display:flex;flex-wrap:wrap;gap:18px 26px;font-size:.76rem;color:var(--muted)}
+  .foot .grp{display:flex;align-items:center;gap:8px}
+  .dot{width:9px;height:9px;border-radius:50%}
+  .dot.real{background:var(--celeiro)} .dot.est{background:#fff;border:2px solid var(--ouro)}
+  .alert{display:inline-flex;align-items:center;gap:6px}
+  .foot b{color:var(--ink);font-weight:600}
+
+  @media(max-width:560px){
+    .matrix-wrap{grid-template-columns:54px 1fr 1fr}
+    .axisY{writing-mode:horizontal-tb;transform:none;grid-row:auto;grid-column:1/-1;text-align:left}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="note">Mockup · legenda redesenhada do mapa “Vitória 2026” — base do cálculo primeiro, enxuta e precisa</p>
+
+  <div class="card">
+    <div class="hd">
+      <div class="eyebrow">Vitória 2026 · como o mapa calcula</div>
+      <h1>Onde estão os votos que faltam para 2026</h1>
+      <p>Cada cidade é pintada pelos <b>votos que ainda dá para ganhar</b> — não pelo passado.</p>
+    </div>
+
+    <div class="body">
+
+      <!-- 1. BASE DO CÁLCULO -->
+      <div class="sec">
+        <div class="lbl"><span class="step">01</span> Base do cálculo <small>de onde sai cada número</small></div>
+        <div class="formula">
+<span class="k">Potencial</span> <span class="op">=</span> maior entre  <span class="op">⎡</span> Votos&nbsp;2022 <span class="op">×</span> 1,4   <span class="c">crescer sobre a base real</span>
+                       <span class="op">⎣</span> Eleitores  <span class="op">×</span> 1,2%  <span class="c">teto de penetração</span>
+<span class="r">Votos disponíveis</span> <span class="op">=</span> Potencial <span class="op">−</span> Votos&nbsp;2022   <span class="c">← é o que pinta a cidade</span>
+<span class="ex"><b>Concórdia:</b> max( 107×1,4=<b>150</b> ; 59.940×1,2%=<b>720</b> ) = <b>720</b>  →  720−107 = <b style="color:#fca5a5">+613</b> disponíveis</span>
+        </div>
+        <div class="src">Fontes: <b>votos 2022</b> e <b>eleitores</b> do TSE (dados reais). Se a cidade tem <b>meta manual</b>, ela vence a fórmula.</div>
+      </div>
+
+      <!-- 2. CLASSIFICAÇÃO = cruzamento A x B -->
+      <div class="sec">
+        <div class="lbl"><span class="step">02</span> Classificação <small>cruza dois eixos reais (A × B)</small></div>
+        <div class="matrix-wrap">
+          <div></div>
+          <div class="colh">Cidade grande<br><small style="font-weight:500;color:#b3bccb">≥ 12 mil eleitores</small></div>
+          <div class="colh">Cidade pequena</div>
+
+          <div class="axisY">você é fraco</div>
+          <div class="cell c-ouro"><div class="t">💰 Mina de ouro <span class="act">atacar</span></div><div class="d">Muito voto, você é fraco. Maior retorno por esforço.</div></div>
+          <div class="cell c-marg"><div class="t">⚪ Marginal <span class="act">ignorar</span></div><div class="d">Pouco voto a colher. Baixa prioridade.</div></div>
+
+          <div class="axisY">você é forte</div>
+          <div class="cell c-cel"><div class="t">🌾 Celeiro <span class="act">defender</span></div><div class="d">Já forte e grande. Aqui se ganha em volume.</div></div>
+          <div class="cell c-fort"><div class="t">🛡️ Fortaleza <span class="act">manter</span></div><div class="d">Forte e pequena. Manutenção barata.</div></div>
+        </div>
+        <div class="axisNote">
+          <b>Eixo força</b> = penetração <code>votos 2022 ÷ eleitores ≥ 1%</code> · <b>Eixo porte</b> = <code>eleitores ≥ 12 mil</code>.
+        </div>
+      </div>
+
+      <!-- 3. COR -->
+      <div class="sec">
+        <div class="lbl"><span class="step">03</span> Cor da cidade <small>tamanho da lacuna</small></div>
+        <div class="scale">
+          <i style="background:var(--g0)"></i><i style="background:var(--g1)"></i><i style="background:var(--g2)"></i><i style="background:var(--g3)"></i><i style="background:var(--g4)"></i>
+        </div>
+        <div class="scaleLabels"><span>quase no teto (≤20)</span><span>lacuna média</span><span>muito voto disponível (400+)</span></div>
+      </div>
+
+      <!-- 4. CONFIANÇA + ALERTAS -->
+      <div class="sec">
+        <div class="lbl"><span class="step">04</span> Como ler os sinais</div>
+        <div class="foot">
+          <span class="grp"><span class="dot real"></span> <b>Real</b> — TSE / rede CRM</span>
+          <span class="grp"><span class="dot est"></span> <b>Estimado</b> — perfil socioeconômico (indício)</span>
+          <span class="grp alert">🚨 <b>Órfã</b> — mina de ouro com <b>zero estrutura</b> (ninguém trabalhando)</span>
+          <span class="grp alert">❄️ <b>Esfriando</b> — base forte sem contato recente</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <p class="note" style="margin-top:14px">Clique numa cidade para o painel de ação (contatos vencidos · última visita · agendar).</p>
+</div>
+</body>
+</html>

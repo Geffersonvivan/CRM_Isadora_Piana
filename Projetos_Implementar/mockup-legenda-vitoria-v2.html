@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Legenda · Vitória 2026 — para todos entenderem</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1b2230; --muted:#5b6473; --faint:#97a0af;
+    --line:#e7eaf0; --line-soft:#f2f4f8; --surface:#fff; --bg:#eceff4;
+    --marca:#FF6B00;
+    --fato:#15803d;  --fato-bg:#e7f6ec;     /* dado real */
+    --meta:#b45309;  --meta-bg:#fdf1de;     /* premissa/decisão */
+    --conta:#1d4ed8; --conta-bg:#e8eefc;    /* cálculo */
+    /* escala de UMA cor só: neutro → laranja NOVO (sem vermelho/verde, que têm leitura partidária) */
+    --g0:#eceef2; --g1:#ffe4c4; --g2:#ffc187; --g3:#ff8f3c; --g4:#e25e00;
+    --ouro:#c98a00; --ouro-bg:#fdf3da;
+    --cel:#15803d; --cel-bg:#e7f6ec;
+    --fort:#0d9488; --fort-bg:#e3f4f1;
+    --marg:#64748b; --marg-bg:#eef1f5;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--ink);
+    -webkit-font-smoothing:antialiased;padding:40px 18px;line-height:1.6;font-size:16px}
+  .wrap{max-width:760px;margin:0 auto}
+  .note{font-size:.74rem;color:var(--faint);text-align:center;margin-bottom:14px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:18px;
+    box-shadow:0 1px 2px rgba(16,24,40,.04),0 16px 40px -22px rgba(16,24,40,.30);overflow:hidden}
+
+  .hd{padding:22px 24px 18px;background:linear-gradient(180deg,#fff, #fff)}
+  .eyebrow{display:flex;align-items:center;gap:8px;font-size:.68rem;font-weight:700;
+    letter-spacing:.16em;text-transform:uppercase;color:var(--marca)}
+  .eyebrow::before{content:"";width:18px;height:2px;background:var(--marca);border-radius:2px}
+  .hd h1{font-size:1.32rem;font-weight:800;letter-spacing:-.02em;margin-top:8px;line-height:1.25}
+
+  .body{padding:4px 24px 22px}
+  .sec{padding:18px 0;border-bottom:1px solid var(--line-soft)}
+  .sec:last-child{border-bottom:0}
+  .lbl{display:flex;align-items:baseline;gap:9px;font-size:.72rem;font-weight:700;
+    letter-spacing:.1em;text-transform:uppercase;color:var(--ink);margin-bottom:12px}
+  .lbl .n{font-family:'IBM Plex Mono',monospace;color:var(--marca);font-size:.74rem}
+
+  /* nível 1 — a frase que todo mundo entende */
+  .lead{font-size:1.08rem;color:var(--ink)}
+  .lead b{color:var(--marca)}
+  .scale{display:flex;border-radius:9px;overflow:hidden;height:16px;border:1px solid var(--line);margin-top:14px}
+  .scale i{flex:1}
+  .scaleLabels{display:flex;justify-content:space-between;font-size:.78rem;color:var(--muted);margin-top:7px}
+
+  /* história da cidade — em palavras */
+  .story{background:#fbfcfe;border:1px solid var(--line);border-left:3px solid var(--marca);
+    border-radius:12px;padding:14px 16px;font-size:1rem;color:#2a3242}
+  .story .city{font-weight:800}
+  .story b{color:var(--ink)}
+  .num{font-weight:800;border-bottom:2px dotted; padding-bottom:1px;cursor:help}
+  .num.fato{color:var(--fato);border-color:var(--fato)}
+  .num.meta{color:var(--meta);border-color:var(--meta)}
+  .num.conta{color:var(--conta);border-color:var(--conta)}
+
+  /* de onde vem cada número — tabela */
+  table{width:100%;border-collapse:collapse;font-size:.95rem}
+  th{font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);
+    text-align:left;font-weight:700;padding:0 8px 8px}
+  td{padding:9px 8px;border-top:1px solid var(--line-soft);vertical-align:top}
+  td.v{font-weight:800;white-space:nowrap}
+  .tag{display:inline-block;font-size:.66rem;font-weight:700;letter-spacing:.04em;
+    text-transform:uppercase;padding:2px 8px;border-radius:6px;white-space:nowrap}
+  .tag.fato{background:var(--fato-bg);color:var(--fato)}
+  .tag.meta{background:var(--meta-bg);color:var(--meta)}
+  .tag.conta{background:var(--conta-bg);color:var(--conta)}
+  .legendinha{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-size:.8rem;color:var(--muted)}
+  .legendinha span{display:inline-flex;align-items:center;gap:6px}
+
+  /* premissas — números que a campanha escolheu */
+  .prem{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .pcard{border:1px solid #f1e2c4;background:var(--meta-bg);border-radius:12px;padding:12px 14px}
+  .pcard .pv{font-size:1.15rem;font-weight:800;color:var(--meta)}
+  .pcard .pt{font-weight:700;font-size:.92rem;margin-top:1px}
+  .pcard .pd{font-size:.84rem;color:#7a5a1e;margin-top:3px}
+  .prem-foot{font-size:.82rem;color:var(--muted);margin-top:10px}
+  .prem-foot b{color:var(--ink)}
+
+  /* classificação 2x2 em palavras */
+  .matrix{display:grid;gap:8px;grid-template-columns:96px 1fr 1fr;
+    grid-template-areas:"corner colA colB" "rfraco mina marg" "rforte cel fort"}
+  .mx-corner{grid-area:corner}
+  .colh{font-size:.72rem;font-weight:700;color:var(--faint);text-align:center;align-self:end;padding-bottom:2px}
+  .colh small{display:block;font-weight:500;color:#b3bccb}
+  .colh.a{grid-area:colA}.colh.b{grid-area:colB}
+  .rowh{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;text-align:right;
+    font-size:.7rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--faint);padding-right:4px;line-height:1.25}
+  .rowh.f{grid-area:rfraco}.rowh.s{grid-area:rforte}
+  .cell.mina{grid-area:mina}.cell.marg{grid-area:marg}.cell.cel{grid-area:cel}.cell.fort{grid-area:fort}
+  .cell{border:1px solid var(--line);border-radius:11px;padding:11px 13px}
+  .cell .t{display:flex;align-items:center;gap:7px;font-weight:800;font-size:.96rem}
+  .cell .act{margin-left:auto;font-size:.66rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:6px}
+  .cell .d{font-size:.82rem;color:var(--muted);margin-top:3px}
+  .c-ouro{background:var(--ouro-bg);border-color:#f1e2b8}.c-ouro .act{background:#f6e3ad;color:#8a5d00}
+  .c-cel{background:var(--cel-bg);border-color:#cdebd6}.c-cel .act{background:#cdebd6;color:var(--cel)}
+  .c-fort{background:var(--fort-bg);border-color:#c8ebe4}.c-fort .act{background:#c8ebe4;color:var(--fort)}
+  .c-marg{background:var(--marg-bg);border-color:#dde3ec}.c-marg .act{background:#dde3ec;color:var(--marg)}
+
+  .foot{display:flex;flex-wrap:wrap;gap:14px 24px;font-size:.86rem;color:var(--muted)}
+  .foot .grp{display:flex;align-items:center;gap:8px}
+  .dot{width:10px;height:10px;border-radius:50%}
+  .dot.real{background:var(--fato)} .dot.est{background:#fff;border:2px solid var(--ouro)}
+  .foot b{color:var(--ink)}
+
+  details{margin-top:8px;border:1px solid var(--line);border-radius:10px;background:#fbfcfe}
+  summary{cursor:pointer;padding:10px 14px;font-weight:700;font-size:.86rem;color:var(--muted);list-style:none}
+  summary::-webkit-details-marker{display:none}
+  summary::before{content:"▸ ";color:var(--marca)}
+  details[open] summary::before{content:"▾ "}
+  .conta-x{font-family:'IBM Plex Mono',monospace;font-size:.86rem;padding:0 14px 14px;color:#2a3242;line-height:1.9}
+  .conta-x .c{color:var(--faint)}
+
+  /* potencial total — o número-tese */
+  .total{margin:14px 0 4px;border:1px solid #f1d9b8;border-radius:14px;overflow:hidden;background:linear-gradient(180deg,#fff,#fffaf2)}
+  .total-hero{display:flex;align-items:center;gap:16px;padding:18px 20px}
+  .th-num{font-size:2.6rem;font-weight:800;letter-spacing:-.03em;color:var(--marca);line-height:1}
+  .th-lbl{font-size:.98rem;font-weight:600;color:var(--ink)}
+  .th-lbl small{display:block;font-weight:500;color:var(--muted);font-size:.82rem;margin-top:2px}
+  .total-break{display:flex;align-items:center;gap:14px;padding:12px 20px;border-top:1px solid #f3e6cf;background:#fffdf8}
+  .total-break>div{display:flex;flex-direction:column}
+  .total-break b{font-size:1.15rem}
+  .total-break span{font-size:.78rem;color:var(--muted)}
+  .total-break .arrow{color:var(--faint);font-size:1.2rem;align-self:center}
+  .total-foot{font-size:.82rem;color:var(--muted);margin-top:8px}
+
+  @media(max-width:560px){.prem{grid-template-columns:1fr}
+    .matrix{grid-template-columns:1fr 1fr;grid-template-areas:"colA colB" "mina marg" "cel fort"}
+    .mx-corner,.rowh{display:none}
+    .th-num{font-size:2rem}.total-hero{flex-direction:column;align-items:flex-start;gap:6px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="note">Mockup v2 · legenda do mapa “Vitória 2026” escrita para qualquer pessoa entender</p>
+
+  <div class="card">
+    <div class="hd">
+      <div class="eyebrow">Vitória 2026 · entenda o mapa</div>
+      <h1>Onde ainda dá para ganhar votos em 2026</h1>
+    </div>
+
+    <div class="body">
+
+      <!-- POTENCIAL TOTAL — o número-tese -->
+      <div class="sec" style="border-bottom:1px solid var(--line)">
+        <div class="lbl"><span class="n">★</span> O potencial total da Isadora</div>
+        <div class="total">
+          <div class="total-hero">
+            <div class="th-num">64.880</div>
+            <div class="th-lbl">votos de potencial
+              <small>somando as 190 cidades onde a Isadora fez votos em 2022</small></div>
+          </div>
+          <div class="total-break">
+            <div><b>6.674</b><span>votos hoje (2022)</span></div>
+            <div class="arrow">→</div>
+            <div><b style="color:var(--g4)">+58.206</b><span>ainda dá para conquistar</span></div>
+          </div>
+        </div>
+        <p class="total-foot">É a <b>soma do potencial de cada cidade</b> (a mesma conta da seção 3, cidade por cidade).
+          Só conta cidades onde ela já teve votos em 2022.</p>
+      </div>
+
+      <!-- NÍVEL 1 — a frase que todos entendem -->
+      <div class="sec">
+        <div class="lbl"><span class="n">1</span> O que a cor mostra</div>
+        <p class="lead">A cor de cada cidade mostra <b>quantos votos ainda dá para conquistar</b> ali em 2026.
+          Quanto mais <b>laranja</b>, mais voto sobrando para buscar.</p>
+        <div class="scale">
+          <i style="background:var(--g0)"></i><i style="background:var(--g1)"></i><i style="background:var(--g2)"></i><i style="background:var(--g3)"></i><i style="background:var(--g4)"></i>
+        </div>
+        <div class="scaleLabels"><span>já quase no limite</span><span>tem voto a buscar</span><span>muito voto disponível</span></div>
+      </div>
+
+      <!-- NÍVEL 2 — a história em palavras -->
+      <div class="sec">
+        <div class="lbl"><span class="n">2</span> Um exemplo: Concórdia</div>
+        <p class="story">
+          Em <span class="city">Concórdia</span>, a Isadora teve <span class="num fato" title="Dado real do TSE">107 votos</span> em 2022.
+          A cidade tem cerca de <span class="num fato" title="Dado real do TSE">60 mil eleitores</span>.
+          Nossa meta é conquistar <span class="num meta" title="Decisão da campanha">1,2% deles</span> — ou seja, <span class="num conta" title="60 mil × 1,2%">720 votos</span>.
+          Como ela já tem 107, ainda <b>faltam <span class="num conta" title="720 − 107">613 votos</span></b>.
+          Por isso Concórdia aparece bem vermelha: <b>tem muito voto para conquistar.</b>
+        </p>
+        <p style="font-size:.82rem;color:var(--faint);margin-top:8px">Passe o mouse em cada número para ver de onde ele vem.</p>
+      </div>
+
+      <!-- NÍVEL 3 — de onde vem cada número -->
+      <div class="sec">
+        <div class="lbl"><span class="n">3</span> De onde vem cada número</div>
+        <table>
+          <thead><tr><th style="width:90px">Número</th><th>O que é</th><th style="width:120px">Tipo</th></tr></thead>
+          <tbody>
+            <tr><td class="v">107</td><td>Votos que a Isadora teve em Concórdia em 2022</td><td><span class="tag fato">Fato · TSE</span></td></tr>
+            <tr><td class="v">60 mil</td><td>Eleitores da cidade</td><td><span class="tag fato">Fato · TSE</span></td></tr>
+            <tr><td class="v">1,2%</td><td>Quanto dos eleitores queremos conquistar (ambição)</td><td><span class="tag meta">Meta da campanha</span></td></tr>
+            <tr><td class="v">720</td><td>A meta de votos da cidade (60 mil × 1,2%)</td><td><span class="tag conta">Conta</span></td></tr>
+            <tr><td class="v" style="color:var(--g4)">613</td><td>O que falta conquistar (720 − 107) — <b>é o que pinta a cor</b></td><td><span class="tag conta">Conta</span></td></tr>
+          </tbody>
+        </table>
+        <div class="legendinha">
+          <span><span class="tag fato">Fato</span> número real, medido</span>
+          <span><span class="tag meta">Meta</span> decisão nossa (pode mudar)</span>
+          <span><span class="tag conta">Conta</span> resultado de uma fórmula</span>
+        </div>
+      </div>
+
+      <!-- PREMISSAS -->
+      <div class="sec">
+        <div class="lbl"><span class="n">4</span> Os números que a campanha escolheu</div>
+        <div class="prem">
+          <div class="pcard"><div class="pv">1,2%</div><div class="pt">Meta de votos</div><div class="pd">Queremos a Isadora com 1,2% dos eleitores de cada cidade.</div></div>
+          <div class="pcard"><div class="pv">+40%</div><div class="pt">Crescimento mínimo</div><div class="pd">Em cidade pequena, a meta é pelo menos 40% acima de 2022.</div></div>
+          <div class="pcard"><div class="pv">12 mil</div><div class="pt">“Cidade grande”</div><div class="pd">A partir de 12 mil eleitores, a cidade pesa muito no total.</div></div>
+          <div class="pcard"><div class="pv">1%</div><div class="pt">“Já somos fortes”</div><div class="pd">Se a Isadora tem 1% ou mais dos eleitores, contamos como base forte.</div></div>
+        </div>
+        <p class="prem-foot">Esses 4 números são <b>decisões da campanha</b>, não verdades fixas — a equipe pode ajustar e o mapa recalcula tudo.</p>
+      </div>
+
+      <!-- CLASSIFICAÇÃO -->
+      <div class="sec">
+        <div class="lbl"><span class="n">5</span> O que fazer em cada cidade</div>
+        <div class="matrix">
+          <div class="mx-corner"></div>
+          <div class="colh a">Cidade grande<small>muitos eleitores</small></div>
+          <div class="colh b">Cidade pequena<small>poucos eleitores</small></div>
+          <div class="rowh f">Somos<br>fracos</div>
+          <div class="cell c-ouro mina"><div class="t">💰 Mina de ouro <span class="act">atacar</span></div><div class="d">Muito eleitor e a Isadora ainda é fraca. Maior chance de crescer.</div></div>
+          <div class="cell c-marg marg"><div class="t">⚪ Marginal <span class="act">deixar</span></div><div class="d">Pouco eleitor e somos fracos. Pouco voto a ganhar.</div></div>
+          <div class="rowh s">Somos<br>fortes</div>
+          <div class="cell c-cel cel"><div class="t">🌾 Celeiro <span class="act">defender</span></div><div class="d">Grande e já forte. É aqui que se ganha em volume.</div></div>
+          <div class="cell c-fort fort"><div class="t">🛡️ Fortaleza <span class="act">manter</span></div><div class="d">Pequena e já forte. Só não deixar esfriar.</div></div>
+        </div>
+      </div>
+
+      <!-- SINAIS -->
+      <div class="sec">
+        <div class="lbl"><span class="n">6</span> Sinais no mapa</div>
+        <div class="foot">
+          <span class="grp"><span class="dot real"></span> <b>Bolinha cheia</b> — número real (TSE / nossa rede)</span>
+          <span class="grp"><span class="dot est"></span> <b>Bolinha vazada</b> — estimativa (use como pista)</span>
+          <span class="grp">🚨 <b>Órfã</b> — mina de ouro sem ninguém trabalhando lá</span>
+          <span class="grp">❄️ <b>Esfriando</b> — base forte sem contato há tempo</span>
+        </div>
+
+        <details>
+          <summary>Ver a conta exata (para quem quer conferir)</summary>
+          <div class="conta-x">
+Meta da cidade = a <b>maior</b> entre estas duas:<br>
+&nbsp;&nbsp;• Votos 2022 × 1,4&nbsp;&nbsp;<span class="c">(crescer 40%)</span><br>
+&nbsp;&nbsp;• Eleitores × 1,2%&nbsp;&nbsp;<span class="c">(meta de penetração)</span><br>
+Votos disponíveis = Meta − Votos 2022&nbsp;&nbsp;<span class="c">(o que pinta a cor)</span><br>
+<span class="c">Concórdia: maior(107×1,4=150 ; 60.000×1,2%=720)=720 → 720−107=613</span><br>
+<span class="c">Se a cidade tiver meta manual cadastrada, ela substitui a fórmula.</span>
+          </div>
+        </details>
+      </div>
+
+    </div>
+  </div>
+  <p class="note" style="margin-top:14px">Clique numa cidade para o painel de ação: contatos vencidos · última visita · agendar.</p>
+</div>
+</body>
+</html>
