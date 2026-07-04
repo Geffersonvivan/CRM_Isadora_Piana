@@ -11,6 +11,10 @@ class SCMap {
         this.onRegionClick = null;
         this.onCityClick = null;
         this.mapMode = 'regioes';
+        // Índice de cruzamento por cidade (StrategicAnalysisAPI) — usado para
+        // anexar o "dossiê cruzado" a QUALQUER tooltip de cidade, em todos os modos.
+        this._cross = null;
+        this._crossAvg = 0;
         this.width = 900;
         this.height = 550;
         this.heatmapEnabled = false;
@@ -19,7 +23,6 @@ class SCMap {
         this.demandTipo = '';
         this._demandsCities = null;
         this._demandsFull = null;
-        this._promessasData = null;
         this.itinerariesEnabled = false;
         this.strategicEnabled = false;
         this.plNetworkEnabled = false;
@@ -49,7 +52,6 @@ class SCMap {
         this._doacoesMaxCity = 0;
         this._stateGeojson = null;
         this._regionGeojson = null;
-        this._itineraryColors = ['#3b82f6', '#f97316', '#8b5cf6', '#ec4899', '#14b8a6', '#f59e0b', '#06b6d4', '#ef4444'];
     }
 
     _urgencyColor(nivel) {
@@ -58,7 +60,9 @@ class SCMap {
 
     // ── Vitória 2026: cor pela lacuna de votos disponíveis ──
     _victoryColor(nivel) {
-        return ['#e2e8f0', '#bbf7d0', '#fde68a', '#fdba74', '#f87171'][nivel] || '#e2e8f0';
+        // Rampa de UMA cor só: neutro → laranja NOVO (quanto mais laranja, mais voto
+        // disponível). Sem verde/vermelho, que têm leitura partidária.
+        return ['#eceef2', '#ffe4c4', '#ffc187', '#ff8f3c', '#e25e00'][nivel] || '#eceef2';
     }
 
     _quadLabel(q) {
@@ -99,7 +103,7 @@ class SCMap {
         html += `<div class="tooltip-row"><span class="tooltip-label">Classificação:</span> <span class="tooltip-value" style="font-weight:700">${this._quadLabel(c.quadrante)}</span></div>`;
         html += `<div class="tooltip-row"><span class="tooltip-label">Votos 2022:</span> <span class="tooltip-value">${(c.votos_2022||0).toLocaleString('pt-BR')}</span></div>`;
         html += `<div class="tooltip-row"><span class="tooltip-label">Potencial:</span> <span class="tooltip-value">${(c.meta||0).toLocaleString('pt-BR')}</span></div>`;
-        html += `<div class="tooltip-row"><span class="tooltip-label">Votos disponíveis:</span> <span class="tooltip-value" style="color:${this._victoryColor(c.nivel)};font-weight:800">+${(c.gap||0).toLocaleString('pt-BR')}</span></div>`;
+        html += `<div class="tooltip-row"><span class="tooltip-label">Votos disponíveis:</span> <span class="tooltip-value" style="color:#e25e00;font-weight:800">+${(c.gap||0).toLocaleString('pt-BR')}</span></div>`;
         html += `<div class="tooltip-row"><span class="tooltip-label">Penetração 2022:</span> <span class="tooltip-value">${c.penetracao}%</span></div>`;
         html += `<div class="tooltip-row"><span class="tooltip-label">Estrutura CRM:</span> <span class="tooltip-value">${c.estrutura} contato(s)${c.vencidos ? ', ' + c.vencidos + ' vencidos' : ''}</span></div>`;
         if (c.alerta === 'orfa') html += `<div class="tooltip-row"><span class="tooltip-value" style="color:#dc2626;font-weight:700">🚨 Oportunidade órfã (sem estrutura)</span></div>`;
@@ -112,7 +116,7 @@ class SCMap {
         const r = (this._victoryData?.regions || {})[p.slug];
         let html = `<div class="tooltip-title">${p.name}</div>`;
         if (!r) return html + '<div class="tooltip-row"><span style="color:#9ca3af">Sem dados</span></div>';
-        html += `<div class="tooltip-row"><span class="tooltip-label">Votos disponíveis:</span> <span class="tooltip-value" style="color:${this._victoryColor(r.nivel)};font-weight:800">+${(r.gap||0).toLocaleString('pt-BR')}</span></div>`;
+        html += `<div class="tooltip-row"><span class="tooltip-label">Votos disponíveis:</span> <span class="tooltip-value" style="color:#e25e00;font-weight:800">+${(r.gap||0).toLocaleString('pt-BR')}</span></div>`;
         html += `<div class="tooltip-row"><span class="tooltip-label">Votos 2022:</span> <span class="tooltip-value">${(r.votos_2022||0).toLocaleString('pt-BR')}</span></div>`;
         if (r.orfas) html += `<div class="tooltip-row"><span class="tooltip-label">Oportunidades órfãs:</span> <span class="tooltip-value" style="color:#dc2626;font-weight:700">${r.orfas}</span></div>`;
         if (r.pior) html += `<div class="tooltip-row"><span class="tooltip-label">Maior lacuna:</span> <span class="tooltip-value">${r.pior}</span></div>`;
@@ -178,7 +182,7 @@ class SCMap {
                 .attr('class', 'builder-line')
                 .attr('points', pontos.map(pt => `${pt.x},${pt.y}`).join(' '))
                 .attr('fill', 'none')
-                .attr('stroke', '#002776')
+                .attr('stroke', '#FF6B00')
                 .attr('stroke-width', 2)
                 .attr('stroke-dasharray', '6,4')
                 .attr('opacity', 0.85);
@@ -187,7 +191,7 @@ class SCMap {
             const grp = this.g.append('g').attr('class', 'builder-marker');
             grp.append('circle')
                 .attr('cx', pt.x).attr('cy', pt.y).attr('r', 11)
-                .attr('fill', '#002776').attr('stroke', '#fff').attr('stroke-width', 2.5);
+                .attr('fill', '#FF6B00').attr('stroke', '#fff').attr('stroke-width', 2.5);
             grp.append('text')
                 .attr('x', pt.x).attr('y', pt.y)
                 .attr('text-anchor', 'middle').attr('dy', '0.35em')
@@ -247,7 +251,7 @@ class SCMap {
         const map = {
             palanque_conjunto: '#7c3aed',   // 2+ aliados fortes — palanque conjunto
             reduto_aliado: '#f59e0b',       // 1 aliado forte
-            polo_ls: '#15803d',             // LS já forte
+            polo_ls: '#15803d',             // Isadora já forte
             sem_carona: '#d1d5db',
         };
         return map[opp_class] || '#d1d5db';
@@ -257,7 +261,7 @@ class SCMap {
         const map = {
             palanque_conjunto: '🎤 Palanque conjunto',
             reduto_aliado: '🤝 Reduto de aliado',
-            polo_ls: '🏠 Polo do LS',
+            polo_ls: '🏠 Polo da Isadora',
             sem_carona: '⚪ Sem carona',
         };
         return map[opp_class] || opp_class;
@@ -279,7 +283,7 @@ class SCMap {
             ponte_forte: 'Ponte Forte',
             base_conjunta: 'Base Conjunta',
             territorio_dep: 'Território Dep.',
-            territorio_ls: 'Território LS',
+            territorio_ls: 'Território Isadora',
             sem_presenca: 'Sem Presença',
         };
         return map[cls] || cls;
@@ -404,6 +408,8 @@ class SCMap {
     }
 
     init() {
+        // Carrega o índice de cruzamento (uma vez) p/ os dossiês de cidade
+        this._loadCross();
         // Limpar SVG existente
         d3.select(`#${this.containerId}`).select('svg').remove();
 
@@ -485,9 +491,87 @@ class SCMap {
         container.appendChild(div);
     }
 
-    _showTip(html, x, y) {
+    // Carrega o índice de cruzamento (StrategicAnalysisAPI já cruza eleitoral +
+    // estrutura + IBGE + CRM por cidade) e indexa por slug. Falha em silêncio.
+    _loadCross() {
+        fetch('/mapa/api/strategic/')
+            .then(r => r.json())
+            .then(d => {
+                this._crossAvg = d.avg_penetration || 0;
+                const ix = {};
+                (d.cities || []).forEach(c => { ix[c.slug] = c; });
+                this._cross = ix;
+            })
+            .catch(() => { /* sem cruzamento → tooltips seguem normais */ });
+    }
+
+    // Motor de decisão transparente: deriva o verbo da classificação que o backend
+    // já calcula (auditável), temperada por aliados e lacuna. Só dado real.
+    _decision(e) {
+        const aliados = (e.politicos && e.politicos.aliados) || 0;
+        const gap = e.gap || 0;
+        const cls = e.classification;
+        if (cls === 'hostil') return aliados > 0
+            ? { v: 'carona', l: 'CARONA', c: '#7c3aed', why: 'território adversário, mas você tem aliado: entre pela carona' }
+            : { v: 'ignorar', l: 'IGNORAR', c: '#64748b', why: 'território do adversário, sem aliado seu' };
+        if (cls === 'disputa') return { v: 'blindar', l: 'BLINDAR', c: '#1d4ed8', why: 'cidade em disputa: defenda/dispute o terreno' };
+        if (cls === 'maquina_voto') return { v: 'blindar', l: 'BLINDAR', c: '#1d4ed8', why: 'aliado + cabos ativos: proteja a máquina e colha' };
+        if (cls === 'aliado_ativar') return { v: 'carona', l: 'CARONA', c: '#7c3aed', why: 'aliado dormindo (sem cabo): ative a estrutura dele' };
+        if (cls === 'construir') return { v: 'expandir', l: 'EXPANDIR', c: '#15803d', why: `lacuna de ${gap.toLocaleString('pt-BR')} votos e sem aliado: recrute e cresça` };
+        return gap >= 120
+            ? { v: 'expandir', l: 'EXPANDIR', c: '#15803d', why: 'há voto a conquistar — avalie o perfil para a abordagem' }
+            : { v: 'ignorar', l: 'IGNORAR', c: '#64748b', why: 'pouco voto disponível — não priorizar' };
+    }
+
+    // Bloco de dossiê cruzado anexado a qualquer tooltip de cidade. Nunca lança.
+    _crossBlock(slug) {
+        try {
+            if (!this._cross || !slug) return '';
+            const e = this._cross[slug];
+            if (!e) return '';
+            const n = v => (v || 0).toLocaleString('pt-BR');
+            const voters = e.registered_voters || 0;
+            const dens = voters > 0 ? (e.apoiadores || 0) / (voters / 1000) : 0;
+            const pen = e.penetration || 0;
+            const avg = this._crossAvg || 0;
+            const pol = e.politicos || {};
+            const crm = e.crm || {};
+            const dec = this._decision(e);
+            const dens1 = dens.toFixed(1).replace('.', ',');
+            const row = (lbl, val) => `<div class="xc-row"><span class="xc-k">${lbl}</span><span class="xc-v">${val}</span></div>`;
+            let h = '<div class="xc-sep"></div>';
+            h += `<div class="xc-decision" style="border-color:${dec.c}"><span class="xc-badge" style="background:${dec.c}">${dec.l}</span><span class="xc-why">${dec.why}</span></div>`;
+            // Potencial eleitoral (real)
+            const cmp = avg ? (pen >= avg * 1.1 ? '<span style="color:#15803d">acima da média</span>' : pen < avg * 0.9 ? '<span style="color:#dc2626">abaixo da média</span>' : '<span style="color:#64748b">na média</span>') : '';
+            h += row('Penetração 2022', `${String(pen).replace('.', ',')}%${cmp ? ' — ' + cmp : ''}`);
+            if (e.gap) h += row('Lacuna para a meta', `<span style="color:#15803d;font-weight:700">+${n(e.gap)} votos</span>`);
+            // Minha rede (real) — separado para nunca cortar
+            h += row('Apoiadores na rede', n(e.apoiadores));
+            h += row('Densidade da rede', `${dens1} por mil eleitores`);
+            const estr = [];
+            estr.push(crm.has_coordinator ? 'com coordenador' : 'sem coordenador');
+            if (crm.cabos) estr.push(`${crm.cabos} ${crm.cabos === 1 ? 'cabo eleitoral' : 'cabos eleitorais'}`);
+            h += row('Estrutura local', estr.join(' · '));
+            if (crm.demandas_vencidas) h += row('Demandas vencidas', `<span style="color:#dc2626;font-weight:700">${n(crm.demandas_vencidas)}</span>`);
+            // Palanque / aliados (real)
+            if (pol.aliados) {
+                h += row('Aliados na cidade', n(pol.aliados));
+                if (pol.votos_maquina) h += row('Votos de máquina', n(pol.votos_maquina));
+            }
+            // Concorrência (real)
+            if (e.adversario_nome) h += row('Adversário', `${e.adversario_nome}${e.adversario_partido ? ` (${e.adversario_partido})` : ''}`);
+            // Perfil socioeconômico (PIB oficial ● ; renda estimada ○)
+            if (e.ibge) {
+                if (e.ibge.pib_per_capita != null) h += row('PIB per capita <span class="xc-real">(oficial)</span>', `R$ ${n(e.ibge.pib_per_capita)}`);
+                if (e.ibge.renda_per_capita != null) h += row('Renda per capita <span class="xc-proxy">(estimada)</span>', `R$ ${n(Math.round(e.ibge.renda_per_capita))}`);
+            }
+            return h;
+        } catch (_) { return ''; }
+    }
+
+    _showTip(html, x, y, slug) {
         const t = this._tip;
-        t.innerHTML = html;
+        t.innerHTML = html + (slug ? this._crossBlock(slug) : '');
         t.style.transform = `translate3d(${x + 14}px, ${y - 14}px, 0)`;
         t.style.opacity = '1';
     }
@@ -505,7 +589,7 @@ class SCMap {
             // No modo roteiros, mostrar apenas nome da regiao com info minima
             return `<div class="tooltip-title">${p.name}</div><div class="tooltip-row"><span class="tooltip-label" style="color:#9ca3af">Clique para ver cidades</span></div>`;
         }
-        let html = `<div class="tooltip-title">${p.name}</div><div class="tooltip-row"><span class="tooltip-label">Região:</span> <span class="tooltip-value">${p.full_name || p.name}</span></div><div class="tooltip-row"><span class="tooltip-label">População:</span> <span class="tooltip-value">${fmt.number(p.population)}</span></div><div class="tooltip-row"><span class="tooltip-label">Apoiadores:</span> <span class="tooltip-value">${p.total_apoiadores || 0}</span></div><div class="tooltip-row"><span class="tooltip-label">Votos LS 2022:</span> <span class="tooltip-value">${fmt.number(p.total_votes_2022)}</span></div>`;
+        let html = `<div class="tooltip-title">${p.name}</div><div class="tooltip-row"><span class="tooltip-label">Região:</span> <span class="tooltip-value">${p.full_name || p.name}</span></div><div class="tooltip-row"><span class="tooltip-label">População:</span> <span class="tooltip-value">${fmt.number(p.population)}</span></div><div class="tooltip-row"><span class="tooltip-label">Apoiadores:</span> <span class="tooltip-value">${p.total_apoiadores || 0}</span></div><div class="tooltip-row"><span class="tooltip-label">Votos Isadora 2022:</span> <span class="tooltip-value">${fmt.number(p.total_votes_2022)}</span></div>`;
         if (this.heatmapEnabled) {
             const pct = this._penetracao(p.total_votes_2022, p.registered_voters);
             html += `<div class="tooltip-row"><span class="tooltip-label">Penetração:</span> <span class="tooltip-value" style="color:${this._heatScale()(pct)};font-weight:700">${pct.toFixed(2)}%</span></div>`;
@@ -522,18 +606,32 @@ class SCMap {
         return html;
     }
 
+    _fmtDur(min) {
+        if (!min || min <= 0) return '';
+        const h = Math.floor(min / 60), m = min % 60;
+        return h && m ? `${h}h${m}min` : h ? `${h}h` : `${m}min`;
+    }
+
     _stopTipHtml(stop, itinerary) {
         let html = `<div class="tooltip-title">${stop.city_name}</div>`;
         html += `<div class="tooltip-row"><span class="tooltip-label">Roteiro:</span> <span class="tooltip-value">${itinerary.name}</span></div>`;
-        html += `<div class="tooltip-row"><span class="tooltip-label">Data:</span> <span class="tooltip-value">${stop.date.split('-').reverse().join('/')}</span></div>`;
-        if (stop.time) html += `<div class="tooltip-row"><span class="tooltip-label">Horário:</span> <span class="tooltip-value">${stop.time.substring(0, 5)}</span></div>`;
-        if (stop.task_title) html += `<div class="tooltip-row"><span class="tooltip-label">Demanda:</span> <span class="tooltip-value">${stop.task_title}</span></div>`;
+        if (!itinerary.single) html += `<div class="tooltip-row"><span class="tooltip-label">Parada:</span> <span class="tooltip-value">${stop.is_origin ? 'Saída' : stop.order}</span></div>`;
+        if (stop.date) html += `<div class="tooltip-row"><span class="tooltip-label">Data:</span> <span class="tooltip-value">${stop.date.split('-').reverse().join('/')}</span></div>`;
+        if (stop.time) {
+            let h = stop.time.substring(0, 5);
+            if (stop.end_time) h += ' – ' + stop.end_time.substring(0, 5);
+            const d = this._fmtDur(stop.duration_min);
+            if (d) h += ` (${d})`;
+            html += `<div class="tooltip-row"><span class="tooltip-label">Horário:</span> <span class="tooltip-value">${h}</span></div>`;
+        }
+        if (stop.task_title) html += `<div class="tooltip-row"><span class="tooltip-label">Compromisso:</span> <span class="tooltip-value">${stop.task_title}</span></div>`;
+        if (stop.observacao) html += `<div class="tooltip-row"><span class="tooltip-value" style="color:#64748b">${stop.observacao}</span></div>`;
         if (stop.is_overnight) html += `<div class="tooltip-row"><span class="tooltip-value" style="color:#7c3aed;font-weight:600">Pernoite</span></div>`;
         return html;
     }
 
     _cityTipHtml(p) {
-        let html = `<div class="tooltip-title">${p.name}</div><div class="tooltip-row"><span class="tooltip-label">População:</span> <span class="tooltip-value">${fmt.number(p.population)}</span></div><div class="tooltip-row"><span class="tooltip-label">Votos LS 2022:</span> <span class="tooltip-value">${fmt.number(p.votes_2022)}</span></div><div class="tooltip-row"><span class="tooltip-label">Apoiadores:</span> <span class="tooltip-value">${p.total_apoiadores || 0}</span></div>`;
+        let html = `<div class="tooltip-title">${p.name}</div><div class="tooltip-row"><span class="tooltip-label">População:</span> <span class="tooltip-value">${fmt.number(p.population)}</span></div><div class="tooltip-row"><span class="tooltip-label">Votos Isadora 2022:</span> <span class="tooltip-value">${fmt.number(p.votes_2022)}</span></div><div class="tooltip-row"><span class="tooltip-label">Apoiadores:</span> <span class="tooltip-value">${p.total_apoiadores || 0}</span></div>`;
         if (this.heatmapEnabled) {
             const pct = this._penetracao(p.votes_2022, p.registered_voters);
             html += `<div class="tooltip-row"><span class="tooltip-label">Penetração:</span> <span class="tooltip-value" style="color:${this._heatScale()(pct)};font-weight:700">${pct.toFixed(2)}%</span></div>`;
@@ -653,7 +751,7 @@ class SCMap {
             for (const key of soKeys) {
                 if (c[key] === undefined) continue;
                 let val = '';
-                if (key === 'pib') val = 'R$ ' + (c.pib_raw || 0).toLocaleString('pt-BR', {maximumFractionDigits: 0});
+                if (key === 'pib') val = 'R$ ' + (c.pib_pc || 0).toLocaleString('pt-BR', {maximumFractionDigits: 0});
                 else if (key === 'renda') val = 'R$ ' + (c.renda_raw || 0).toLocaleString('pt-BR', {maximumFractionDigits: 0}) + '/mês';
                 else if (key === 'bf') {
                     const fam = c.bf_raw || 0;
@@ -715,7 +813,7 @@ class SCMap {
             .on('mouseenter', (event, d) => {
                 self.g.selectAll('path.perfil-city').attr('stroke', '#94a3b8').attr('stroke-width', 0.6);
                 d3.select(event.currentTarget).attr('stroke', '#475569').attr('stroke-width', 1.4);
-                self._showTip(self._perfilTipHtml(d), event.pageX, event.pageY);
+                self._showTip(self._perfilTipHtml(d), event.pageX, event.pageY, d.properties.slug);
             })
             .on('mousemove', (event) => { self._moveTip(event.pageX, event.pageY); })
             .on('mouseleave', () => {
@@ -901,7 +999,7 @@ class SCMap {
             .on('mouseenter', (event, d) => {
                 self.g.selectAll('path.concorrencia-city').attr('stroke', '#94a3b8').attr('stroke-width', 0.6);
                 d3.select(event.currentTarget).attr('stroke', '#475569').attr('stroke-width', 1.4);
-                self._showTip(self._concorrenciaTipHtml(d), event.pageX, event.pageY);
+                self._showTip(self._concorrenciaTipHtml(d), event.pageX, event.pageY, d.properties.slug);
             })
             .on('mousemove', (event) => { self._moveTip(event.pageX, event.pageY); })
             .on('mouseleave', () => {
@@ -926,7 +1024,7 @@ class SCMap {
         this.g.selectAll('path.city').style('display', null).attr('fill', '#e2e8f0').attr('fill-opacity', 0.85);
         this.g.selectAll('text').style('display', null);
         // Remove overlay elements from special modes
-        this.g.selectAll('.itinerary-line,.itinerary-marker,.transfer-arrow,.transfer-marker,.transfer-city,.concorrencia-city,.perfil-city,.builder-marker,.builder-line').remove();
+        this.g.selectAll('.itinerary-line,.itinerary-marker,.itinerary-opp,.transfer-arrow,.transfer-marker,.transfer-city,.concorrencia-city,.perfil-city,.builder-marker,.builder-line').remove();
     }
 
     async setHeatmap(enabled) {
@@ -1135,7 +1233,7 @@ class SCMap {
             if (!city) return `<div class="tooltip-title">${name}</div><div class="tooltip-row"><span class="tooltip-label" style="color:#9ca3af">Sem dados</span></div>`;
             let html = `<div class="tooltip-title">${name}</div>`;
             html += `<div class="tooltip-row"><span class="tooltip-label">Classificação</span> <span class="tooltip-value" style="color:${self._transferOppColor(city.opp_class)};font-weight:bold">${self._transferOppLabel(city.opp_class)}</span></div>`;
-            html += `<div class="tooltip-row"><span class="tooltip-label">LS Penetração</span> <span class="tooltip-value" style="color:#15803d;font-weight:bold">${city.penetration}% (${(city.votes||0).toLocaleString('pt-BR')})</span></div>`;
+            html += `<div class="tooltip-row"><span class="tooltip-label">Isadora Penetração</span> <span class="tooltip-value" style="color:#15803d;font-weight:bold">${city.penetration}% (${(city.votes||0).toLocaleString('pt-BR')})</span></div>`;
             for (const a of (city.aliados || [])) {
                 const forte = (city.aliados_fortes || []).includes(a.nome);
                 html += `<div class="tooltip-row"><span class="tooltip-label">${a.nome}</span> <span class="tooltip-value" style="color:${a.cor};font-weight:${forte?'700':'400'}">${(a.votes||0).toLocaleString('pt-BR')} (${a.pct||0}%)${forte?' ★':''}</span></div>`;
@@ -1162,7 +1260,7 @@ class SCMap {
             .attr('stroke-width', 0.4)
             .attr('cursor', 'pointer')
             .on('mouseenter', (event, d) => {
-                self._showTip(buildTip(d.properties.name, d.properties.slug), event.pageX, event.pageY);
+                self._showTip(buildTip(d.properties.name, d.properties.slug), event.pageX, event.pageY, d.properties.slug);
             })
             .on('mousemove', (event) => { self._moveTip(event.pageX, event.pageY); })
             .on('mouseleave', () => { self._hideTip(); })
@@ -1189,15 +1287,48 @@ class SCMap {
             this.voteTransferEnabled = false;
             this.neighborDeputiesEnabled = false;
             this.elections2022Enabled = false;
+            this.visitUrgencyEnabled = false;   // roteiros foca nos pontos, não na urgência por região
+            this.victoryEnabled = false;
+            this.doacoesEnabled = false;
+            this._roteiroBuilderActive = false; // só fica interativo ao ligar "Montar roteiro"
             this._resetToNeutral();
             try {
-                this._itinerariesData = await API.roteiros.mapData(showCompleted);
+                const fetcher = this._itineraryView === 'dia' ? API.roteiros.dia : API.roteiros.mapData;
+                this._itinerariesData = await fetcher(showCompleted);
             } catch (e) {
                 this._itinerariesData = [];
+            }
+            if (!this._oppData) {
+                try { this._oppData = await API.roteiros.oportunidades(); }
+                catch (e) { this._oppData = []; }
             }
         }
 
         if (enabled && this.currentLevel === 'state' && this._stateGeojson) {
+            this._applyStateColors(true);
+            this._drawItineraryRoutes();
+        }
+    }
+
+    // Liga/desliga a interatividade das regiões para o construtor de roteiro.
+    setRoteiroBuilderActive(active) {
+        this._roteiroBuilderActive = active;
+        if (this.currentLevel === 'state' && this._stateGeojson) this._applyStateColors(true);
+    }
+
+    // Visão: 'roteiro' (caravanas/compromissos/eventos como itens) | 'dia'
+    // (tudo do mesmo dia encadeado por horário num trajeto único).
+    async setItineraryView(view) {
+        this._itineraryView = view || 'roteiro';
+        if (this.itinerariesEnabled) {
+            await this.setItineraries(true, (this._itineraryFilter || 'vou') !== 'vou');
+        }
+    }
+
+    // Filtro "onde vou × onde passei": 'vou' | 'passei' | 'todos'.
+    setItineraryFilter(filter) {
+        this._itineraryFilter = filter || 'vou';
+        if (this.itinerariesEnabled && this.currentLevel === 'state' && this._stateGeojson) {
             this._applyStateColors(true);
             this._drawItineraryRoutes();
         }
@@ -1214,10 +1345,29 @@ class SCMap {
         if (defs.empty()) defs = this.svg.append('defs');
         defs.selectAll('marker.arrow-marker').remove();
 
+        const flt = this._itineraryFilter || 'vou';
+        const _d = new Date();
+        const todayStr = `${_d.getFullYear()}-${String(_d.getMonth() + 1).padStart(2, '0')}-${String(_d.getDate()).padStart(2, '0')}`;
+        const visibleStops = [];   // paradas dos roteiros efetivamente desenhados
         this._itinerariesData.forEach((it, itIdx) => {
             if (it.stops.length === 0) return;
+            // Passado = data anterior a hoje OU já concluído. Onde vou = o resto.
+            const isPast = (it.date && it.date < todayStr) || it.status === 'completed';
+            if (flt === 'vou' && isPast) return;
+            if (flt === 'passei' && !isPast) return;
+            // Camada Eventos (toggle + filtro de relevância).
+            if (it.kind === 'evento') {
+                if (this._showEventos === false) return;
+                const rel = this._eventoRelevancia || 'all';
+                if (rel !== 'all' && it.relevancia !== rel) return;
+            }
 
-            const baseColor = it.status === 'completed' ? '#22c55e' : this._itineraryColors[itIdx % this._itineraryColors.length];
+            // Cor = status, como prometido na legenda: azul (planejado/confirmado),
+            // laranja (em andamento), verde (concluído), roxo (evento).
+            const baseColor = it.kind === 'evento' ? '#8b5cf6'
+                : it.status === 'completed' ? '#22c55e'
+                : it.status === 'in_progress' ? '#f97316'
+                : '#3b82f6';
             const isDashed = it.status === 'planned' || it.status === 'confirmed';
             const opacity = it.status === 'completed' ? 0.4 : 1;
             const markerId = `arrow-${itIdx}`;
@@ -1239,12 +1389,14 @@ class SCMap {
 
             // Converter stops para coordenadas de tela
             const validStops = it.stops.filter(s => s.lat && s.lng);
+            visibleStops.push(...validStops);
             const points = validStops.map(s => projection([s.lng, s.lat]));
 
             if (points.length < 2) {
                 // Apenas 1 parada — desenhar somente o marcador
                 if (points.length === 1) {
-                    this._drawStopMarker(points[0], validStops[0], it, baseColor, opacity, 0);
+                    if (it.kind === 'evento') this._drawEventoMarker(points[0], validStops[0], it);
+                    else this._drawStopMarker(points[0], validStops[0], it, baseColor, opacity, 0);
                 }
                 return;
             }
@@ -1316,9 +1468,76 @@ class SCMap {
             });
         });
 
+        // Oportunidades no caminho passam a ser POR roteiro, desenhadas ao clicar
+        // num card (drawRouteOpportunities). Não desenha nada globalmente aqui.
+
         // Esconder labels de regiao no modo roteiros para limpar visual
         this.g.selectAll('text.region-label').attr('opacity', 0.3);
         this.g.selectAll('text.region-pop').attr('opacity', 0.15);
+    }
+
+    _haversineKm(aLat, aLng, bLat, bLng) {
+        const R = 6371, rad = Math.PI / 180;
+        const dLat = (bLat - aLat) * rad, dLng = (bLng - aLng) * rad;
+        const s = Math.sin(dLat / 2) ** 2 +
+            Math.cos(aLat * rad) * Math.cos(bLat * rad) * Math.sin(dLng / 2) ** 2;
+        return 2 * R * Math.asin(Math.sqrt(s));
+    }
+
+    // Calcula cidades-oportunidade (voto real 2022 + poucos apoiadores) até ~30km
+    // de alguma parada das `stops` — só retorna a lista, não desenha.
+    _computeRouteOpportunities(stops) {
+        if (!this._oppData || !this._oppData.length || !stops || !stops.length) return [];
+        const RAIO_KM = 30, MAX_APOIADORES = 3;
+        const stopSlugs = new Set(stops.map(s => s.city_slug));
+        const cand = [];
+        for (const o of this._oppData) {
+            if (stopSlugs.has(o.slug)) continue;
+            if ((o.apoiadores || 0) > MAX_APOIADORES) continue;
+            let dist = Infinity;
+            for (const s of stops) {
+                const d = this._haversineKm(o.lat, o.lng, s.lat, s.lng);
+                if (d < dist) dist = d;
+            }
+            if (dist <= RAIO_KM) cand.push({ ...o, dist: Math.round(dist) });
+        }
+        cand.sort((a, b) => b.votos - a.votos);
+        return cand.slice(0, 20);
+    }
+
+    // Lista de oportunidades de um roteiro (para o painel, ao clicar no card).
+    routeOpportunities(stops) {
+        return this._computeRouteOpportunities(stops);
+    }
+
+    // Desenha no mapa só as oportunidades do roteiro selecionado (limpa as antigas).
+    // stops vazio/nulo => apenas limpa.
+    drawRouteOpportunities(stops) {
+        this.g.selectAll('.itinerary-opp').remove();
+        this._roteiroOportunidades = this._computeRouteOpportunities(stops);
+        if (!this._roteiroOportunidades.length || !this._stateGeojson) return;
+        const projection = d3.geoMercator()
+            .fitExtent([[20, 10], [this.width - 20, this.height - 10]], this._stateGeojson);
+        const self = this;
+        for (const o of this._roteiroOportunidades) {
+            const pt = projection([o.lng, o.lat]);
+            this.g.append('circle')
+                .attr('class', 'itinerary-opp')
+                .attr('cx', pt[0]).attr('cy', pt[1]).attr('r', 5)
+                .attr('fill', '#fff').attr('stroke', '#f59e0b').attr('stroke-width', 2)
+                .attr('stroke-dasharray', '2,1.5')
+                .attr('cursor', 'pointer')
+                .on('mouseenter', (event) => {
+                    let html = `<div class="tooltip-title">${o.name}</div>`;
+                    html += `<div class="tooltip-row"><span class="tooltip-label">Oportunidade no caminho</span></div>`;
+                    html += `<div class="tooltip-row"><span class="tooltip-label">Votos 2022:</span> <span class="tooltip-value">${o.votos.toLocaleString('pt-BR')}</span></div>`;
+                    html += `<div class="tooltip-row"><span class="tooltip-label">Apoiadores:</span> <span class="tooltip-value" style="color:${o.apoiadores ? '#1e293b' : '#dc2626'};font-weight:700">${o.apoiadores}</span></div>`;
+                    html += `<div class="tooltip-row"><span class="tooltip-label">A ~${o.dist} km da rota</span></div>`;
+                    self._showTip(html, event.pageX, event.pageY);
+                })
+                .on('mousemove', (event) => { self._moveTip(event.pageX, event.pageY); })
+                .on('mouseleave', () => { self._hideTip(); });
+        }
     }
 
     _drawOriginMarker(pt, stop, itinerary, color, opacity) {
@@ -1421,6 +1640,46 @@ class SCMap {
             .text(stop.city_name);
     }
 
+    _eventoTipHtml(stop, itinerary) {
+        let html = `<div class="tooltip-title">${itinerary.name}</div>`;
+        html += `<div class="tooltip-row"><span class="tooltip-label">Evento em</span> <span class="tooltip-value">${stop.city_name}</span></div>`;
+        if (stop.date) html += `<div class="tooltip-row"><span class="tooltip-label">Data:</span> <span class="tooltip-value">${stop.date.split('-').reverse().join('/')}</span></div>`;
+        if (stop.time) {
+            let h = stop.time.substring(0, 5);
+            if (stop.end_time) h += ' – ' + stop.end_time.substring(0, 5);
+            html += `<div class="tooltip-row"><span class="tooltip-label">Horário:</span> <span class="tooltip-value">${h}</span></div>`;
+        }
+        if (stop.observacao) html += `<div class="tooltip-row"><span class="tooltip-label">Local:</span> <span class="tooltip-value">${stop.observacao}</span></div>`;
+        if (stop.publico) html += `<div class="tooltip-row"><span class="tooltip-label">Público est.:</span> <span class="tooltip-value">${stop.publico.toLocaleString('pt-BR')}</span></div>`;
+        return html;
+    }
+
+    // Marcador de Evento — quadrado roxo (distinto das paradas de roteiro).
+    _drawEventoMarker(pt, stop, itinerary) {
+        const self = this, color = '#8b5cf6', s = 7;
+        this.g.append('rect')
+            .attr('class', 'itinerary-marker')
+            .attr('x', pt[0] - s).attr('y', pt[1] - s)
+            .attr('width', s * 2).attr('height', s * 2).attr('rx', 3)
+            .attr('fill', '#fff').attr('stroke', color).attr('stroke-width', 2.2)
+            .attr('cursor', 'pointer')
+            .on('mouseenter', (event) => { self._showTip(self._eventoTipHtml(stop, itinerary), event.pageX, event.pageY); })
+            .on('mousemove', (event) => { self._moveTip(event.pageX, event.pageY); })
+            .on('mouseleave', () => { self._hideTip(); });
+        this.g.append('text')
+            .attr('class', 'itinerary-marker')
+            .attr('x', pt[0]).attr('y', pt[1])
+            .attr('text-anchor', 'middle').attr('dy', '0.35em')
+            .attr('font-size', '8px').attr('fill', color)
+            .attr('pointer-events', 'none').text('★');
+        this.g.append('text')
+            .attr('class', 'itinerary-marker')
+            .attr('x', pt[0] + 12).attr('y', pt[1]).attr('dy', '0.35em')
+            .attr('font-size', '7px').attr('font-weight', '600').attr('fill', '#1e293b')
+            .attr('paint-order', 'stroke').attr('stroke', '#fff').attr('stroke-width', '2.5px')
+            .attr('pointer-events', 'none').text(stop.city_name);
+    }
+
     async setDoacoes(enabled) {
         this.doacoesEnabled = enabled;
         if (enabled) {
@@ -1476,9 +1735,6 @@ class SCMap {
                 this._demandsFull = data;
                 this._demandsData = data.regions_map || {};
                 this._demandsCities = data.cities || {};
-                if (!this._promessasData) {
-                    try { this._promessasData = await API.promessas.map(); } catch (e2) { this._promessasData = null; }
-                }
             } catch (e) {
                 this._demandsData = {}; this._demandsCities = {}; this._demandsFull = null;
             }
@@ -1496,17 +1752,6 @@ class SCMap {
         else if (this.currentLevel === 'region' && this._regionGeojson) this._applyRegionColors(false);
     }
 
-    _promessaColor(taxa) {
-        if (taxa === null || taxa === undefined) return '#e2e8f0';  // sem promessas
-        return d3.scaleLinear().domain([0, 50, 100]).range(['#dc2626', '#eab308', '#16a34a']).clamp(true)(taxa);
-    }
-
-    _promessaRegionTaxa(slug) {
-        const r = (this._promessasData?.regions || {})[slug];
-        if (!r || !r.total) return null;
-        return Math.round(r.entregues / r.total * 100);
-    }
-
     _mismatchColor(m) {
         // >0 oportunidade ignorada (vermelho), <0 esforço sobrando (azul)
         if (m === null || m === undefined) return '#e2e8f0';
@@ -1520,18 +1765,7 @@ class SCMap {
         const nome = o ? o.name : slug;
         let html = `<div class="tooltip-title">${nome || ''}</div>`;
         if (!o) return html + '<div class="tooltip-row"><span style="color:#9ca3af">Sem dados</span></div>';
-        if (this.demandLayer === 'promessas') {
-            const pc = (this._promessasData?.cities || {})[slug] || (level==='region' ? null : null);
-            const reg = level === 'region' ? (this._promessasData?.regions || {})[slug] : pc;
-            const tot = reg ? reg.total : 0, ent = reg ? reg.entregues : 0;
-            if (!tot) { html += '<div class="tooltip-row"><span style="color:#9ca3af">Sem promessas registradas</span></div>'; }
-            else {
-                const taxa = Math.round(ent / tot * 100);
-                html += `<div class="tooltip-row"><span class="tooltip-label">Promessas:</span> <span class="tooltip-value">${tot}</span></div>`;
-                html += `<div class="tooltip-row"><span class="tooltip-label">Entregues:</span> <span class="tooltip-value" style="color:${this._promessaColor(taxa)};font-weight:800">${ent} (${taxa}%)</span></div>`;
-                html += `<div class="tooltip-row"><span class="tooltip-label">Pendentes:</span> <span class="tooltip-value">${tot-ent}</span></div>`;
-            }
-        } else if (this.demandLayer === 'mismatch') {
+        if (this.demandLayer === 'mismatch') {
             const lbl = o.mismatch > 15 ? 'Oportunidade ignorada' : o.mismatch < -15 ? 'Esforço concentrado' : 'Equilibrado';
             html += `<div class="tooltip-row"><span class="tooltip-label">Esforço × oportunidade:</span> <span class="tooltip-value" style="color:${this._mismatchColor(o.mismatch)};font-weight:800">${lbl}</span></div>`;
             html += `<div class="tooltip-row"><span class="tooltip-label">Votos disponíveis:</span> <span class="tooltip-value">+${(o.gap||0).toLocaleString('pt-BR')}</span></div>`;
@@ -1580,7 +1814,7 @@ class SCMap {
         for (const c of cities) {
             counts[c.classification] = (counts[c.classification] || 0) + 1;
         }
-        const labels = { base_forte: 'Base Forte', aliado_fraco: 'Aliado Fraco', potencial_oculto: 'Potencial Oculto', territorio_hostil: 'Hostil', neutro: 'Neutro' };
+        const labels = { maquina_voto: '🏭 Máquina de voto', aliado_ativar: '🤝 Aliado a ativar', construir: '🏗️ Construir', disputa: '⚔️ Em disputa', hostil: '🚫 Hostil', neutro: '⚪ Neutro' };
         let html = `<div class="tooltip-title">${p.name}</div>`;
         for (const [cls, count] of Object.entries(counts).sort((a,b) => b[1]-a[1])) {
             const color = this._strategicColor(cls);
@@ -1668,8 +1902,8 @@ class SCMap {
         const color = this._zonePerformanceColor(czm.performance);
         let html = `<div class="tooltip-title">${p.name}</div>`;
         html += `<div class="tooltip-row"><span class="tooltip-label">Zona</span> <span class="tooltip-value">${czm.zone_number}</span></div>`;
-        html += `<div class="tooltip-row"><span class="tooltip-label">Posição LS</span> <span class="tooltip-value" style="color:${color};font-weight:bold">${this._zonePerformanceLabel(czm.performance)} (${czm.ls_position}º)</span></div>`;
-        html += `<div class="tooltip-row"><span class="tooltip-label">Votos LS</span> <span class="tooltip-value">${czm.ls_votes.toLocaleString('pt-BR')}</span></div>`;
+        html += `<div class="tooltip-row"><span class="tooltip-label">Posição Isadora</span> <span class="tooltip-value" style="color:${color};font-weight:bold">${this._zonePerformanceLabel(czm.performance)} (${czm.ls_position}º)</span></div>`;
+        html += `<div class="tooltip-row"><span class="tooltip-label">Votos Isadora</span> <span class="tooltip-value">${czm.ls_votes.toLocaleString('pt-BR')}</span></div>`;
         html += `<div class="tooltip-row"><span class="tooltip-label">Penetração</span> <span class="tooltip-value">${czm.ls_percentage}%</span></div>`;
         return html;
     }
@@ -1703,10 +1937,10 @@ class SCMap {
         if (!city) return this._cityTipHtml(p);
         const color = this._plNetworkColor(city.score);
         let html = `<div class="tooltip-title">${p.name}</div>`;
-        html += `<div class="tooltip-row"><span class="tooltip-label">Força PL</span> <span class="tooltip-value" style="color:${color};font-weight:bold">${this._plNetworkLevelLabel(city.level)} (${city.score}/100)</span></div>`;
+        html += `<div class="tooltip-row"><span class="tooltip-label">Força NOVO</span> <span class="tooltip-value" style="color:${color};font-weight:bold">${this._plNetworkLevelLabel(city.level)} (${city.score}/100)</span></div>`;
         html += `<div class="tooltip-row"><span class="tooltip-label">Coordenador</span> <span class="tooltip-value">${city.has_coordinator ? '✓ Sim' : '✗ Não'}</span></div>`;
-        html += `<div class="tooltip-row"><span class="tooltip-label">Vereadores PL</span> <span class="tooltip-value">${city.num_vereadores_pl}/${city.num_vereadores}</span></div>`;
-        html += `<div class="tooltip-row"><span class="tooltip-label">Diretório PL</span> <span class="tooltip-value">${city.pl_executive_president ? '✓ ' + city.pl_executive_president : '✗ Não'}</span></div>`;
+        html += `<div class="tooltip-row"><span class="tooltip-label">Vereadores NOVO</span> <span class="tooltip-value">${city.num_vereadores_partido}/${city.num_vereadores}</span></div>`;
+        html += `<div class="tooltip-row"><span class="tooltip-label">Diretório NOVO</span> <span class="tooltip-value">${city.diretorio_presidente ? '✓ ' + city.diretorio_presidente : '✗ Não'}</span></div>`;
         html += `<div class="tooltip-row"><span class="tooltip-label">Apoiadores</span> <span class="tooltip-value">${city.apoiadores || 0}</span></div>`;
         return html;
     }
@@ -1729,8 +1963,8 @@ class SCMap {
                     // Colorir região pela classificação cruzada mais relevante
                     const cities = self._voteTransferData.cities.filter(c => c.region_slug === d.properties.slug);
                     if (cities.length === 0) return '#d1d5db';
-                    const order = ['zona_ouro', 'polo_ls', 'buscar_ambos', 'buscar_jorginho', 'buscar_carol', 'baixa_prioridade'];
-                    const best = cities.reduce((b, c) => order.indexOf(c.opp_class) < order.indexOf(b) ? c.opp_class : b, 'baixa_prioridade');
+                    const order = ['palanque_conjunto', 'reduto_aliado', 'polo_ls', 'sem_carona'];
+                    const best = cities.reduce((b, c) => order.indexOf(c.opp_class) < order.indexOf(b) ? c.opp_class : b, 'sem_carona');
                     return self._transferOppColor(best);
                 }
                 if (self.neighborDeputiesEnabled && self._neighborDeputiesData) {
@@ -1750,19 +1984,22 @@ class SCMap {
                     return self._strategicColor(self._strategicRegionClass(d.properties.slug));
                 }
                 if (self.demandsEnabled) {
-                    if (self.demandLayer === 'promessas') return self._promessaColor(self._promessaRegionTaxa(d.properties.slug));
                     const dd = (self._demandsData || {})[d.properties.slug];
                     if (self.demandLayer === 'mismatch') return self._mismatchColor(dd ? dd.mismatch : null);
                     return self._demandColor(dd ? dd.status : 'empty');
                 }
                 if (self.elections2022Enabled && self._elections2022Data) {
                     const cities = self._elections2022Data.cities.filter(c => c.region_slug === d.properties.slug);
-                    if (cities.length === 0) return '#d1d5db';
-                    const avgPos = cities.reduce((s, c) => s + c.ls_position, 0) / cities.length;
-                    if (avgPos <= 10) return '#15803d';
-                    if (avgPos <= 20) return '#22c55e';
-                    if (avgPos <= 40) return '#eab308';
-                    if (avgPos <= 70) return '#f97316';
+                    if (cities.length === 0) return '#e2e8f0';   // "Sem registro" (legenda)
+                    // Mediana da posição — mesma métrica do tooltip e faixas iguais
+                    // às da legenda (1º / Top 3 / Top 5 / Top 10 / 11º+).
+                    const ord = cities.map(c => c.ls_position).sort((a, b) => a - b);
+                    const m = ord.length >> 1;
+                    const medPos = ord.length % 2 ? ord[m] : (ord[m - 1] + ord[m]) / 2;
+                    if (medPos <= 1) return '#15803d';
+                    if (medPos <= 3) return '#22c55e';
+                    if (medPos <= 5) return '#eab308';
+                    if (medPos <= 10) return '#f97316';
                     return '#ef4444';
                 }
                 if (self.doacoesEnabled && self._doacoesData) {
@@ -1781,9 +2018,14 @@ class SCMap {
             })
             .attr('fill-opacity', (self.victoryEnabled ? 0.85 : self.visitUrgencyEnabled ? 0.8 : self.itinerariesEnabled ? 0.45 : (self.voteTransferEnabled) ? 0.5 : (self.heatmapEnabled || self.demandsEnabled || self.strategicEnabled || self.plNetworkEnabled || self.zoneRankingEnabled || self.neighborDeputiesEnabled || self.elections2022Enabled || self.doacoesEnabled) ? 0.85 : 0.75));
 
-        // Cursor: desabilitar pointer no modo eleições
+        // Cursor / interação das regiões.
+        // No modo roteiros, as regiões viram FUNDO não-interativo (o foco são os
+        // pontos do roteiro) — exceto quando o construtor está ligado, que precisa
+        // clicar nas cidades para montar paradas.
+        const regsInert = self.itinerariesEnabled && !self._roteiroBuilderActive;
         this.g.selectAll('path.region')
-            .attr('cursor', self.elections2022Enabled ? 'default' : 'pointer');
+            .attr('cursor', (self.elections2022Enabled || regsInert) ? 'default' : 'pointer')
+            .style('pointer-events', regsInert ? 'none' : null);
 
         // Animacao de pulso para regioes em atraso
         this.g.selectAll('path.region')
@@ -1851,11 +2093,18 @@ class SCMap {
             } else if (self.elections2022Enabled && self._elections2022Data) {
                 const cities = self._elections2022Data.cities.filter(c => c.region_slug === f.properties.slug);
                 const totalVotes = cities.reduce((s, c) => s + c.ls_votes, 0);
-                const avgPos = cities.length ? (cities.reduce((s, c) => s + c.ls_position, 0) / cities.length).toFixed(1) : '-';
+                // Mediana das posições — robusta a outliers, coerente com o placar do dashboard.
+                let medPos = '-';
+                if (cities.length) {
+                    const ord = cities.map(c => c.ls_position).sort((a, b) => a - b);
+                    const m = ord.length >> 1;
+                    medPos = ord.length % 2 ? ord[m] : ((ord[m - 1] + ord[m]) / 2);
+                    medPos = String(medPos).replace('.', ',');
+                }
                 let html = `<div class="tooltip-title">${f.properties.name}</div>`;
                 html += `<div class="tooltip-row"><span class="tooltip-label">Cidades:</span> <span class="tooltip-value">${cities.length}</span></div>`;
-                html += `<div class="tooltip-row"><span class="tooltip-label">Votos LS:</span> <span class="tooltip-value">${fmt.number(totalVotes)}</span></div>`;
-                html += `<div class="tooltip-row"><span class="tooltip-label">Posição média:</span> <span class="tooltip-value">${avgPos}º</span></div>`;
+                html += `<div class="tooltip-row"><span class="tooltip-label">Votos Isadora:</span> <span class="tooltip-value">${fmt.number(totalVotes)}</span></div>`;
+                html += `<div class="tooltip-row"><span class="tooltip-label">Posição (mediana):</span> <span class="tooltip-value">${medPos}º</span></div>`;
                 tipHtmls.set(f.properties.slug, html);
             } else if (self.zoneRankingEnabled) {
                 tipHtmls.set(f.properties.slug, this._zoneRegionTipHtml(f.properties));
@@ -1869,7 +2118,7 @@ class SCMap {
         }
         this.g.selectAll('path.region')
             .on('mouseenter', (event, d) => {
-                this._showTip(tipHtmls.get(d.properties.slug), event.pageX, event.pageY);
+                this._showTip(tipHtmls.get(d.properties.slug), event.pageX, event.pageY, d.properties.slug);
             });
     }
 
@@ -1891,7 +2140,7 @@ class SCMap {
             html += `<div class="tooltip-row"><span class="tooltip-label">Cabos engajados</span> <span class="tooltip-value" style="color:${po.cabos ? '#15803d' : '#dc2626'};font-weight:700">${po.cabos}${po.cabos ? '' : ' — dormindo!'}</span></div>`;
             if (po.meta_transferir) html += `<div class="tooltip-row"><span class="tooltip-label">Meta transferência</span> <span class="tooltip-value">${po.meta_transferir.toLocaleString('pt-BR')} votos</span></div>`;
         }
-        html += `<div class="tooltip-row"><span class="tooltip-label">Votos LS 2022</span> <span class="tooltip-value">${(city.votes_2022 || 0).toLocaleString('pt-BR')} (${city.penetration.toFixed(2)}%)</span></div>`;
+        html += `<div class="tooltip-row"><span class="tooltip-label">Votos Isadora 2022</span> <span class="tooltip-value">${(city.votes_2022 || 0).toLocaleString('pt-BR')} (${city.penetration.toFixed(2)}%)</span></div>`;
         if (city.gap) html += `<div class="tooltip-row"><span class="tooltip-label">Votos disponíveis</span> <span class="tooltip-value">+${city.gap.toLocaleString('pt-BR')}</span></div>`;
         if (city.adversario_nome) html += `<div class="tooltip-row"><span class="tooltip-label">Adversário</span> <span class="tooltip-value" style="color:#dc2626">${city.adversario_nome} (${city.adversario_partido})</span></div>`;
         html += '<div class="tooltip-row"><span class="tooltip-label" style="color:#9ca3af">Clique para marcar o controle</span></div>';
@@ -1905,10 +2154,6 @@ class SCMap {
         const t = instant ? sel : sel.transition().duration(400);
         t.attr('fill', function(d) {
                 if (self.demandsEnabled) {
-                    if (self.demandLayer === 'promessas') {
-                        const pc = (self._promessasData?.cities || {})[d.properties.slug];
-                        return self._promessaColor(pc ? pc.taxa : null);
-                    }
                     const c = (self._demandsCities || {})[d.properties.slug];
                     if (self.demandLayer === 'mismatch') return self._mismatchColor(c ? c.mismatch : null);
                     return self._demandColor(c ? c.status : 'empty');
@@ -1969,7 +2214,7 @@ class SCMap {
                 if (city) {
                     let html = `<div class="tooltip-title">${f.properties.name}</div>`;
                     html += `<div class="tooltip-row"><span class="tooltip-label">Classificação</span> <span class="tooltip-value" style="color:${self._transferOppColor(city.opp_class)};font-weight:bold">${self._transferOppLabel(city.opp_class)}</span></div>`;
-                    html += `<div class="tooltip-row"><span class="tooltip-label">LS Penetração</span> <span class="tooltip-value" style="color:#15803d">${city.penetration}%</span></div>`;
+                    html += `<div class="tooltip-row"><span class="tooltip-label">Isadora Penetração</span> <span class="tooltip-value" style="color:#15803d">${city.penetration}%</span></div>`;
                     for (const a of (city.aliados || [])) {
                         const forte = (city.aliados_fortes || []).includes(a.nome);
                         html += `<div class="tooltip-row"><span class="tooltip-label">${a.nome}</span> <span class="tooltip-value" style="color:${a.cor};font-weight:${forte?'700':'400'}">${(a.votes||0).toLocaleString('pt-BR')} (${a.pct||0}%)${forte?' ★':''}</span></div>`;
@@ -1986,7 +2231,7 @@ class SCMap {
                 if (city) {
                     let html = `<div class="tooltip-title">${f.properties.name}</div>`;
                     html += `<div class="tooltip-row"><span class="tooltip-label">Classificação</span> <span class="tooltip-value" style="color:${self._deputyClassColor(city.classification)};font-weight:bold">${self._deputyClassLabel(city.classification)}</span></div>`;
-                    html += `<div class="tooltip-row"><span class="tooltip-label">LS</span> <span class="tooltip-value" style="color:#15803d">${city.ls_votes.toLocaleString('pt-BR')} (${city.ls_pct}%)</span></div>`;
+                    html += `<div class="tooltip-row"><span class="tooltip-label">Isadora</span> <span class="tooltip-value" style="color:#15803d">${city.ls_votes.toLocaleString('pt-BR')} (${city.ls_pct}%)</span></div>`;
                     if (city.best_dep_name) {
                         html += `<div class="tooltip-row"><span class="tooltip-label">Dep. mais votado</span> <span class="tooltip-value" style="color:#2563eb">${city.best_dep_name} (${city.best_dep_pct}%)</span></div>`;
                     }
@@ -2016,7 +2261,7 @@ class SCMap {
         }
         this.g.selectAll('path.city')
             .on('mouseenter', (event, d) => {
-                this._showTip(tipHtmls.get(d.properties.slug), event.pageX, event.pageY);
+                this._showTip(tipHtmls.get(d.properties.slug), event.pageX, event.pageY, d.properties.slug);
             })
             .on('click', (event, d) => {
                 this._hideTip();
@@ -2078,7 +2323,7 @@ class SCMap {
                 .attr('stroke-width', 1.2)
                 .attr('cursor', 'pointer')
                 .on('mouseenter', (event, d) => {
-                    this._showTip(tipHtmls.get(d.properties.slug), event.pageX, event.pageY);
+                    this._showTip(tipHtmls.get(d.properties.slug), event.pageX, event.pageY, d.properties.slug);
                 })
                 .on('mousemove', (event) => {
                     this._moveTip(event.pageX, event.pageY);
@@ -2176,11 +2421,11 @@ class SCMap {
                     return colorScale(pct);
                 })
                 .attr('fill-opacity', this.heatmapEnabled ? 0.85 : 0.7)
-                .attr('stroke', '#003DA5')
+                .attr('stroke', '#E25E00')
                 .attr('stroke-width', 1)
                 .attr('cursor', 'pointer')
                 .on('mouseenter', (event, d) => {
-                    this._showTip(tipHtmls.get(d.properties.slug), event.pageX, event.pageY);
+                    this._showTip(tipHtmls.get(d.properties.slug), event.pageX, event.pageY, d.properties.slug);
                 })
                 .on('mousemove', (event) => {
                     this._moveTip(event.pageX, event.pageY);
@@ -2210,7 +2455,7 @@ class SCMap {
                 .attr('dy', '0.35em')
                 .attr('font-size', '7.5px')
                 .attr('font-weight', '600')
-                .attr('fill', '#002776')
+                .attr('fill', '#FF6B00')
                 .attr('pointer-events', 'none')
                 .attr('paint-order', 'stroke')
                 .attr('stroke', '#fff')

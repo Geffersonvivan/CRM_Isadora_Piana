@@ -21,7 +21,7 @@ def _ibge_get(url, timeout=60):
     req = urllib.request.Request(url, headers={
         'Accept': 'application/json',
         'Accept-Encoding': 'gzip',
-        'User-Agent': 'CRM-Sorgatto/1.0',
+        'User-Agent': 'CRM-Isadora/1.0',
     })
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         raw = resp.read()

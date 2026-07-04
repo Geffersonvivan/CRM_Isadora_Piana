@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Cidade — CRM Sorgatto{% endblock %}
+{% block title %}Cidade — CRM Isadora Piana{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -29,7 +29,7 @@
         padding: 14px;
         text-align: center;
     }
-    .stat-value { font-size: 1.2rem; font-weight: 800; color: #002776; }
+    .stat-value { font-size: 1.2rem; font-weight: 800; color: #FF6B00; }
     .stat-label { font-size: .72rem; color: #64748b; margin-top: 2px; }
 
     .section-title {
@@ -119,7 +119,7 @@
             <div class="stat-card"><div class="stat-value">${(c.population || 0).toLocaleString('pt-BR')}</div><div class="stat-label">População</div></div>
             <div class="stat-card"><div class="stat-value">${(c.registered_voters || 0).toLocaleString('pt-BR')}</div><div class="stat-label">Eleitores</div></div>
             <div class="stat-card"><div class="stat-value">${data.total_apoiadores}</div><div class="stat-label">Apoiadores</div></div>
-            <div class="stat-card"><div class="stat-value">${(c.votes_sorgatto_2022 || 0).toLocaleString('pt-BR')}</div><div class="stat-label">Votos 2022</div></div>
+            <div class="stat-card"><div class="stat-value">${(c.votes_referencia_2022 || 0).toLocaleString('pt-BR')}</div><div class="stat-label">Votos 2022</div></div>
             <div class="stat-card"><div class="stat-value">${c.meta_votes || 0}</div><div class="stat-label">Meta 2026</div></div>
             <div class="stat-card"><div class="stat-value">R$ ${fmt.number(data.total_doacoes)}</div><div class="stat-label">Doações</div></div>
             <div class="stat-card"><div class="stat-value">${data.tarefas_total}</div><div class="stat-label">Tarefas</div></div>
@@ -152,8 +152,8 @@
             document.getElementById('structureGrid').innerHTML = `
                 <div class="info-item"><div class="info-label">Prefeito</div><div class="info-value">${st.mayor_name || '-'} (${st.mayor_party || '-'})</div></div>
                 <div class="info-item"><div class="info-label">Alinhamento</div><div class="info-value">${{allied:'Aliado',adversary:'Adversário',neutral:'Neutro'}[st.alignment] || '-'}</div></div>
-                <div class="info-item"><div class="info-label">Vereadores PL</div><div class="info-value">${st.num_vereadores_pl}/${st.num_vereadores}</div></div>
-                <div class="info-item"><div class="info-label">Presidente PL</div><div class="info-value">${st.pl_executive_president || 'Não informado'}</div></div>
+                <div class="info-item"><div class="info-label">Vereadores NOVO</div><div class="info-value">${st.num_vereadores_partido}/${st.num_vereadores}</div></div>
+                <div class="info-item"><div class="info-label">Presidente NOVO</div><div class="info-value">${st.diretorio_presidente || 'Não informado'}</div></div>
                 <div class="info-item"><div class="info-label">Coordenador</div><div class="info-value">${st.has_coordinator ? 'Sim' : 'Não'}</div></div>
             `;
             document.getElementById('structureSection').style.display = '';

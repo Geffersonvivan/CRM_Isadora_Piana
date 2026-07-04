@@ -27,6 +27,8 @@ urlpatterns = [
     path('api/doacoes/', views.DoacoesMapAPI.as_view(), name='api_doacoes'),
     path('api/demandas/', views.DemandasMapAPI.as_view(), name='api_demandas'),
     path('api/roteiros/', views.RoteirosMapAPI.as_view(), name='api_roteiros'),
+    path('api/roteiro-oportunidades/', views.RoteiroOportunidadesAPI.as_view(), name='api_roteiro_oportunidades'),
+    path('api/roteiro-dia/', views.RoteiroDiaAPI.as_view(), name='api_roteiro_dia'),
     path('api/zone-ranking/', views.ZoneRankingAPI.as_view(), name='api_zone_ranking'),
     path('api/vote-transfer/', views.VoteTransferAPI.as_view(), name='api_vote_transfer'),
     path('api/elections-2022/', views.Elections2022API.as_view(), name='api_elections_2022'),
@@ -42,5 +44,4 @@ urlpatterns = [
     path('api/candidatos-2022/', views.Candidatos2022API.as_view(), name='api_candidatos_2022'),
     path('api/vitoria/', views.VictoryMapAPI.as_view(), name='api_vitoria'),
     path('api/calor-camadas/', views.HeatLayersAPI.as_view(), name='api_calor_camadas'),
-    path('api/promessas/', views.PromessasMapAPI.as_view(), name='api_promessas'),
 ]

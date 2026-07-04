@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Região — CRM Sorgatto{% endblock %}
+{% block title %}Região — CRM Isadora Piana{% endblock %}
 
 {% block extra_head %}
 <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
@@ -38,7 +38,7 @@
         padding: 14px;
         text-align: center;
     }
-    .stat-value { font-size: 1.3rem; font-weight: 800; color: #002776; }
+    .stat-value { font-size: 1.3rem; font-weight: 800; color: #FF6B00; }
     .stat-label { font-size: .75rem; color: #64748b; margin-top: 2px; }
 
     #region-map {
@@ -158,7 +158,7 @@
                     <td>${(c.populacao || 0).toLocaleString('pt-BR')}</td>
                     <td>${(c.eleitores || 0).toLocaleString('pt-BR')}</td>
                     <td>${c.total_apoiadores || 0}</td>
-                    <td>${(c.votos_sorgatto_2022 || 0).toLocaleString('pt-BR')}</td>
+                    <td>${(c.votos_referencia_2022 || 0).toLocaleString('pt-BR')}</td>
                     <td>${c.meta_votos || 0}</td>
                 </tr>
             `).join('');
@@ -202,7 +202,7 @@
             .attr('d', path)
             .attr('fill', '#80a5dc')
             .attr('fill-opacity', 0.7)
-            .attr('stroke', '#003DA5')
+            .attr('stroke', '#E25E00')
             .attr('stroke-width', 1)
             .attr('cursor', 'pointer')
             .on('mouseenter', (event, d) => {
@@ -233,7 +233,7 @@
             .attr('dy', '0.35em')
             .attr('font-size', '7.5px')
             .attr('font-weight', '600')
-            .attr('fill', '#002776')
+            .attr('fill', '#FF6B00')
             .attr('pointer-events', 'none')
             .attr('paint-order', 'stroke')
             .attr('stroke', '#fff')

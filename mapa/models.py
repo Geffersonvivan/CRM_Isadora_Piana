@@ -36,14 +36,14 @@ class ResultadoCandidato(models.Model):
     votos = models.IntegerField(default=0)
     percentual = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     eleito = models.BooleanField(default=False)
-    is_sorgatto = models.BooleanField(default=False)
+    is_candidato = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = 'Resultado por Candidato'
         verbose_name_plural = 'Resultados por Candidato'
         indexes = [
             models.Index(fields=['eleicao', 'cidade']),
-            models.Index(fields=['is_sorgatto']),
+            models.Index(fields=['is_candidato']),
         ]
 
     def __str__(self):
@@ -59,7 +59,7 @@ class ResultadoZona(models.Model):
     zona = models.CharField(max_length=10)
     votos = models.IntegerField(default=0)
     percentual = models.DecimalField(max_digits=5, decimal_places=2, default=0)
-    is_sorgatto = models.BooleanField(default=False)
+    is_candidato = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = 'Resultado por Zona'
@@ -93,6 +93,16 @@ class IndicadorMunicipal(models.Model):
 
     def __str__(self):
         return f'{self.cidade.nome} ({self.ano_referencia})'
+
+    @property
+    def pib_per_capita(self):
+        """PIB per capita em R$ por habitante. `pib` é armazenado em R$ mil
+        (verbose_name), logo ×1000 / população. Fonte única para popup, CSV e
+        APIs — evita a divergência de 1000× já corrigida no balão (CLAUDE.md §5.3).
+        Sem população (>0) → None (sem dado; não entra em cálculo/exibição)."""
+        if not self.populacao or self.populacao <= 0:
+            return None
+        return float(self.pib) * 1000 / self.populacao
 
 
 class AliadoChapa(models.Model):

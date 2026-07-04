@@ -11,7 +11,7 @@ class EleicaoAdmin(admin.ModelAdmin):
 @admin.register(ResultadoCandidato)
 class ResultadoCandidatoAdmin(admin.ModelAdmin):
     list_display = ('candidato_nome', 'partido', 'cidade', 'votos', 'eleicao')
-    list_filter = ('eleicao__ano', 'eleicao__tipo', 'is_sorgatto')
+    list_filter = ('eleicao__ano', 'eleicao__tipo', 'is_candidato')
     search_fields = ('candidato_nome', 'partido', 'cidade__nome')
 
 

@@ -43,7 +43,7 @@ class Command(BaseCommand):
         req = urllib.request.Request(url, headers={
             'accept': 'application/json',
             'chave-api-dados': token,
-            'User-Agent': 'CRM-Sorgatto/1.0',
+            'User-Agent': 'CRM-Isadora/1.0',
         })
         with urllib.request.urlopen(req, timeout=40) as r:
             return json.loads(r.read().decode('utf-8'))

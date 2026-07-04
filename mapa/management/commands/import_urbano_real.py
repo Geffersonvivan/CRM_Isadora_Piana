@@ -19,7 +19,7 @@ ANO = 2022
 
 
 def _get(u):
-    req = urllib.request.Request(u, headers={'Accept': 'application/json', 'User-Agent': 'CRM-Sorgatto/1.0'})
+    req = urllib.request.Request(u, headers={'Accept': 'application/json', 'User-Agent': 'CRM-Isadora/1.0'})
     raw = urllib.request.urlopen(req, timeout=60).read()
     try:
         return json.loads(raw.decode('utf-8'))

@@ -145,14 +145,15 @@ class Command(BaseCommand):
                 not_found += 1
                 continue
 
-            # Atualizar com dados do Antigo (só se não tiver dados melhores da web)
-            city.votos_sorgatto_2022 = row['votes_sorgatto_2022'] or 0
+            # Atualizar com dados do Antigo (só se não tiver dados melhores da web).
+            # Nomes de coluna do SELECT são do banco legado (Antigo) — mantidos como estão.
+            city.votos_referencia_2022 = row['votes_sorgatto_2022'] or 0
             city.eleitores = row['registered_voters'] or 0
             city.prefeito_nome = row['mayor_name'] or ''
             city.prefeito_partido = row['mayor_party'] or ''
             city.num_vereadores = row['num_vereadores'] or 0
-            city.num_vereadores_pl = row['num_vereadores_pl'] or 0
-            city.presidente_pl = row['pl_executive_president'] or ''
+            city.num_vereadores_partido = row['num_vereadores_pl'] or 0
+            city.presidente_diretorio = row['pl_executive_president'] or ''
             city.meta_votos = row['meta_votes'] or 0
             city.meta_doacoes = row['meta_doacoes'] or 0
             city.zona_eleitoral = row['electoral_zone'] or ''
@@ -162,8 +163,8 @@ class Command(BaseCommand):
                 city.populacao = row['population']
 
             city.save(update_fields=[
-                'votos_sorgatto_2022', 'eleitores', 'prefeito_nome', 'prefeito_partido',
-                'num_vereadores', 'num_vereadores_pl', 'presidente_pl',
+                'votos_referencia_2022', 'eleitores', 'prefeito_nome', 'prefeito_partido',
+                'num_vereadores', 'num_vereadores_partido', 'presidente_diretorio',
                 'meta_votos', 'meta_doacoes', 'zona_eleitoral', 'populacao',
             ])
             updated += 1
@@ -237,7 +238,7 @@ class Command(BaseCommand):
                     votos=row['votes'] or 0,
                     percentual=row['percentage'] or 0,
                     eleito=bool(row['is_elected']),
-                    is_sorgatto=bool(row['is_sorgatto']),
+                    is_candidato=bool(row['is_sorgatto']),
                 ))
 
             if batch:
@@ -267,7 +268,7 @@ class Command(BaseCommand):
                     zona=row['zone_number'] or '',
                     votos=row['votes'] or 0,
                     percentual=row['percentage'] or 0,
-                    is_sorgatto=bool(row['is_sorgatto']),
+                    is_candidato=bool(row['is_sorgatto']),
                 ))
 
             if batch_z:

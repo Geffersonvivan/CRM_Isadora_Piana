@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Mapa Político — CRM Sorgatto{% endblock %}
+{% block title %}Mapa Político — CRM Isadora Piana{% endblock %}
 
 {% block extra_head %}
 <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
@@ -34,10 +34,11 @@
         display: flex;
         gap: 0;
         border: 1px solid #d1d5db;
-        border-radius: 8px 0 0 8px;
+        border-radius: 8px;
         overflow-x: auto;
         max-width: 100%;
     }
+    .mode-btn:last-child { border-right: none; }
     .mode-btn {
         padding: 6px 14px;
         font-size: .78rem;
@@ -51,7 +52,7 @@
         transition: all .15s;
     }
     .mode-btn:hover { background: #f1f5f9; }
-    .mode-btn.active { background: #002776; color: #fff; }
+    .mode-btn.active { background: #FF6B00; color: #fff; }
 
     /* Help button */
     .btn-help {
@@ -60,9 +61,9 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: #002776;
+        background: #FF6B00;
         color: #fff;
-        border: 1px solid #002776;
+        border: 1px solid #FF6B00;
         border-left: none;
         border-radius: 0 8px 8px 0;
         cursor: pointer;
@@ -84,12 +85,74 @@
         position: relative;
         animation: helpSlide .2s ease-out;
     }
-    .help-panel.visible { display: flex; gap: 32px; }
+    .help-panel.visible { display: block; }
     @keyframes helpSlide {
         from { opacity: 0; transform: translateY(-8px); }
         to { opacity: 1; transform: translateY(0); }
     }
+    .help-row { display: flex; gap: 32px; }
     .help-section { flex: 1; min-width: 0; }
+
+    /* ── Glossário de decisão (sempre visível) ── */
+    .help-decisions-intro {
+        font-size: .74rem; color: #475569; margin-bottom: 8px; line-height: 1.4;
+    }
+    .help-decisions {
+        display: flex; flex-wrap: wrap; gap: 8px;
+        padding-bottom: 12px; margin-bottom: 14px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .decision-chip[data-help] { cursor: help; }
+    .decision-chip {
+        flex: 1; min-width: 150px;
+        border-radius: 8px; padding: 7px 11px;
+        font-size: .74rem; line-height: 1.35; color: #475569;
+        border: 1px solid #e2e8f0; background: #fff;
+    }
+    .decision-chip b { display: block; font-size: .76rem; margin-bottom: 1px; }
+    .dc-expandir { border-left: 3px solid #16a34a; } .dc-expandir b { color: #15803d; }
+    .dc-blindar  { border-left: 3px solid #2563eb; } .dc-blindar b  { color: #1d4ed8; }
+    .dc-carona   { border-left: 3px solid #7c3aed; } .dc-carona b   { color: #6d28d9; }
+    .dc-ignorar  { border-left: 3px solid #94a3b8; } .dc-ignorar b  { color: #64748b; }
+    .help-honesty {
+        font-size: .72rem; color: #64748b; margin-top: 8px;
+        display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+    }
+    .help-honesty .src-real::before { content: '\25CF'; color: #16a34a; margin-right: 4px; }
+    .help-honesty .src-proxy::before { content: '\25CB'; color: #d97706; margin-right: 4px; }
+
+    /* ── Receitas de cruzamento ── */
+    .recipe {
+        border: 1px solid #e2e8f0; border-radius: 8px;
+        padding: 9px 11px; margin-bottom: 8px; background: #fff;
+        font-size: .78rem; color: #475569; line-height: 1.5;
+    }
+    .recipe .rec-mix { color: #1e293b; font-weight: 600; }
+    .rec-badge {
+        display: inline-block; font-size: .64rem; font-weight: 800;
+        letter-spacing: .4px; text-transform: uppercase;
+        padding: 1px 7px; border-radius: 5px; margin-right: 6px; vertical-align: 1px;
+    }
+    .rb-expandir { background: #dcfce7; color: #15803d; }
+    .rb-blindar  { background: #dbeafe; color: #1d4ed8; }
+    .rb-carona   { background: #ede9fe; color: #6d28d9; }
+    .rb-ignorar  { background: #f1f5f9; color: #64748b; }
+    .recipe .rec-warn { color: #b45309; }
+    .recipe .src-proxy::after { content: ' \25CB'; color: #d97706; }
+    .recipe .src-real::after { content: ' \25CF'; color: #16a34a; }
+    .recipe .src-misto::after { content: ' \25D0'; color: #d97706; }
+    .recipe [data-help] { cursor: help; }
+
+    /* ── Matriz-resumo (colapsável) ── */
+    .help-matriz { margin-top: 12px; border-top: 1px solid #e2e8f0; padding-top: 10px; }
+    .help-matriz > summary {
+        cursor: pointer; font-size: .78rem; font-weight: 700; color: #1e293b;
+        list-style: none; display: flex; align-items: center; gap: 6px;
+    }
+    .help-matriz > summary::-webkit-details-marker { display: none; }
+    .help-matriz table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: .76rem; }
+    .help-matriz td { padding: 5px 8px; border-bottom: 1px solid #eef1f5; color: #475569; vertical-align: top; }
+    .help-matriz tr td:first-child { color: #1e293b; font-weight: 600; width: 46%; }
     .help-section-title {
         font-size: .78rem;
         font-weight: 700;
@@ -121,7 +184,7 @@
     .help-close:hover { color: #475569; background: #e2e8f0; }
 
     @media (max-width: 900px) {
-        .help-panel.visible { flex-direction: column; gap: 12px; }
+        .help-row { flex-direction: column; gap: 12px; }
     }
 
     .btn-back {
@@ -131,7 +194,7 @@
         padding: 6px 16px;
         font-size: .82rem;
         font-weight: 600;
-        background: #002776;
+        background: #FF6B00;
         color: #fff;
         border: none;
         border-radius: 8px;
@@ -143,7 +206,7 @@
     /* Map container */
     #map-container {
         width: 100%;
-        height: 550px;
+        height: 605px;
         position: relative;
         background: #f8fafc;
         border-radius: 8px;
@@ -217,13 +280,25 @@
         opacity: 0;
         transition: opacity .1s;
         z-index: 9999;
-        min-width: 232px;
-        max-width: 340px;
+        min-width: 248px;
+        max-width: 380px;
     }
     .tooltip-title { font-weight: 700; color: #1e293b; margin-bottom: 7px; font-size: .9rem; }
     .tooltip-row { display: flex; justify-content: space-between; gap: 14px; padding: 2px 0; }
     .tooltip-label { color: #64748b; }
     .tooltip-value { color: #1e293b; font-weight: 500; text-align: right; }
+    /* Dossiê cruzado anexado ao tooltip de cidade (todos os modos) */
+    .xc-sep { height: 1px; background: #e2e8f0; margin: 8px 0 7px; }
+    .xc-decision { display: flex; align-items: flex-start; gap: 8px; padding: 6px 8px; margin-bottom: 6px;
+        border: 1px solid #e2e8f0; border-left-width: 3px; border-radius: 7px; background: #f8fafc; }
+    .xc-badge { flex-shrink: 0; color: #fff; font-size: .62rem; font-weight: 800; letter-spacing: .4px;
+        padding: 2px 7px; border-radius: 5px; }
+    .xc-why { font-size: .72rem; color: #475569; line-height: 1.35; }
+    .xc-real { color: #16a34a; font-weight: 600; }
+    .xc-proxy { color: #d97706; font-weight: 600; }
+    .xc-row { display: flex; justify-content: space-between; gap: 14px; padding: 2px 0; align-items: baseline; }
+    .xc-k { color: #64748b; white-space: nowrap; }
+    .xc-v { color: #1e293b; font-weight: 500; text-align: right; }
 
     /* Legend */
     .map-legend {
@@ -239,6 +314,15 @@
         align-items: center;
         gap: 5px;
     }
+    .map-provenance {
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid #eef2f7;
+        font-size: .68rem;
+        color: #94a3b8;
+        line-height: 1.4;
+    }
+    .map-provenance:empty { display: none; }
     .legend-dot {
         width: 12px;
         height: 12px;
@@ -256,12 +340,12 @@
     #map-container svg path.region:hover,
     #map-container svg path.city:hover {
         fill-opacity: 1 !important;
-        stroke: #002776;
+        stroke: #FF6B00;
         stroke-width: 2.5;
     }
     #map-container svg path.transfer-city:hover {
         fill-opacity: 1 !important;
-        stroke: #002776;
+        stroke: #FF6B00;
         stroke-width: 1.5;
     }
 
@@ -390,6 +474,45 @@
     /* selo de dado estimado (derivado do PIB, não medido) */
     .est-badge { font-size: .58rem; font-weight: 700; color: #b45309; background: #fef3c7;
         border-radius: 4px; padding: 1px 4px; vertical-align: middle; letter-spacing: .3px; }
+
+    /* ===== Legenda Vitória 2026 (didática) ===== */
+    .vleg-h{font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8;margin:14px 0 7px}
+    .vtable{width:100%;border-collapse:collapse;font-size:.82rem;margin-top:8px}
+    .vtable td{padding:6px 8px;border-top:1px solid #eef1f6;vertical-align:top}
+    .vtable td.v{font-weight:800;white-space:nowrap}
+    .vtag{display:inline-block;font-size:.64rem;font-weight:700;text-transform:uppercase;padding:2px 8px;border-radius:6px;white-space:nowrap}
+    .vtag.fato{background:#e7f6ec;color:#15803d}.vtag.meta{background:#fdf1de;color:#b45309}.vtag.conta{background:#e8eefc;color:#1d4ed8}
+    .vtag.estimado{background:#fef3c7;color:#92400e}
+    .vprem{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+    .vpcard{border:1px solid #f1e2c4;background:#fdf1de;border-radius:12px;padding:11px 14px}
+    .vpcard .pv{font-size:1.1rem;font-weight:800;color:#b45309;line-height:1}
+    .vpcard .pt{font-weight:700;font-size:.9rem;margin-top:2px}
+    .vpcard .pd{font-size:.82rem;color:#7a5a1e;margin-top:2px}
+    .vmx{display:grid;gap:8px;grid-template-columns:86px 1fr 1fr;
+        grid-template-areas:"corner colA colB" "rf mina marg" "rs cel fort"}
+    .vmx-corner{grid-area:corner}.vmx .ca{grid-area:colA}.vmx .cb{grid-area:colB}
+    .vmx .rf{grid-area:rf}.vmx .rs{grid-area:rs}
+    .vmx .mina{grid-area:mina}.vmx .marg{grid-area:marg}.vmx .cel{grid-area:cel}.vmx .fort{grid-area:fort}
+    .vmx .colh{font-size:.7rem;font-weight:700;color:#94a3b8;text-align:center;align-self:end;line-height:1.2}
+    .vmx .colh small{display:block;font-weight:500;color:#c0c7d4}
+    .vmx .rowh{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;text-align:right;
+        font-size:.66rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#94a3b8;padding-right:4px;line-height:1.2}
+    .vmx .cell{border:1px solid #e7eaf0;border-radius:11px;padding:10px 12px}
+    .vmx .cell .t{display:flex;align-items:center;gap:6px;font-weight:800;font-size:.9rem}
+    .vmx .cell .act{margin-left:auto;font-size:.62rem;font-weight:700;text-transform:uppercase;padding:2px 7px;border-radius:6px}
+    .vmx .cell .d{font-size:.78rem;color:#64748b;margin-top:2px}
+    .vmx .c-ouro{background:#fdf3da;border-color:#f1e2b8}.vmx .c-ouro .act{background:#f6e3ad;color:#8a5d00}
+    .vmx .c-cel{background:#e7f6ec;border-color:#cdebd6}.vmx .c-cel .act{background:#cdebd6;color:#15803d}
+    .vmx .c-fort{background:#e3f4f1;border-color:#c8ebe4}.vmx .c-fort .act{background:#c8ebe4;color:#0d9488}
+    .vmx .c-marg{background:#eef1f5;border-color:#dde3ec}.vmx .c-marg .act{background:#dde3ec;color:#64748b}
+    .vsignals{display:flex;flex-wrap:wrap;gap:12px 22px;font-size:.8rem;color:#5b6473}
+    .vsignals .grp{display:flex;align-items:center;gap:7px}
+    .vdot{width:10px;height:10px;border-radius:50%}.vdot.real{background:#15803d}.vdot.est{background:#fff;border:2px solid #c98a00}
+    .vleg-toggle{display:inline-flex;align-items:center;gap:6px;cursor:pointer;border:1px solid #e2e8f0;background:#fff;
+        border-radius:8px;padding:5px 12px;font-size:.76rem;font-weight:700;color:#475569}
+    @media(max-width:640px){.vprem{grid-template-columns:1fr}
+        .vmx{grid-template-columns:1fr 1fr;grid-template-areas:"colA colB" "mina marg" "cel fort"}
+        .vmx-corner,.vmx .rf,.vmx .rs{display:none}}
 </style>
 {% endblock %}
 
@@ -406,14 +529,14 @@
                     <button class="mode-btn" data-mode="eleicoes_2022" data-help="mode:eleicoes_2022">Eleições 2022</button>
                     <button class="mode-btn" data-mode="vitoria" data-help="mode:vitoria">Vitória 2026</button>
                     <button class="mode-btn" data-mode="calor" data-help="mode:calor">Mapa de Calor</button>
-                    <button class="mode-btn" data-mode="demandas" data-help="mode:demandas">Demandas</button>
+                    {# Modo "Demandas" desativado a pedido — reativar removendo este comentário #}
+                    {# <button class="mode-btn" data-mode="demandas" data-help="mode:demandas">Demandas</button> #}
                     <button class="mode-btn" data-mode="roteiros" data-help="mode:roteiros">Roteiros</button>
                     <button class="mode-btn" data-mode="estrategico" data-help="mode:estrategico">Estratégico</button>
 <button class="mode-btn" data-mode="transferencia" data-help="mode:transferencia">Transferência</button>
                     <button class="mode-btn" data-mode="concorrencia" data-help="mode:concorrencia">Concorrência</button>
                     <button class="mode-btn" data-mode="perfil_ideologico" data-help="mode:perfil_ideologico">Perfil Ideológico</button>
                 </div>
-                <button class="btn-help" id="btnHelp" title="O que este mapa mostra?">?</button>
             </div>
             <button class="btn-back" id="btnBack" onclick="mapApp.backToState()">
                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
@@ -424,28 +547,61 @@
 
     <!-- Painel de ajuda contextual -->
     <div class="help-panel" id="helpPanel">
-        <div class="help-section">
-            <div class="help-section-title"><span class="icon">&#9432;</span> O que mostra</div>
-            <p id="helpWhat"></p>
+        <!-- Glossário de decisão — o vocabulário comum: toda leitura termina em 1 verbo -->
+        <div class="help-decisions-intro">Legenda · toda decisão do mapa cai em um destes 4 verbos — são eles que marcam cada receita abaixo. <span style="color:#94a3b8;">passe o mouse para entender cada um</span></div>
+        <div class="help-decisions">
+            <div class="decision-chip dc-expandir" data-help="dec:expandir"><b>EXPANDIR</b>há voto e não estou colhendo — investir/crescer</div>
+            <div class="decision-chip dc-blindar" data-help="dec:blindar"><b>BLINDAR</b>sou forte e estão me ameaçando — defender</div>
+            <div class="decision-chip dc-carona" data-help="dec:carona"><b>CARONA</b>sou fraco, mas o palanque é forte ali — pegar a estrutura do aliado</div>
+            <div class="decision-chip dc-ignorar" data-help="dec:ignorar"><b>IGNORAR</b>não há voto a ganhar (saturado/perdido) — não desperdiçar</div>
         </div>
-        <div class="help-section">
-            <div class="help-section-title"><span class="icon">&#128270;</span> Como interpretar</div>
-            <p id="helpHow"></p>
+        <div class="help-honesty">
+            <span>Confiança do dado:</span>
+            <span class="src-real" data-help="src:real">real (TSE eleitoral · CRM rede)</span>
+            <span class="src-proxy" data-help="src:proxy">estimado (perfil socioeconômico derivado do PIB — use como indício, não prova)</span>
         </div>
-        <div class="help-section">
-            <div class="help-section-title"><span class="icon">&#10024;</span> Exemplo prático</div>
-            <p id="helpExample"></p>
+        <div class="help-row" style="margin-top:14px;">
+            <div class="help-section">
+                <div class="help-section-title"><span class="icon">&#9432;</span> O que mostra</div>
+                <p id="helpWhat"></p>
+            </div>
+            <div class="help-section">
+                <div class="help-section-title"><span class="icon">&#128270;</span> Como interpretar</div>
+                <p id="helpHow"></p>
+            </div>
+            <div class="help-section">
+                <div class="help-section-title"><span class="icon">&#10024;</span> Exemplo prático</div>
+                <p id="helpExample"></p>
+            </div>
+            <div class="help-section" id="helpStrategySection" style="border-top:2px solid #6d28d9;background:#faf5ff;border-radius:8px;padding:10px 12px;">
+                <div class="help-section-title" style="color:#6d28d9;"><span class="icon">&#127919;</span> Estratégia — cruze os mapas</div>
+                <p id="helpStrategy"></p>
+            </div>
         </div>
-        <div class="help-section" id="helpStrategySection" style="border-top:2px solid #6d28d9;background:#faf5ff;border-radius:8px;padding:10px 12px;">
-            <div class="help-section-title" style="color:#6d28d9;"><span class="icon">&#127919;</span> Estratégia — cruze os mapas</div>
-            <p id="helpStrategy"></p>
+        <!-- Receitas de cruzamento (por camada): ligue X + Y → decisão -->
+        <div id="helpReceitasSection" style="margin-top:14px;">
+            <div class="help-section-title"><span class="icon">&#129518;</span> Receitas de cruzamento — ligue camadas para decidir</div>
+            <div id="helpReceitas"></div>
         </div>
+        <!-- Matriz-resumo (independente do modo) -->
+        <details class="help-matriz">
+            <summary>&#128202; Matriz-resumo — situação &rarr; decisão (vale para qualquer camada)</summary>
+            <table>
+                <tr><td>Potencial de voto alto + rede ausente (e eleitorado livre)</td><td><span class="rec-badge rb-expandir" data-help="dec:expandir">Expandir</span> voto sem dono — maior ROI</td></tr>
+                <tr><td>Reduto forte (1º em 2022) + rival crescendo</td><td><span class="rec-badge rb-blindar" data-help="dec:blindar">Blindar</span> defender; se rival fraco, manter no mínimo e realocar</td></tr>
+                <tr><td>Sou fraco + aliado de chapa forte (palanque)</td><td><span class="rec-badge rb-carona" data-help="dec:carona">Carona</span> entrar pela estrutura do aliado</td></tr>
+                <tr><td>Potencial alto, mas mercado saturado / eleitorado pequeno / capital adversária</td><td><span class="rec-badge rb-ignorar" data-help="dec:ignorar">Ignorar</span> não há voto a colher</td></tr>
+                <tr><td>Demanda vencida em cidade-chave (mina de ouro / muito eleitor)</td><td><span class="rec-badge rb-expandir" data-help="dec:expandir">Expandir</span> cobrança imediata — o atraso custa voto</td></tr>
+                <tr><td>Perfil conservador + sou fraco</td><td><span class="rec-badge rb-expandir" data-help="dec:expandir">Expandir</span> com a <b>pauta</b> certa (não só mais evento) <span class="src-proxy" data-help="src:proxy" style="font-weight:600;cursor:help">indício</span></td></tr>
+            </table>
+        </details>
     </div>
 
     <div id="map-container">
         <!-- Seletor multi-candidato (modo Concorrência) — sobreposto dentro do mapa -->
         <div id="competicaoSelectWrap" style="display:none;position:absolute;top:14px;left:14px;z-index:500;background:rgba(255,255,255,.97);backdrop-filter:blur(2px);border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;box-shadow:0 6px 20px rgba(15,23,42,.12);width:300px;">
             <label style="display:block;font-size:.66rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.6px;margin-bottom:7px;">Comparar Candidatos <span style="font-weight:500;color:#94a3b8">(até 8)</span></label>
+            <!-- "Como ler este mapa" fica só no explicador abaixo do mapa (renderConcorrenciaDashboard) -->
             <!-- Search input + dropdown -->
             <input id="compSearchInput" type="text" placeholder="Buscar candidato..." autocomplete="off" style="width:100%;padding:8px 9px;border:1px solid #d0d4e4;border-radius:7px;font-size:.82rem;color:#1e293b;background:#fff;outline:none;box-sizing:border-box;" />
             <div id="compDropdownList" style="display:none;position:absolute;left:0;right:0;top:68px;max-height:340px;overflow-y:auto;background:#fff;border:1px solid #cbd5e1;border-radius:8px;box-shadow:0 12px 32px rgba(15,23,42,.18);z-index:600;"></div>
@@ -463,6 +619,7 @@
             <div id="capBody" style="padding:12px 14px;"></div>
         </div>
         <div id="perfilPanel" style="display:none;position:absolute;top:14px;left:14px;z-index:500;background:rgba(255,255,255,.97);backdrop-filter:blur(2px);border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;box-shadow:0 6px 20px rgba(15,23,42,.12);width:280px;font-size:.8rem;max-height:calc(100% - 28px);overflow-y:auto;">
+            <!-- "Como ler este mapa" fica só no explicador abaixo do mapa (renderPerfilIdeologicoDashboard) -->
             <!-- Presets -->
             <div style="font-size:.66rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;" data-help="pf:cenarios">Cenários</div>
             <div id="perfilPresets" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;">
@@ -538,6 +695,8 @@
 
     <!-- Legendas dinamicas -->
     <div class="map-legend" id="mapLegend"></div>
+    <!-- §7 Rodapé de proveniência (fonte real de cada camada) -->
+    <div class="map-provenance" id="mapProvenance"></div>
 </div>
 
 <!-- Dashboard contextual abaixo do mapa -->
@@ -557,15 +716,17 @@
     </div>
 </div>
 
-<script src="{% static 'js/map/api.js' %}?v=29"></script>
-<script src="{% static 'js/map/sc-map.js' %}?v=29"></script>
+<script src="{% static 'js/map/api.js' %}?v=36"></script>
+<script src="{% static 'js/map/sc-map.js' %}?v=36"></script>
 <script>
 (function() {
     const map = new SCMap('map-container');
     map.init();
     window.mapApp = map;
 
-    const initialMode = '{{ mapa_param|default:"eleicoes_2022" }}';
+    let initialMode = '{{ mapa_param|default:"eleicoes_2022" }}';
+    // Modo "Demandas" desativado: URL antiga (?mapa=demandas) cai no padrão.
+    if (initialMode === 'demandas') initialMode = 'eleicoes_2022';
     let currentMode = initialMode;
 
     // Mode buttons
@@ -592,26 +753,26 @@
     // ── Help panel ──────────────────────────────────────────────
     const helpData = {
         eleicoes_2022: {
-            what: 'Mostra o <strong>desempenho do LS como candidato a deputado federal nas eleições de 2022</strong> em cada cidade de SC. O mapa revela onde o LS foi competitivo e onde precisa crescer, exibindo:<br><br>' +
+            what: 'Mostra o <strong>desempenho da Isadora nas eleições de 2022 (dep. federal)</strong> em cada cidade de SC. O mapa revela onde a Isadora foi competitiva e onde precisa crescer, exibindo:<br><br>' +
                 '<table style="width:100%;font-size:.78rem;border-collapse:collapse;margin-bottom:4px">' +
-                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0"><strong>Posição no ranking</strong></td><td style="padding-left:8px;color:#64748b">Em que lugar o LS ficou entre todos os candidatos a dep. federal naquela cidade</td></tr>' +
+                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0"><strong>Posição no ranking</strong></td><td style="padding-left:8px;color:#64748b">Em que lugar a Isadora ficou entre todos os candidatos a dep. federal naquela cidade</td></tr>' +
                 '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0"><strong>Total de votos</strong></td><td style="padding-left:8px;color:#64748b">Quantidade absoluta de votos recebidos na cidade</td></tr>' +
-                '<tr><td style="padding:3px 0"><strong>% dos votos válidos</strong></td><td style="padding-left:8px;color:#64748b">Participação do LS no total de votos válidos para dep. federal</td></tr>' +
+                '<tr><td style="padding:3px 0"><strong>% dos votos válidos</strong></td><td style="padding-left:8px;color:#64748b">Participação da Isadora no total de votos válidos para dep. federal</td></tr>' +
                 '</table>',
-            how: 'Cada cidade recebe uma <strong>cor baseada na posição do LS no ranking</strong> de candidatos a deputado federal daquela cidade:<br><br>' +
-                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#15803d;vertical-align:middle;margin-right:4px"></span> <strong style="color:#15803d">Verde escuro</strong> — <strong>1º lugar</strong>: o LS foi o deputado federal mais votado na cidade.<br>' +
+            how: 'Cada cidade recebe uma <strong>cor baseada na posição da Isadora no ranking</strong> de candidatos a deputado federal daquela cidade:<br><br>' +
+                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#15803d;vertical-align:middle;margin-right:4px"></span> <strong style="color:#15803d">Verde escuro</strong> — <strong>1º lugar</strong>: a Isadora foi a mais votada na cidade.<br>' +
                 '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#22c55e;vertical-align:middle;margin-right:4px"></span> <strong style="color:#22c55e">Verde</strong> — <strong>Top 3</strong>: ficou entre os 3 mais votados. Base eleitoral significativa.<br>' +
                 '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#eab308;vertical-align:middle;margin-right:4px"></span> <strong style="color:#eab308">Amarelo</strong> — <strong>Top 5</strong>: presença intermediária, espaço para crescer.<br>' +
                 '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#f97316;vertical-align:middle;margin-right:4px"></span> <strong style="color:#f97316">Laranja</strong> — <strong>Top 10</strong>: presença fraca, precisa de trabalho de base.<br>' +
                 '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#ef4444;vertical-align:middle;margin-right:4px"></span> <strong style="color:#ef4444">Vermelho</strong> — <strong>11º ou pior</strong>: território adversário, pouca penetração.<br><br>' +
-                'Passe o <strong>mouse</strong> para ver posição, votos e percentual. <strong>Clique na região</strong> para detalhar cidade a cidade.',
-            example: '<strong>Leitura rápida:</strong> Blocos verdes são a base consolidada do LS — prioridade é manter. Blocos amarelos/laranjas são oportunidades de crescimento para 2026. Blocos vermelhos exigem estratégia de longo prazo.<br>' +
+                'Na visão do estado, a região é colorida pela <strong>posição mediana</strong> das cidades dela. Passe o <strong>mouse</strong> para ver votos e posição; o detalhe <strong>cidade a cidade</strong> está na tabela abaixo do mapa.',
+            example: '<strong>Leitura rápida:</strong> Blocos verdes são a base consolidada da Isadora — prioridade é manter. Blocos amarelos/laranjas são oportunidades de crescimento para 2026. Blocos vermelhos exigem estratégia de longo prazo.<br>' +
                 '<strong>Exemplo:</strong> Se Lages aparece em verde escuro (1º lugar, 8.200 votos, 12% dos válidos), é reduto forte. Já Florianópolis em vermelho (15º lugar, 900 votos, 0.3%) indica que a capital precisa de investimento pesado em visibilidade.',
             estrategia: 'Onde fui forte em 2022 ≠ onde devo focar em 2026. Cruze:<br>&bull; <strong>Vitória 2026</strong> — um reduto verde aqui pode já estar saturado (pouco a ganhar); o ouro está nos amarelos/vermelhos que viraram 💰 Mina de ouro.<br>&bull; <strong>Estratégico</strong> — onde fui fraco mas tenho aliado político, é construção barata.<br>&bull; <strong>Concorrência</strong> — vermelho aqui + rival forte lá = não insista; vermelho com rival fraco = terreno livre.',
         },
         regioes: {
             what: 'Apresenta a <strong>divisão do estado em 21 associações de municípios</strong> (AMAs), que são a unidade geográfica base de toda a operação política. Cada associação agrupa cidades vizinhas com características e desafios em comum.<br><br>' +
-                'Ao passar o mouse, você vê o <strong>resumo consolidado da região</strong>: população total, número de eleitores, quantidade de apoiadores cadastrados e a votação do LS em 2022.',
+                'Ao passar o mouse, você vê o <strong>resumo consolidado da região</strong>: população total, número de eleitores, quantidade de apoiadores cadastrados e a votação da Isadora em 2022.',
             how: 'Cada região possui uma <strong>cor fixa distinta</strong> para facilitar a identificação visual no mapa. As cores não indicam performance — servem apenas para diferenciar os limites entre regiões.<br><br>' +
                 '<strong>Interações disponíveis:</strong><br>' +
                 '&bull; <strong>Hover</strong> (passar o mouse) — exibe popup com dados consolidados da região<br>' +
@@ -621,29 +782,27 @@
                 '<strong>Dica:</strong> Compare regiões vizinhas olhando população e apoiadores — regiões grandes com poucos apoiadores podem ser prioridade de expansão.',
         },
         calor: {
-            what: 'Mapa de calor com <strong>8 métricas</strong> e <strong>2 níveis de granularidade</strong> (região ou cidade). Permite alternar entre diferentes indicadores para visualizar concentração de recursos, desempenho e problemas operacionais em todo o estado.<br><br>' +
+            what: 'Mapa de calor com <strong>8 camadas</strong> (troque no seletor "Camada" abaixo do mapa) e <strong>2 níveis</strong> (região ou cidade, ao clicar). Cada camada responde a uma pergunta diferente:<br><br>' +
                 '<table style="width:100%;font-size:.78rem;border-collapse:collapse;margin-bottom:4px">' +
-                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0;width:35%"><strong>Apoiadores</strong></td><td style="padding-left:8px;color:#64748b">Total de apoiadores ativos cadastrados</td></tr>' +
-                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0"><strong>Votos 2022</strong></td><td style="padding-left:8px;color:#64748b">Votação do LS como dep. federal em 2022</td></tr>' +
-                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0"><strong>Progresso da meta</strong></td><td style="padding-left:8px;color:#64748b">% da meta de votos 2026 já coberta por apoiadores</td></tr>' +
-                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0"><strong>Saturação</strong></td><td style="padding-left:8px;color:#64748b">Apoiadores como % da população total</td></tr>' +
-                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0"><strong>Penetração</strong></td><td style="padding-left:8px;color:#64748b">Votos 2022 como % dos eleitores aptos (nível cidade)</td></tr>' +
-                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0"><strong>Doações</strong></td><td style="padding-left:8px;color:#64748b">Valor total arrecadado / Doações per capita (nível cidade)</td></tr>' +
-                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0;color:#dc2626"><strong>Demandas vencidas</strong></td><td style="padding-left:8px;color:#64748b">Tarefas com prazo ultrapassado — zonas de risco operacional</td></tr>' +
-                '<tr><td style="padding:3px 0;color:#7c3aed"><strong>Gap (votos − apoiadores)</strong></td><td style="padding-left:8px;color:#64748b">Diferença entre votos 2022 e apoiadores atuais — revela onde tem voto mas falta trabalho de campo</td></tr>' +
+                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0;width:35%"><strong>Penetração 2022</strong></td><td style="padding-left:8px;color:#64748b">Votos 2022 ÷ eleitores — onde fomos fortes proporcionalmente</td></tr>' +
+                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0"><strong>Densidade de apoiadores</strong></td><td style="padding-left:8px;color:#64748b">Apoiadores ativos por mil eleitores — onde temos estrutura hoje</td></tr>' +
+                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0"><strong>Lacuna de votos</strong></td><td style="padding-left:8px;color:#64748b">Votos disponíveis (meta − 2022) — onde há voto na mesa</td></tr>' +
+                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0"><strong>Votos absolutos</strong></td><td style="padding-left:8px;color:#64748b">Votos de 2022 em número absoluto — onde mora a massa de votos</td></tr>' +
+                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0"><strong>Fronteira de expansão</strong></td><td style="padding-left:8px;color:#64748b">Cidades coladas na base, com tração — o voto mais barato de conquistar</td></tr>' +
+                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0"><strong>Esforço de campo</strong></td><td style="padding-left:8px;color:#64748b">Compromissos realizados — onde a candidata já pisou</td></tr>' +
+                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0"><strong>Força política</strong></td><td style="padding-left:8px;color:#64748b">Peso dos prefeitos e vereadores aliados — o músculo político local</td></tr>' +
+                '<tr><td style="padding:3px 0;color:#7c3aed"><strong>2022 × Estrutura hoje</strong></td><td style="padding-left:8px;color:#64748b">Vermelho = forte em 2022 mas sem estrutura agora (abandonando); azul = construindo onde éramos fracos</td></tr>' +
                 '</table>',
-            how: 'O gradiente de cores segue uma escala de intensidade que vai do frio (fraco) ao quente (forte):<br><br>' +
-                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#ef4444;vertical-align:middle;margin-right:4px"></span> <strong style="color:#ef4444">Vermelho</strong> — valor muito baixo<br>' +
-                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#f97316;vertical-align:middle;margin-right:4px"></span> <strong style="color:#f97316">Laranja</strong> — valor baixo<br>' +
+            how: 'A maioria das camadas vai do frio (fraco) ao quente (forte) — a barra de gradiente ao lado do seletor mostra a escala exata da camada ativa:<br><br>' +
+                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#ef4444;vertical-align:middle;margin-right:4px"></span> <strong style="color:#ef4444">Vermelho</strong> — valor baixo (nas camadas "quanto mais, melhor")<br>' +
                 '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#eab308;vertical-align:middle;margin-right:4px"></span> <strong style="color:#eab308">Amarelo</strong> — valor médio<br>' +
-                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#84cc16;vertical-align:middle;margin-right:4px"></span> <strong style="color:#84cc16">Verde claro</strong> — valor bom<br>' +
                 '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#22c55e;vertical-align:middle;margin-right:4px"></span> <strong style="color:#22c55e">Verde</strong> — valor alto<br><br>' +
-                '<strong>Granularidade:</strong> Alterne entre visão por <strong>região</strong> (21 associações) para panorama rápido ou por <strong>cidade</strong> (295 municípios) para análise precisa.',
-            example: '<strong>Cruzamento mais poderoso — métrica "Gap":</strong><br>' +
-                'O gap (votos 2022 menos apoiadores atuais) revela duas situações opostas:<br>' +
-                '&bull; <strong>Gap alto positivo</strong> — a cidade deu votos em 2022 mas não tem apoiadores cadastrados. Significa que há uma base eleitoral que votou no LS mas não foi capturada pelo CRM. <em>Ação: priorizar cadastro e contato.</em><br>' +
-                '&bull; <strong>Gap negativo</strong> — mais apoiadores que votos em 2022. Significa crescimento recente da base. <em>Sinal positivo.</em><br><br>' +
-                '<strong>Demandas vencidas:</strong> Use para reunião semanal — regiões/cidades em vermelho precisam de cobrança imediata. Combine com a métrica de apoiadores para ver se áreas com muitos apoiadores estão sendo bem atendidas.',
+                'Exceções com escala própria: <strong>Lacuna</strong> (verde claro → vermelho = mais oportunidade), <strong>Votos absolutos</strong> (azul), <strong>Fronteira</strong> (roxo) e <strong>2022 × Estrutura</strong> (vermelho ⇄ azul, divergente).<br><br>' +
+                '<strong>Granularidade:</strong> visão por <strong>região</strong> (21 associações) para panorama rápido; clique numa região para ver as <strong>cidades</strong>.',
+            example: '<strong>Cruzamento mais poderoso — camada "2022 × Estrutura hoje":</strong><br>' +
+                '&bull; <strong>Vermelho</strong> — a cidade votou bem em 2022 mas não tem estrutura agora: base que votou na Isadora e não entrou no CRM. <em>Ação: priorizar cadastro e contato antes que esfrie.</em><br>' +
+                '&bull; <strong>Azul</strong> — estrutura crescendo onde éramos fracos: construção recente. <em>Sinal positivo, acompanhe a conversão.</em><br><br>' +
+                '<strong>Lacuna de votos:</strong> use com o <strong>Vitória 2026</strong> — lacuna alta + poucos apoiadores (camada Densidade) = voto sem dono, prioridade de expansão.',
             estrategia: 'O calor mostra concentração; sozinho não decide. Cruze:<br>&bull; Vazio de apoiadores + <strong>Vitória 2026</strong> mostrando 💰 Mina de ouro = prioridade de expansão (voto sem dono).<br>&bull; Vazio numa cidade saturada = ignore (não há voto a colher).<br>&bull; Use a camada <strong>Gap</strong> junto do <strong>Estratégico</strong> para achar onde tem voto e falta cabo.',
         },
         demandas: {
@@ -657,7 +816,7 @@
                 'Passe o <strong>mouse</strong> para ver contagem de tarefas por status. <strong>Clique</strong> para ver a lista detalhada.',
             example: '<strong>Uso no dia a dia:</strong> Abra este mapa toda manhã para identificar rapidamente quais regiões precisam de atenção. Regiões vermelhas pulsando são urgências — clique para ver quais tarefas estão atrasadas e quem é o responsável.<br>' +
                 '<strong>Sinal de alerta:</strong> Regiões cinza por muito tempo indicam que ninguém está fazendo articulação local. Considere criar demandas proativamente para manter a presença política ativa.',
-            estrategia: 'Demanda é porta de entrada para o voto. Cruze:<br>&bull; Demanda atrasada numa cidade 🏭 máquina de voto (<strong>Estratégico</strong>) = apague o incêndio antes que esfrie a base.<br>&bull; Demanda numa 💰 Mina de ouro (<strong>Vitória</strong>) = resolva e registre como <strong>+ Promessa</strong> para fidelizar.<br>&bull; Vire a demanda em <strong>+ Compromisso</strong> pelo painel da cidade.',
+            estrategia: 'Demanda é porta de entrada para o voto. Cruze:<br>&bull; Demanda atrasada numa cidade 🏭 máquina de voto (<strong>Estratégico</strong>) = apague o incêndio antes que esfrie a base.<br>&bull; Demanda numa 💰 Mina de ouro (<strong>Vitória</strong>) = resolva para fidelizar.<br>&bull; Vire a demanda em <strong>+ Compromisso</strong> pelo painel da cidade.',
         },
         roteiros: {
             what: 'Visualiza os <strong>roteiros de viagem e agendas de campo</strong> no mapa. Cada roteiro é uma sequência de paradas (cidades) com data, horário e compromissos associados. Serve para planejar caravanas, visitas a lideranças e eventos regionais.<br><br>' +
@@ -672,45 +831,46 @@
             estrategia: 'O roteiro é onde a estratégia vira quilômetro rodado. Monte cruzando:<br>&bull; <strong>Vitória 2026</strong> — encadeie 💰 Minas de ouro próximas no mesmo dia.<br>&bull; <strong>Transferência</strong> — inclua redutos de aliado no trajeto (carona de chapa).<br>&bull; <strong>Painel da cidade</strong> — comece pelos contatos \'vencidos/nunca\'.<br>&bull; <strong>Perfil Ideológico</strong> — ajuste o discurso de cada parada.',
         },
         estrategico: {
-            what: 'Classifica cada cidade de SC em <strong>5 categorias estratégicas</strong> cruzando <strong>3 camadas de inteligência</strong>: desempenho eleitoral, estrutura política e perfil socioeconômico.<br><br>' +
+            what: 'Classifica cada cidade de SC em <strong>6 categorias estratégicas</strong> cruzando <strong>4 camadas de inteligência</strong>: desempenho eleitoral, estrutura política, perfil socioeconômico e atividade no CRM.<br><br>' +
                 '<table style="width:100%;font-size:.78rem;border-collapse:collapse;margin-bottom:4px">' +
                 '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0;width:30%"><strong>Eleitoral</strong></td><td style="padding-left:8px;color:#64748b">Votação 2022, penetração vs. média estadual, posição no ranking</td></tr>' +
-                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0"><strong>Estrutura PL</strong></td><td style="padding-left:8px;color:#64748b">Score da Rede PL (coordenador, vereadores, diretório, cabos, apoiadores)</td></tr>' +
+                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0"><strong>Estrutura NOVO</strong></td><td style="padding-left:8px;color:#64748b">Score da Rede NOVO (coordenador, vereadores, diretório, cabos, apoiadores)</td></tr>' +
                 '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0"><strong>IBGE</strong></td><td style="padding-left:8px;color:#64748b">Renda per capita, PIB, Bolsa Família, MEIs, urbanização, faixa etária, escolaridade</td></tr>' +
                 '<tr><td style="padding:3px 0"><strong>CRM</strong></td><td style="padding-left:8px;color:#64748b">Demandas (total/vencidas/concluídas), compromissos, cabos eleitorais ativos</td></tr>' +
                 '</table>',
-            how: 'Cada cidade recebe uma das <strong>5 classificações</strong>:<br><br>' +
-                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#15803d;vertical-align:middle;margin-right:4px"></span> <strong style="color:#15803d">Base Forte</strong> — Prefeito aliado + boa votação 2022. <strong>Ação:</strong> manter e mobilizar.<br>' +
-                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#86efac;vertical-align:middle;margin-right:4px"></span> <strong style="color:#16a34a">Aliado Fraco</strong> — Prefeito aliado mas votação abaixo da média. <strong>Ação:</strong> fortalecer rede local.<br>' +
-                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#eab308;vertical-align:middle;margin-right:4px"></span> <strong style="color:#eab308">Potencial Oculto</strong> — Sem prefeito aliado mas boa votação. <strong>Ação:</strong> investir em articulação.<br>' +
-                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#dc2626;vertical-align:middle;margin-right:4px"></span> <strong style="color:#dc2626">Território Hostil</strong> — Prefeito adversário + votação fraca. <strong>Ação:</strong> monitorar, não priorizar.<br>' +
-                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#94a3b8;vertical-align:middle;margin-right:4px"></span> <strong style="color:#64748b">Neutro</strong> — Sem alinhamento claro (prefeito de partido menor/sem partido). <strong>Ação:</strong> avaliar pelo perfil IBGE.<br><br>' +
-                '<strong>Sistema de alertas inteligentes:</strong><br>' +
+            how: 'Cada cidade recebe uma das <strong>6 classificações</strong> (mesmas cores do mapa):<br><br>' +
+                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#15803d;vertical-align:middle;margin-right:4px"></span> <strong style="color:#15803d">🏭 Máquina de voto</strong> — Aliado político + cabos trabalhando. <strong>Ação:</strong> defender e colher.<br>' +
+                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#f59e0b;vertical-align:middle;margin-right:4px"></span> <strong style="color:#b45309">🤝 Aliado a ativar</strong> — Aliado político SEM cabo engajado. <strong>Ação:</strong> ligar os cabos (alavanca mais barata).<br>' +
+                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#f97316;vertical-align:middle;margin-right:4px"></span> <strong style="color:#f97316">🏗️ Construir</strong> — Voto disponível, zero aliado. <strong>Ação:</strong> recrutar liderança local.<br>' +
+                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#7c3aed;vertical-align:middle;margin-right:4px"></span> <strong style="color:#7c3aed">⚔️ Em disputa</strong> — Eleitorado dividido. <strong>Ação:</strong> avaliar onde dá para virar.<br>' +
+                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#dc2626;vertical-align:middle;margin-right:4px"></span> <strong style="color:#dc2626">🚫 Hostil</strong> — Reduto adversário. <strong>Ação:</strong> monitorar, não priorizar.<br>' +
+                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#9ca3af;vertical-align:middle;margin-right:4px"></span> <strong style="color:#64748b">⚪ Neutro</strong> — Sem aliados e pouca oportunidade. <strong>Ação:</strong> avaliar pelo perfil IBGE.<br><br>' +
+                '<strong>Alertas por cidade (coluna Diagnóstico):</strong><br>' +
                 '<table style="width:100%;font-size:.78rem;border-collapse:collapse;margin-top:4px">' +
-                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0;color:#dc2626">⚠ Base acomodada</td><td style="padding-left:8px;color:#64748b">Base Forte sem nenhum apoiador ou compromisso — precisa ser ativada</td></tr>' +
-                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0;color:#f59e0b">⚠ Falso neutro</td><td style="padding-left:8px;color:#64748b">Classificada como Neutro mas o perfil IBGE indica cidade conservadora (alta renda, baixo BF)</td></tr>' +
-                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0;color:#f59e0b">⚠ Estrutura sem conversão</td><td style="padding-left:8px;color:#64748b">Rede PL forte (score ≥40) mas penetração abaixo da média — a máquina existe mas não converte votos</td></tr>' +
-                '<tr><td style="padding:3px 0;color:#f59e0b">⚠ Voto orgânico frágil</td><td style="padding-left:8px;color:#64748b">Boa penetração mas Rede PL fraca (score &lt;20) — voto espontâneo que pode ser perdido sem estrutura</td></tr>' +
+                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0;color:#b45309">⚡ Ativar cabo</td><td style="padding-left:8px;color:#64748b">Tem aliado político mas nenhum cabo engajado — máquina parada</td></tr>' +
+                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0;color:#c2410c">Recrutar liderança</td><td style="padding-left:8px;color:#64748b">Voto disponível sem nenhuma estrutura — precisa de gente no território</td></tr>' +
+                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0;color:#2563eb">Definir meta de transferência</td><td style="padding-left:8px;color:#64748b">Aliado cadastrado sem meta de votos combinada</td></tr>' +
+                '<tr><td style="padding:3px 0;color:#f59e0b">Estrutura sem conversão</td><td style="padding-left:8px;color:#64748b">Rede montada mas penetração abaixo da média — existe máquina, falta resultado</td></tr>' +
                 '</table>',
-            example: '<strong>Uso estratégico:</strong> O mapa agora responde 3 perguntas que antes exigiam cruzamento manual:<br><br>' +
-                '<strong>1. Onde estou perdendo oportunidade?</strong> Procure alertas "falso neutro" — são cidades sem prefeito aliado mas com perfil conservador forte (alta renda, poucos beneficiários de BF). Elas podem ser conquistadas com a abordagem certa.<br><br>' +
-                '<strong>2. Onde a máquina está parada?</strong> Alertas "base acomodada" e "estrutura sem conversão" mostram cidades onde existe estrutura PL mas ela não está sendo ativada — a rede de vereadores, cabos e diretório existe mas não gera resultado.<br><br>' +
-                '<strong>3. Onde o voto pode escapar?</strong> Alertas "voto orgânico frágil" identificam cidades que votaram bem em 2022 sem estrutura PL — esse voto veio sozinho mas pode não se repetir em 2026 sem trabalho de campo.',
+            example: '<strong>Uso estratégico:</strong> O mapa responde 3 perguntas que antes exigiam cruzamento manual:<br><br>' +
+                '<strong>1. Onde a máquina está parada?</strong> O destaque "🤝 aliados a ativar" lista cidades com aliado político e nenhum cabo engajado — cada uma é uma máquina de voto esperando ser ligada.<br><br>' +
+                '<strong>2. Onde construir do zero?</strong> Cidades "🏗️ Construir" têm lacuna de votos e nenhum aliado — recrute liderança antes do adversário.<br><br>' +
+                '<strong>3. Onde não gastar energia?</strong> "🚫 Hostil" sem aliado seu = baixo retorno; se houver aliado de chapa forte, entre pela <strong>Transferência</strong> (carona), não pelo enfrentamento.',
             estrategia: 'Aqui está a articulação viva. A jogada nº1 — aliado dormindo — vale ouro quando cruzada:<br>&bull; 🤝 Aliado a ativar numa 💰 Mina de ouro (<strong>Vitória</strong>) = alavanca mais barata da campanha: ligue os cabos.<br>&bull; 🏗️ Construir + <strong>Transferência</strong> com aliado forte = entre pela carona e monte estrutura depois.<br>&bull; ⚔️ Em disputa + <strong>Concorrência</strong> para medir se dá pra virar.',
         },
         transferencia: {
-            what: 'O <strong>planejador de palanque de chapa</strong>. Os candidatos não competem com o LS — são a <strong>chapa dele</strong> em cargos diferentes (Jorginho governador, Carol senadora, Daniela federal, LS estadual). Os votos não competem, se <strong>somam</strong>. O mapa mostra os <strong>redutos de cada aliado</strong> para o LS pegar carona na força e na agenda deles.',
+            what: 'O <strong>planejador de palanque de chapa</strong>. Os candidatos não competem com a Isadora — são a <strong>chapa dela</strong> em cargos diferentes (Jorginho governador, Carol senadora, Daniela federal, Isadora estadual). Os votos não competem, se <strong>somam</strong>. O mapa mostra os <strong>redutos de cada aliado</strong> para a Isadora pegar carona na força e na agenda deles.',
             how: 'Cada cidade é classificada pela <strong>carona disponível</strong> (quantos aliados de chapa são fortes ali):<br><br>' +
                 '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#7c3aed;vertical-align:middle;margin-right:4px"></span> <strong style="color:#7c3aed">🎤 Palanque conjunto</strong> — 2+ aliados fortes. Evento conjunto, multidão emprestada. <strong>Maior oportunidade!</strong><br>' +
                 '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#f59e0b;vertical-align:middle;margin-right:4px"></span> <strong style="color:#b45309">🤝 Reduto de aliado</strong> — 1 aliado forte. Pegar carona na agenda dele.<br>' +
-                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#15803d;vertical-align:middle;margin-right:4px"></span> <strong style="color:#15803d">🏠 Polo do LS</strong> — o LS já é forte aqui.<br>' +
-                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#d1d5db;vertical-align:middle;margin-right:4px"></span> <strong style="color:#64748b">⚪ Sem carona</strong> — sem aliado forte e LS fraco.<br><br>' +
-                'No topo, ligue/desligue os aliados. Clique numa cidade para ver os votos de cada um e <strong>agendar o LS junto</strong>.',
+                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#15803d;vertical-align:middle;margin-right:4px"></span> <strong style="color:#15803d">🏠 Polo da Isadora</strong> — a Isadora já é forte aqui.<br>' +
+                '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#d1d5db;vertical-align:middle;margin-right:4px"></span> <strong style="color:#64748b">⚪ Sem carona</strong> — sem aliado forte e Isadora fraca.<br><br>' +
+                'No topo, ligue/desligue os aliados. Clique numa cidade para ver os votos de cada um e <strong>agendar a Isadora junto</strong>.',
             example: '<strong>A jogada de campanha:</strong><br><br>' +
                 '<strong>1. Marque a visita do aliado:</strong> ao saber que a Carol fará um comício em Chapecó, registre como <strong>Evento</strong> e marque a Carol. O mapa cruza com o reduto dela e acende o alerta de <strong>palanque pronto</strong>.<br><br>' +
-                '<strong>2. Coloque o LS junto:</strong> clique na cidade → "+ Compromisso" cria a agenda do LS na mesma data, com os cabos locais. O LS sobe no palanque com a Carol, com público e estrutura emprestados.<br><br>' +
+                '<strong>2. Coloque a Isadora junto:</strong> clique na cidade → "+ Compromisso" cria a agenda da Isadora na mesma data, com os cabos locais. A Isadora sobe no palanque com a Carol, com público e estrutura emprestados.<br><br>' +
                 '<strong>3. Priorize os palanques conjuntos:</strong> cidades roxas (2+ aliados fortes) são os eventos de maior retorno — vários pesos-pesados e multidão de uma vez.',
-            estrategia: 'Votos de aliado somam com os seus. Para converter:<br>&bull; Reduto de aliado (laranja) + <strong>Vitória 2026</strong> com lacuna = leve o LS junto e colha voto novo.<br>&bull; Palanque conjunto + <strong>Roteiros</strong> = agende o LS no evento do aliado.<br>&bull; Reduto de aliado + <strong>Concorrência</strong> com rival forte = a carona é seu jeito de entrar sem brigar de frente.<br>&bull; Feche sempre com <strong>+ Compromisso</strong>.',
+            estrategia: 'Votos de aliado somam com os seus. Para converter:<br>&bull; Reduto de aliado (laranja) + <strong>Vitória 2026</strong> com lacuna = leve a Isadora junto e colha voto novo.<br>&bull; Palanque conjunto + <strong>Roteiros</strong> = agende a Isadora no evento do aliado.<br>&bull; Reduto de aliado + <strong>Concorrência</strong> com rival forte = a carona é seu jeito de entrar sem brigar de frente.<br>&bull; Feche sempre com <strong>+ Compromisso</strong>.',
         },
         perfil_ideologico: {
             what: 'Ferramenta de <strong>inteligência territorial</strong> que cruza <strong>5 camadas de dados</strong> para revelar o perfil ideológico, a classificação estratégica e a força da rede PL de cada cidade simultaneamente.<br><br>' +
@@ -726,7 +886,7 @@
                 '<tr style="border-bottom:1px solid #e2e8f0;"><td style="padding:4px 0;vertical-align:top;"><strong style="color:#059669;">Socioeconômicos</strong></td><td style="padding:4px 8px;">PIB e Renda per capita, MEIs ativos, Bolsa Família (inverso)</td></tr>' +
                 '<tr style="border-bottom:1px solid #e2e8f0;"><td style="padding:4px 0;vertical-align:top;"><strong style="color:#7c3aed;">Demográficos</strong></td><td style="padding:4px 8px;">% Pop. urbana, % Idosos 60+, % Jovens 18-29, Escolaridade (IBGE)</td></tr>' +
                 '<tr style="border-bottom:1px solid #e2e8f0;"><td style="padding:4px 0;vertical-align:top;"><strong style="color:#dc2626;">CRM</strong></td><td style="padding:4px 8px;">Apoiadores cadastrados e demandas por cidade</td></tr>' +
-                '<tr><td style="padding:4px 0;vertical-align:top;"><strong style="color:#f59e0b;">Estratégico</strong></td><td style="padding:4px 8px;">Classificação (Base Forte, Potencial Oculto, etc.), alinhamento do prefeito, nível da Rede PL (forte/moderada/fraca/ausente), penetração eleitoral 2022</td></tr>' +
+                '<tr><td style="padding:4px 0;vertical-align:top;"><strong style="color:#f59e0b;">Estratégico</strong></td><td style="padding:4px 8px;">Classificação (Base Forte, Potencial Oculto, etc.), alinhamento do prefeito, nível da Rede NOVO (forte/moderada/fraca/ausente), penetração eleitoral 2022</td></tr>' +
                 '</table><br>' +
                 '<strong>Barra de peso</strong> — define quanto cada grupo influencia o score final. Ex: 70%/30% prioriza o socioeconômico sobre o eleitoral.<br><br>' +
                 '<strong>Escala de cores (relativa dentro de SC):</strong><br>' +
@@ -741,34 +901,34 @@
                 '<strong style="color:#1565C0;">Base garantida</strong> — Cidades ultra conservadoras com boa estrutura econômica. <em>Ação: manter presença.</em><br><br>' +
                 '<strong style="color:#FF7043;">Onde investir</strong> — Liga a métrica <strong>🎯 Oportunidade</strong>: ranqueia e pinta o mapa por <em>conservadorismo × tamanho do eleitorado × déficit de presença</em> (penetração 2022 + apoiadores baixos). O topo da lista são os alvos de maior retorno por real. <em>Alterne Perfil ⇄ Oportunidade no Ranking a qualquer momento.</em><br><br>' +
                 '<strong style="color:#E53935;">A disputar</strong> — Territórios menos conservadores. <em>Ação: ajustar comunicação, pautas locais.</em><br><br>' +
-                '<strong>Cruzamento estratégico (novo):</strong> Agora cada cidade no tooltip e na comparação mostra a <strong>classificação estratégica</strong> (Base Forte, Aliado Fraco, etc.) e o <strong>nível da Rede PL</strong> (forte, moderada, fraca, ausente). Isso permite identificar contradições poderosas:<br>' +
-                '&bull; Cidade com perfil ideológico conservador + classificação "Neutro" + Rede PL ausente = <strong>alvo prioritário de expansão</strong><br>' +
+                '<strong>Cruzamento estratégico (novo):</strong> Agora cada cidade no tooltip e na comparação mostra a <strong>classificação estratégica</strong> (Base Forte, Aliado Fraco, etc.) e o <strong>nível da Rede NOVO</strong> (forte, moderada, fraca, ausente). Isso permite identificar contradições poderosas:<br>' +
+                '&bull; Cidade com perfil ideológico conservador + classificação "Neutro" + Rede NOVO ausente = <strong>alvo prioritário de expansão</strong><br>' +
                 '&bull; Cidade com perfil conservador + classificação "Território Hostil" = <strong>o adversário está conquistando eleitorado conservador</strong> — exige investigação local<br>' +
-                '&bull; Cidade com perfil moderado + Rede PL forte + poucos apoiadores = <strong>a máquina existe mas não está ativada</strong>',
-            estrategia: 'Este mapa não escolhe a cidade — calibra a <strong>mensagem</strong> nela. Use junto de todos:<br>&bull; Antes de cada <strong>+ Compromisso</strong>, veja o perfil e ajuste o discurso.<br>&bull; Cidade conservadora + 💰 Mina de ouro (<strong>Vitória</strong>) = terreno fértil para o discurso do LS, priorize.<br>&bull; Cidade menos conservadora = entre por demanda concreta (<strong>Demandas</strong>), não por ideologia.',
+                '&bull; Cidade com perfil moderado + Rede NOVO forte + poucos apoiadores = <strong>a máquina existe mas não está ativada</strong>',
+            estrategia: 'Este mapa não escolhe a cidade — calibra a <strong>mensagem</strong> nela. Use junto de todos:<br>&bull; Antes de cada <strong>+ Compromisso</strong>, veja o perfil e ajuste o discurso.<br>&bull; Cidade conservadora + 💰 Mina de ouro (<strong>Vitória</strong>) = terreno fértil para o discurso da Isadora, priorize.<br>&bull; Cidade menos conservadora = entre por demanda concreta (<strong>Demandas</strong>), não por ideologia.',
         },
         concorrencia: {
-            what: 'Ferramenta de <strong>análise competitiva</strong> com <strong>ranking de ameaça</strong> e <strong>comparação direta com o LS</strong>. Permite visualizar até 8 candidatos simultaneamente e entender quem disputa os mesmos eleitores.<br><br>' +
+            what: 'Ferramenta de <strong>análise competitiva</strong> com <strong>ranking de ameaça</strong> e <strong>comparação direta com a Isadora</strong>. Permite visualizar até 8 candidatos simultaneamente e entender quem disputa os mesmos eleitores.<br><br>' +
                 '<table style="width:100%;font-size:.78rem;border-collapse:collapse;margin-bottom:4px">' +
                 '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0;width:35%"><strong>Visualização multi-candidato</strong></td><td style="padding-left:8px;color:#64748b">Até 8 candidatos com paletas de cores distintas — sobreposição territorial em tempo real</td></tr>' +
-                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0"><strong>Ranking de ameaça</strong></td><td style="padding-left:8px;color:#64748b">Lista de deputados federais ordenada por sobreposição geográfica com o LS — quem disputa as mesmas cidades</td></tr>' +
-                '<tr><td style="padding:3px 0"><strong>Comparação direta</strong></td><td style="padding-left:8px;color:#64748b">Ao selecionar um candidato, cada cidade mostra votos do LS vs. adversário com diferença absoluta e percentual</td></tr>' +
+                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0"><strong>Ranking de ameaça</strong></td><td style="padding-left:8px;color:#64748b">Lista de deputados federais ordenada por sobreposição geográfica com a Isadora — quem disputa as mesmas cidades</td></tr>' +
+                '<tr><td style="padding:3px 0"><strong>Comparação direta</strong></td><td style="padding-left:8px;color:#64748b">Ao selecionar um candidato, cada cidade mostra votos da Isadora vs. adversário com diferença absoluta e percentual</td></tr>' +
                 '</table><br>' +
                 '<strong>Como usar:</strong> Clique em "+ Adicionar candidato" no painel à esquerda. Use o <strong>ranking de ameaça</strong> para identificar quais adversários priorizar na análise.',
             how: 'Cada candidato selecionado recebe uma <strong>paleta de cores própria</strong>. A cidade é pintada com a cor do <strong>candidato dominante</strong> (mais votos). A intensidade indica força relativa.<br><br>' +
                 '<span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:#e2e8f0;vertical-align:middle;margin-right:4px"></span> <strong style="color:#9ca3af">Cinza</strong> — Nenhum dos selecionados recebeu votos nesta cidade.<br><br>' +
                 '<strong>Ranking de ameaça (deputados federais):</strong><br>' +
-                'A lista de candidatos agora inclui 3 métricas de sobreposição com o LS:<br>' +
+                'A lista de candidatos agora inclui 3 métricas de sobreposição com a Isadora:<br>' +
                 '<table style="width:100%;font-size:.78rem;border-collapse:collapse;margin-top:4px">' +
-                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0"><strong>Overlap %</strong></td><td style="padding-left:8px;color:#64748b">Percentual de sobreposição — quanto do eleitorado do LS é disputado por este candidato</td></tr>' +
-                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0"><strong>Overlap votos</strong></td><td style="padding-left:8px;color:#64748b">Volume absoluto de votos em disputa (mínimo entre LS e adversário em cada cidade)</td></tr>' +
+                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0"><strong>Overlap %</strong></td><td style="padding-left:8px;color:#64748b">Percentual de sobreposição — quanto do eleitorado da Isadora é disputado por este candidato</td></tr>' +
+                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0"><strong>Overlap votos</strong></td><td style="padding-left:8px;color:#64748b">Volume absoluto de votos em disputa (mínimo entre Isadora e adversário em cada cidade)</td></tr>' +
                 '<tr><td style="padding:3px 0"><strong>Cidades compartilhadas</strong></td><td style="padding-left:8px;color:#64748b">Em quantas cidades ambos receberam votos — indica dispersão da competição</td></tr>' +
                 '</table><br>' +
-                '<strong>Tooltip por cidade:</strong> Ao selecionar um candidato, o tooltip mostra votos e % de ambos + diferença (LS ganha ou perde).',
+                '<strong>Tooltip por cidade:</strong> Ao selecionar um candidato, o tooltip mostra votos e % de ambos + diferença (Isadora ganha ou perde).',
             example: '<strong>Como usar o ranking de ameaça:</strong><br><br>' +
                 '<strong>1. Identificar adversários diretos:</strong> Um deputado federal com overlap de 35% e 180 cidades compartilhadas é um concorrente direto — atua nas mesmas regiões. Já um com overlap de 5% e 20 cidades é irrelevante para a estratégia.<br><br>' +
                 '<strong>2. Analisar cidade a cidade:</strong> Selecione o adversário de maior overlap. No tooltip, cidades onde a diferença é negativa (adversário à frente) são campos de batalha. Cidades com diferença positiva grande são base segura.<br><br>' +
-                '<strong>3. Resumo da disputa:</strong> O painel mostra quantas cidades o LS ganha vs. quantas o adversário ganha. Se o adversário ganha em mais cidades mas com margens pequenas, a disputa é disputável. Se ganha com margens grandes, são territórios perdidos.',
+                '<strong>3. Resumo da disputa:</strong> O painel mostra quantas cidades a Isadora ganha vs. quantas o adversário ganha. Se o adversário ganha em mais cidades mas com margens pequenas, a disputa é disputável. Se ganha com margens grandes, são territórios perdidos.',
             estrategia: 'Saber onde o rival é forte evita desperdício. Cruze:<br>&bull; Reduto do rival + <strong>Estratégico</strong> sem aliado seu = não gaste energia.<br>&bull; Reduto do rival + <strong>Transferência</strong> com aliado de chapa forte = dispute pela carona.<br>&bull; Cidade em aberto (rival fraco) + 💰 Mina de ouro (<strong>Vitória</strong>) = ataque imediato, terreno livre.',
         },
     };
@@ -777,7 +937,52 @@
         what: 'O <strong>tabuleiro de guerra da campanha</strong>. Em vez de mostrar onde fomos bem no passado, mostra <strong>onde estão os votos que faltam para 2026</strong> e onde é mais fácil buscá-los.',
         how: 'As cidades são pintadas pelos <strong>votos disponíveis</strong> (potencial − votos de 2022): vermelho = muita lacuna (oportunidade), verde = poucos votos sobrando (saturada). Cada cidade é classificada em 4 estratégias: 🛡️ Celeiro (defender), ✅ Fortaleza (manter), 💰 Mina de ouro (atacar), ⚪ Marginal. Clique numa cidade para o painel de ação: vencidos, última visita e botões de agendar.',
         example: '<strong>Exemplo:</strong> uma cidade grande pintada de vermelho, classificada como 💰 Mina de ouro e com alerta "órfã" (zero estrutura) é a maior oportunidade ignorada da campanha — muito voto disponível e ninguém trabalhando lá.',
-        estrategia: 'Achou uma 💰 <strong>Mina de ouro</strong>? Não pare aqui — cruze:<br>&bull; <strong>Transferência</strong> — aliado de chapa forte lá? É palanque de carona: agende junto.<br>&bull; <strong>Estratégico</strong> — aparece 🤝 aliado a ativar? Máquina parada: ligue os cabos.<br>&bull; Se 🚨 órfã, cheque <strong>Concorrência</strong> (terreno livre?) e <strong>Perfil Ideológico</strong> (qual discurso).<br>&bull; Feche com <strong>+ Compromisso / + Roteiro</strong> — vire o diagnóstico em visita.',
+        estrategia: 'Achou uma 💰 <strong>Mina de ouro</strong>? Não pare aqui — cruze:<br>&bull; <strong>Transferência</strong> — aliado de chapa forte lá? É palanque de carona: agende junto.<br>&bull; <strong>Estratégico</strong> — aparece 🤝 aliado a ativar? Máquina parada: ligue os cabos.<br>&bull; Se 🚨 órfã, cheque <strong>Concorrência</strong> (terreno livre?) e <strong>Perfil Ideológico</strong> (qual discurso).<br>&bull; Feche com <strong>+ Compromisso</strong> — vire o diagnóstico em visita.',
+    };
+
+    // ── Receitas de cruzamento (por camada): ligue X + Y → decisão ──
+    // src: 'real' (TSE/CRM) · 'proxy' (perfil socioeconômico derivado do PIB) · 'misto'
+    function rec(verb, mix, text, src) {
+        const cls = { Expandir: 'rb-expandir', Blindar: 'rb-blindar', Carona: 'rb-carona', Ignorar: 'rb-ignorar' }[verb] || '';
+        const dh = 'dec:' + verb.toLowerCase();
+        const sc = src === 'real' ? 'src-real' : src === 'proxy' ? 'src-proxy' : src === 'misto' ? 'src-misto' : '';
+        const sdh = sc ? ` data-help="src:${src}"` : '';
+        return `<div class="recipe"><span class="rec-badge ${cls}" data-help="${dh}">${verb}</span><span class="rec-mix ${sc}"${sdh}>${mix}</span> &rarr; ${text}</div>`;
+    }
+    const W = t => `<span class="rec-warn">&#9888; ${t}</span>`;
+    const helpReceitas = {
+        eleicoes_2022:
+            rec('Expandir', 'Eleições 2022 (laranja/vermelho) + Vitória 2026 (mina de ouro)', 'fui fraco, mas há voto disponível: alvo de crescimento. ' + W('confira se não é cidade saturada ou de eleitorado pequeno — aí é Ignorar.'), 'real') +
+            rec('Blindar', 'Eleições 2022 (verde) + Concorrência (rival forte)', 'reduto ameaçado, defenda. Verde + rival fraco = manter no mínimo e realocar recurso.', 'real') +
+            rec('Carona', 'Eleições 2022 (vermelho) + Transferência (reduto de aliado)', 'onde fui fraco mas o palanque é forte: construção de voto barata.', 'real'),
+        vitoria:
+            rec('Expandir', 'Mina de ouro + Calor (poucos apoiadores / sem cabo)', 'voto sem dono — a prioridade nº 1 da campanha. ' + W('mina órfã sem eleitorado livre = Ignorar.'), 'real') +
+            rec('Carona', 'Mina de ouro + Transferência (aliado forte)', 'leve a Isadora na carona da agenda e da multidão do aliado.', 'real') +
+            rec('Expandir', 'Mina de ouro + Perfil ideológico', 'calibre a pauta antes de marcar o compromisso (qual discurso, não só onde).', 'misto'),
+        calor:
+            rec('Expandir', 'Calor "Gap" alto (votou e não cadastrou) + Vitória (mina de ouro)', 'base que votou na Isadora e não entrou no CRM: cadastrar e contatar.', 'real') +
+            rec('Expandir', 'Calor (demandas vencidas) + importância eleitoral (mina de ouro / muito eleitor)', 'atraso em cidade-chave: cobrança imediata. ' + W('atraso em cidade irrelevante = Ignorar.'), 'real') +
+            rec('Ignorar', 'Calor (vazio de apoiadores) + cidade saturada ou de eleitorado pequeno', 'não há voto a colher — não desperdice estrutura.', 'real'),
+        estrategico:
+            rec('Expandir', '🤝 Aliado a ativar (base acomodada) + Vitória (mina de ouro)', 'a alavanca mais barata: a máquina existe e está parada — ligue os cabos.', 'real') +
+            rec('Expandir', '⚠ Voto orgânico frágil + Calor (sem estrutura)', 'voto espontâneo de 2022 que escapa sem cabo: monte estrutura antes de esfriar.', 'real') +
+            rec('Carona', '🏗️ Construir + Transferência (aliado de chapa forte)', 'entre pela carona do aliado e monte a estrutura local depois.', 'real'),
+        transferencia:
+            rec('Carona', 'Reduto de aliado + Eleições 2022 (eu fraco)', 'voto barato na estrutura do aliado; feche com "+ Compromisso" na data dele.', 'real') +
+            rec('Carona', 'Palanque conjunto (2+ aliados) + Roteiros', 'maior retorno: agende a Isadora no evento conjunto — multidão e palanque emprestados.', 'real') +
+            rec('Carona', 'Reduto de aliado + Concorrência (rival forte)', 'a carona é o jeito de entrar sem brigar de frente com o rival.', 'real'),
+        concorrencia:
+            rec('Ignorar', 'Reduto do rival + Estratégico (sem aliado seu)', 'território perdido: não gaste energia do candidato ali.', 'real') +
+            rec('Carona', 'Reduto do rival + Transferência (aliado de chapa forte)', 'dispute pela carona do aliado, não no enfrentamento direto.', 'real') +
+            rec('Expandir', 'Cidade em aberto (rival fraco) + Vitória (mina de ouro)', 'terreno livre com voto disponível: ataque imediato.', 'real'),
+        perfil_ideologico:
+            rec('Expandir', 'Perfil conservador + Estratégico "Neutro" / Rede NOVO ausente', 'eleitorado afim a você sem ninguém organizando: alvo prioritário de expansão.', 'misto') +
+            rec('Blindar', 'Perfil conservador + Território Hostil', 'o adversário está capturando eleitorado que combina com você: investigue o local.', 'misto') +
+            rec('Expandir', 'Slider de peso: 70% socioeconômico ⇄ 70% eleitoral', 'socioeconômico acha afinidade de pauta; eleitoral acha reduto. ' + W('o socioeconômico é estimado (proxy do PIB) — use como indício.'), 'proxy'),
+        roteiros:
+            rec('Expandir', 'Roteiros + Vitória + Transferência', 'monte a caravana encadeando minas de ouro e redutos de aliado no mesmo trajeto.', 'real') +
+            rec('Expandir', 'Roteiros + Calor (demandas vencidas em cidade-chave)', 'inclua paradas onde o atraso está custando voto — otimiza o deslocamento.', 'real') +
+            rec('Expandir', 'Roteiros + Perfil ideológico', 'ajuste o discurso de cada parada ao perfil da cidade.', 'proxy'),
     };
 
     const helpPanel = document.getElementById('helpPanel');
@@ -805,7 +1010,7 @@
             }
             if (mode === 'eleicoes_2022' && window._eleicoesData) {
                 const d = window._eleicoesData, ps = d.perf_summary || {}, s = d.summary || {};
-                return `${n(ps.primeiro)} cidades em 1º lugar · ${n(ps.top3)} no top 3 · posição média ${s.avg_position}º · <strong>${n(s.total_ls_votes)}</strong> votos no total.`;
+                return `${n(ps.primeiro)} cidades em 1º lugar · ${n(ps.top3)} no top 3 · posição mediana ${String(s.median_position).replace('.', ',')}º · <strong>${n(s.total_ls_votes)}</strong> votos no total.`;
             }
             if (mode === 'calor' && window._calorData) {
                 const regs = window._calorData.regions || [];
@@ -813,11 +1018,12 @@
                 const vazios = regs.filter(r => !r.apoiadores).length;
                 return `${n(apo)} apoiadores cadastrados em ${n(regs.length)} regiões${vazios ? ` · ${n(vazios)} regiões sem nenhum apoiador (vazios a ocupar)` : ''}.`;
             }
-            if (mode === 'roteiros' && map._visitUrgencyData) {
-                const cs = Object.values(map._visitUrgencyData.cities || {});
-                const crit = cs.filter(c => c.nivel >= 4).length;
-                const nunca = cs.filter(c => c.dias_visita === null).length;
-                return `${n(crit)} cidades em urgência crítica de visita · ${n(nunca)} nunca visitadas pelo candidato.`;
+            if (mode === 'roteiros') {
+                const its = (map._itinerariesData || []);
+                const paradas = its.reduce((a, it) => a + (it.stops ? it.stops.length : 0), 0);
+                const concl = its.filter(it => it.status === 'completed').length;
+                const fut = its.length - concl;
+                return `${n(its.length)} roteiro(s) · ${n(paradas)} parada(s) · ${n(fut)} a fazer · ${n(concl)} concluído(s).`;
             }
             if (mode === 'concorrencia' && typeof compCandidatesList !== 'undefined' && compCandidatesList.length) {
                 const est = compCandidatesList
@@ -834,7 +1040,7 @@
                     const sorted = [...vals].sort((a, b) => a - b);
                     const med = sorted[Math.floor(sorted.length / 2)];
                     const conserv = vals.filter(v => v >= med).length;
-                    return `${n(vals.length)} cidades analisadas · ${n(conserv)} no perfil mais conservador (terreno do discurso do LS).`;
+                    return `${n(vals.length)} cidades analisadas · ${n(conserv)} no perfil mais conservador (terreno do discurso da Isadora).`;
                 }
             }
         } catch (e) { /* dados ainda não carregados → estático */ }
@@ -856,9 +1062,18 @@
         } else {
             stratSec.style.display = 'none';
         }
+        // Receitas de cruzamento (por modo)
+        const recSec = document.getElementById('helpReceitasSection');
+        const recHtml = helpReceitas[mode];
+        if (recHtml) {
+            document.getElementById('helpReceitas').innerHTML = recHtml;
+            recSec.style.display = '';
+        } else {
+            recSec.style.display = 'none';
+        }
     }
 
-    btnHelp.addEventListener('click', () => {
+    if (btnHelp) btnHelp.addEventListener('click', () => {
         const isVisible = helpPanel.classList.contains('visible');
         if (isVisible) {
             helpPanel.classList.remove('visible');
@@ -878,14 +1093,16 @@
             {color: '#eab308', label: 'Top 5', h: 'leg:el:5'},
             {color: '#f97316', label: 'Top 10', h: 'leg:el:10'},
             {color: '#ef4444', label: '11º+', h: 'leg:el:11'},
+            {color: '#e2e8f0', label: 'Sem registro'},
         ],
         regioes: [],
         vitoria: [
-            {color: '#f87171', label: 'Muita lacuna', h: 'leg:vit:muita'},
-            {color: '#fdba74', label: 'Alta', h: 'leg:vit:alta'},
-            {color: '#fde68a', label: 'Média', h: 'leg:vit:media'},
-            {color: '#bbf7d0', label: 'Baixa', h: 'leg:vit:baixa'},
-            {color: '#e2e8f0', label: 'Saturada', h: 'leg:vit:sat'},
+            // Mesma rampa neutra→laranja do mapa (sc-map._victoryColor)
+            {color: '#e25e00', label: 'Muita lacuna', h: 'leg:vit:muita'},
+            {color: '#ff8f3c', label: 'Alta', h: 'leg:vit:alta'},
+            {color: '#ffc187', label: 'Média', h: 'leg:vit:media'},
+            {color: '#ffe4c4', label: 'Baixa', h: 'leg:vit:baixa'},
+            {color: '#eceef2', label: 'Saturada', h: 'leg:vit:sat'},
         ],
         calor: [],
         demandas: [
@@ -899,16 +1116,18 @@
             {color: '#22c55e', label: 'Concluído', h: 'leg:rot:conc'},
         ],
         estrategico: [
-            {color: '#15803d', label: 'Base Forte', h: 'leg:est:base'},
-            {color: '#86efac', label: 'Aliado Fraco', h: 'leg:est:fraco'},
-            {color: '#eab308', label: 'Potencial Oculto', h: 'leg:est:oculto'},
-            {color: '#dc2626', label: 'Território Hostil', h: 'leg:est:hostil'},
-            {color: '#9ca3af', label: 'Neutro', h: 'leg:est:neutro'},
+            // Mesmas classes/cores do mapa (sc-map._strategicColor)
+            {color: '#15803d', label: '🏭 Máquina de voto', h: 'est:maquina_voto'},
+            {color: '#f59e0b', label: '🤝 Aliado a ativar', h: 'est:aliado_ativar'},
+            {color: '#f97316', label: '🏗️ Construir', h: 'est:construir'},
+            {color: '#7c3aed', label: '⚔️ Em disputa', h: 'est:disputa'},
+            {color: '#dc2626', label: '🚫 Hostil', h: 'est:hostil'},
+            {color: '#9ca3af', label: '⚪ Neutro', h: 'est:neutro'},
         ],
         transferencia: [
             {color: '#7c3aed', label: '🎤 Palanque conjunto', h: 'leg:tr:palanque'},
             {color: '#f59e0b', label: '🤝 Reduto de aliado', h: 'leg:tr:reduto'},
-            {color: '#15803d', label: '🏠 Polo do LS', h: 'leg:tr:polo'},
+            {color: '#15803d', label: '🏠 Polo da Isadora', h: 'leg:tr:polo'},
             {color: '#d1d5db', label: '⚪ Sem carona', h: 'leg:tr:sem'},
         ],
         perfil_ideologico: [
@@ -939,6 +1158,39 @@
         el.innerHTML = items.map(i =>
             `<span class="legend-item"${i.h ? ` data-help="${i.h}"` : ''}><span class="legend-dot" style="background:${i.color}"></span>${i.label}</span>`
         ).join('');
+        renderProvenance(mode);
+    }
+
+    // §7 Proveniência: cada camada declara sua fonte REAL. Um "Fonte: TSE" sob
+    // o mapa de Perfil (IBGE) seria mentira — cf. CLAUDE.md §5. Por isso é por camada.
+    const PROVENIENCIA = {
+        eleicoes_2022:    'TSE — resultados oficiais 2022',
+        vitoria:          'TSE 2022 (votos) × meta da campanha',
+        concorrencia:     'TSE — resultados oficiais 2022',
+        transferencia:    'TSE — resultados oficiais 2022',
+        estrategico:      'TSE 2022 · CRM (rede) · IBGE Censo 2022',
+        perfil_ideologico:'IBGE Censo 2022 · TSE 2022',
+        oportunidade:     'IBGE Censo 2022 · TSE 2022',
+        calor:            'TSE 2022 · CRM (rede) · IBGE Censo 2022 (varia por camada)',
+        roteiros:         'CRM — Agenda da campanha',
+        demandas:         'CRM — demandas registradas',
+        regioes:          'CRM (rede) · TSE 2022',
+    };
+    function renderProvenance(mode) {
+        const el = document.getElementById('mapProvenance');
+        if (!el) return;
+        const fonte = PROVENIENCIA[mode];
+        if (!fonte) { el.innerHTML = ''; return; }
+        const partes = [`<strong>Fonte:</strong> ${fonte}`, 'Municípios: 295'];
+        // Zonas eleitorais: só quando há dado eleitoral real carregado.
+        const zonas = window._eleicoesData?.summary?.total_zones;
+        if (zonas && (mode === 'eleicoes_2022' || mode === 'vitoria' || mode === 'concorrencia' || mode === 'transferencia')) {
+            partes.push(`Zonas: ${zonas}`);
+        }
+        // §7 pede "Atualizado em [data]", mas os dados não guardam timestamp de
+        // importação — só ano de referência. Não inventamos data (CLAUDE.md §5).
+        // TODO: expor data de importação (Eleicao/IndicadorMunicipal) p/ "Atualizado em".
+        el.innerHTML = partes.join(' · ');
     }
 
     // ── Dashboard below map ────────────────────────────────────
@@ -1004,13 +1256,44 @@ case 'transferencia': {
                     renderTransferDashboard(data);
                     break;
                 }
+                case 'concorrencia':
+                    renderConcorrenciaDashboard();
+                    break;
+                case 'perfil_ideologico':
+                    renderPerfilIdeologicoDashboard();
+                    break;
                 default:
                     dashEl.classList.add('map-dashboard-hidden');
             }
         } catch(e) {
             console.error('Dashboard error:', e);
-            dashEl.classList.add('map-dashboard-hidden');
+            // O painel de dados falhou, mas o "Como ler este mapa" não some:
+            // renderiza a explicação estática do modo + aviso de erro.
+            const cfg = MODO_EXPLICA[mode];
+            if (cfg) {
+                window._legRerender = () => renderDashboard(mode);
+                dashEl.innerHTML = legendaCamada(cfg) +
+                    '<div style="font-size:.8rem;color:#dc2626;">Não foi possível carregar os dados deste painel. Recarregue a página para tentar de novo.</div>';
+                dashEl.classList.remove('map-dashboard-hidden');
+            } else {
+                dashEl.classList.add('map-dashboard-hidden');
+            }
         }
+    }
+
+    // Concorrência e Perfil Ideológico controlam os dados no painel sobre o
+    // mapa; abaixo do mapa vai a explicação padrão ("Como ler este mapa"),
+    // como em todos os outros modos.
+    function renderConcorrenciaDashboard() {
+        window._legRerender = renderConcorrenciaDashboard;
+        dashEl.innerHTML = legendaCamada(MODO_EXPLICA.concorrencia);
+        dashEl.classList.remove('map-dashboard-hidden');
+    }
+
+    function renderPerfilIdeologicoDashboard() {
+        window._legRerender = renderPerfilIdeologicoDashboard;
+        dashEl.innerHTML = legendaCamada(MODO_EXPLICA.perfil_ideologico);
+        dashEl.classList.remove('map-dashboard-hidden');
     }
 
     function renderElectionsDashboard(data) {
@@ -1018,9 +1301,12 @@ case 'transferencia': {
         const ps = data.perf_summary;
         const cities = data.cities;
 
+        window._legRerender = () => renderElectionsDashboard(data);
+        let html = legendaCamada(MODO_EXPLICA.eleicoes_2022);
+
         // Summary line
-        let html = '<div class="dash-summary">';
-        html += '<span class="dash-summary-title">Posicao LS &mdash; Dep. Federal 2022</span>';
+        html += '<div class="dash-summary">';
+        html += '<span class="dash-summary-title">Posição da Isadora &mdash; eleição de 2022</span>';
         // Mini legend
         html += '<span class="map-legend" style="padding:0;gap:8px;">';
         for (const [key, label] of Object.entries(perfLabels)) {
@@ -1031,8 +1317,10 @@ case 'transferencia': {
 
         // Stats line
         html += '<div class="dash-summary-stats" style="margin-bottom:4px">';
-        html += `<span style="color:#002776;font-weight:600">Total votos LS: ${fmt.number(s.total_ls_votes)}</span>`;
-        html += `<span>Posicao media: ${s.avg_position}o</span>`;
+        html += `<span style="color:#FF6B00;font-weight:600">Total votos Isadora: ${fmt.number(s.total_ls_votes)}</span>`;
+        const ord = (x) => String(x).replace('.', ',') + 'º';
+        html += `<span title="Mediana das posições da Isadora nas ${s.total_cities} cidades — metade fica acima, metade abaixo. Robusta a outliers.">Posição (mediana): ${ord(s.median_position)} <span class="vtag conta">CONTA</span></span>`;
+        html += `<span title="Σ(posição × eleitores da cidade) ÷ Σ(eleitores). Pondera pelo porte: onde há mais eleitores pesa mais.">Posição (ponderada p/ eleitorado): ${ord(s.weighted_position)} <span class="vtag conta">CONTA</span></span>`;
         html += `<span>${s.total_cities} cidades</span>`;
         html += `<span>${s.total_zones} zonas eleitorais</span>`;
         html += '</div>';
@@ -1050,19 +1338,24 @@ case 'transferencia': {
         // Table
         html += '<div class="dash-table-wrap">';
         html += '<div class="dash-table-header">';
-        html += '<h3>Posicao LS por Cidade &mdash; Dep. Federal 2022</h3>';
+        html += '<h3>Posicà Isadora por Cidade &mdash; Dep. Federal 2022</h3>';
         html += `<span>${cities.length} cidades</span>`;
         html += '</div>';
         html += '<table class="dash-table"><thead><tr>';
-        html += '<th>Pos.</th><th>Cidade</th><th>Regiao</th>';
-        html += '<th class="text-right">Votos LS</th><th class="text-right">% LS</th>';
+        html += '<th>Pos.</th><th title="Posição da Isadora sobre o total de candidatos da cidade — comparável entre cidades de portes diferentes. CONTA.">Percentil</th><th>Cidade</th><th>Regiao</th>';
+        html += '<th class="text-right">Votos Isadora</th><th class="text-right" title="% dos votos válidos da cidade (exclui brancos/nulos)">% válidos</th>';
         html += '<th>Performance</th><th>1o Lugar</th><th class="text-right">Votos 1o</th>';
         html += '</tr></thead><tbody>';
 
         for (const c of cities) {
             const perf = c.performance || 'abaixo';
+            // Percentil: posição / total de candidatos. Ex.: 8º de 400 = "top 2%".
+            const pctl = (c.percentil != null)
+                ? `top ${String(c.percentil).replace('.', ',')}%`
+                : '—';
             html += '<tr>';
-            html += `<td><strong>${c.ls_position}o</strong></td>`;
+            html += `<td><strong>${c.ls_position}º</strong></td>`;
+            html += `<td title="${c.ls_position}º de ${c.total_candidates} candidatos">${pctl}</td>`;
             html += `<td>${c.name}</td>`;
             html += `<td>${c.region}</td>`;
             html += `<td class="text-right"><strong>${fmt.number(c.ls_votes)}</strong></td>`;
@@ -1083,10 +1376,13 @@ case 'transferencia': {
     function renderRegioesDashboard(data) {
         const regions = data.regions || [];
 
+        window._legRerender = () => renderRegioesDashboard(data);
+        let html = legendaCamada(MODO_EXPLICA.regioes);
+
         // Summary cards
-        let html = '<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:16px;">';
+        html += '<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:16px;">';
         const cards = [
-            {value: data.total_coordenadores || 0, label: 'Coordenadores', color: '#002776'},
+            {value: data.total_coordenadores || 0, label: 'Coordenadores', color: '#FF6B00'},
             {value: data.total_apoiadores || 0, label: 'Apoiadores', color: '#16a34a'},
             {value: data.total_parceiros || 0, label: 'Parceiros', color: '#2563eb'},
             {value: data.total_liderancas || 0, label: 'Lideranças Políticas', color: '#7c3aed'},
@@ -1104,7 +1400,7 @@ case 'transferencia': {
         html += '<div class="dash-table-wrap"><div class="dash-table-header">';
         html += `<h3>Regiões (${regions.length} Associações de Municípios)</h3>`;
         html += '</div><table class="dash-table"><thead><tr>';
-        html += '<th>Região</th><th>Macro Região</th><th class="text-right">Votos LS 2022</th>';
+        html += '<th>Região</th><th>Macro Região</th><th class="text-right">Votos Isadora 2022</th>';
         html += '<th class="text-right">População</th><th class="text-right">Contatos</th>';
         html += '<th class="text-right">Meta Votos</th>';
         html += '</tr></thead><tbody>';
@@ -1149,8 +1445,10 @@ case 'transferencia': {
 
     function renderCalorDashboard(data) {
         window._calorData = data;
+        window._legRerender = () => renderCalorDashboard(window._calorData);
         const m = HEAT_LAYER_META[_heatLayerAtual];
-        let html = '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;">';
+        let html = legendaCamada(MODO_EXPLICA.calor);
+        html += '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;">';
         html += '<span style="font-size:.88rem;font-weight:700;color:#1e293b;">Camada:</span>';
         html += '<select onchange="trocarCamadaCalor(this.value)" style="padding:5px 10px;border:1px solid #cbd5e1;border-radius:7px;font-size:.8rem;font-weight:600;color:#1e293b;cursor:pointer;">';
         for (const [k, v] of Object.entries(HEAT_LAYER_META)) {
@@ -1168,7 +1466,7 @@ case 'transferencia': {
         // Summary cards
         html += '<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:16px;">';
         const cards = [
-            {value: data.total_coordenadores || 0, label: 'Coordenadores', color: '#002776'},
+            {value: data.total_coordenadores || 0, label: 'Coordenadores', color: '#FF6B00'},
             {value: data.total_apoiadores || 0, label: 'Apoiadores', color: '#16a34a'},
             {value: data.total_parceiros || 0, label: 'Parceiros', color: '#2563eb'},
             {value: data.total_liderancas || 0, label: 'Lideranças Políticas', color: '#7c3aed'},
@@ -1241,12 +1539,13 @@ case 'transferencia': {
         const regions = data.regions || [];
         const urg = data.urgentes || [];
 
-        let html = '<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:10px;">';
+        window._legRerender = () => renderDemandasDashboard(window._demandData);
+        let html = legendaCamada(MODO_EXPLICA.demandas);
+        html += '<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:10px;">';
         // toggle de camada
         html += '<div style="display:inline-flex;border:1px solid #cbd5e1;border-radius:8px;overflow:hidden;">';
-        html += `<button onclick="trocarCamadaDemanda('status')" style="padding:5px 12px;border:none;font-size:.78rem;font-weight:700;cursor:pointer;background:${_demandLayer==='status'?'#002776':'#fff'};color:${_demandLayer==='status'?'#fff':'#475569'};">Status</button>`;
-        html += `<button onclick="trocarCamadaDemanda('mismatch')" style="padding:5px 12px;border:none;border-left:1px solid #cbd5e1;font-size:.78rem;font-weight:700;cursor:pointer;background:${_demandLayer==='mismatch'?'#002776':'#fff'};color:${_demandLayer==='mismatch'?'#fff':'#475569'};">Esforço × Oportunidade</button>`;
-        html += `<button onclick="trocarCamadaDemanda('promessas')" style="padding:5px 12px;border:none;border-left:1px solid #cbd5e1;font-size:.78rem;font-weight:700;cursor:pointer;background:${_demandLayer==='promessas'?'#002776':'#fff'};color:${_demandLayer==='promessas'?'#fff':'#475569'};">Promessas ao eleitor</button>`;
+        html += `<button onclick="trocarCamadaDemanda('status')" style="padding:5px 12px;border:none;font-size:.78rem;font-weight:700;cursor:pointer;background:${_demandLayer==='status'?'#FF6B00':'#fff'};color:${_demandLayer==='status'?'#fff':'#475569'};">Status</button>`;
+        html += `<button onclick="trocarCamadaDemanda('mismatch')" style="padding:5px 12px;border:none;border-left:1px solid #cbd5e1;font-size:.78rem;font-weight:700;cursor:pointer;background:${_demandLayer==='mismatch'?'#FF6B00':'#fff'};color:${_demandLayer==='mismatch'?'#fff':'#475569'};">Esforço × Oportunidade</button>`;
         html += '</div>';
         // filtro de tipo
         html += '<select onchange="trocarTipoDemanda(this.value)" style="padding:5px 10px;border:1px solid #cbd5e1;border-radius:7px;font-size:.78rem;font-weight:600;cursor:pointer;">';
@@ -1254,12 +1553,7 @@ case 'transferencia': {
         for (const t of tipos) html += `<option value="${t.value}" ${t.value===_demandTipo?'selected':''}>${t.label} (${t.count})</option>`;
         html += '</select>';
         // legenda dinâmica
-        if (_demandLayer === 'promessas') {
-            html += '<span class="legend-item"><span class="legend-dot" style="background:#dc2626"></span>Pouco entregue</span>';
-            html += '<span class="legend-item"><span class="legend-dot" style="background:#eab308"></span>Parcial</span>';
-            html += '<span class="legend-item"><span class="legend-dot" style="background:#16a34a"></span>Entregue</span>';
-            html += '<span class="legend-item"><span class="legend-dot" style="background:#e2e8f0"></span>Sem promessas</span>';
-        } else if (_demandLayer === 'mismatch') {
+        if (_demandLayer === 'mismatch') {
             html += '<span class="legend-item"><span class="legend-dot" style="background:#dc2626"></span>Oportunidade ignorada</span>';
             html += '<span class="legend-item"><span class="legend-dot" style="background:#f1f5f9;border:1px solid #cbd5e1"></span>Equilibrado</span>';
             html += '<span class="legend-item"><span class="legend-dot" style="background:#3b82f6"></span>Esforço concentrado</span>';
@@ -1269,31 +1563,6 @@ case 'transferencia': {
             html += '<span class="legend-item"><span class="legend-dot" style="background:#d1d5db"></span>Sem demandas</span>';
         }
         html += '</div>';
-
-        // ── Camada Promessas: painel próprio ──
-        if (_demandLayer === 'promessas') {
-            const pd = (window.mapApp && window.mapApp._promessasData) ? window.mapApp._promessasData : { summary:{}, ultimas:[] };
-            const ps = pd.summary || {};
-            let ph = '<div style="display:flex;gap:14px;flex-wrap:wrap;margin:10px 0 14px;align-items:flex-end;">';
-            const pcards = [['Promessas', ps.total||0, '#1e293b'], ['Entregues', ps.entregues||0, '#16a34a'], ['Pendentes', ps.pendentes||0, '#dc2626'], ['Taxa de entrega', (ps.taxa||0)+'%', '#2563eb']];
-            for (const [l,v,c] of pcards) ph += `<div><div style="font-size:1.5rem;font-weight:800;color:${c};line-height:1;">${v}</div><div style="font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.4px;">${l}</div></div>`;
-            ph += '</div>';
-            const ult = pd.ultimas || [];
-            if (ult.length) {
-                ph += '<div class="dash-table-wrap"><div class="dash-table-header"><h3>Promessas registradas</h3><span>'+ult.length+' recentes</span></div>';
-                ph += '<table class="dash-table"><thead><tr><th>Demanda</th><th>Cidade</th><th>Bairro/Linha</th><th>Status</th><th>Responsável</th><th>Registro</th></tr></thead><tbody>';
-                for (const p of ult) {
-                    const cor = p.status_key==='entregue'?'#16a34a':p.status_key==='cancelada'?'#94a3b8':'#ea580c';
-                    ph += `<tr><td><strong>${p.descricao}</strong></td><td>${p.cidade}</td><td>${p.bairro||'—'}</td><td><span class="perf-badge" style="background:${cor}">${p.status}</span></td><td>${p.responsavel||'—'}</td><td>${p.data}</td></tr>`;
-                }
-                ph += '</tbody></table></div>';
-            } else {
-                ph += '<div style="padding:30px;text-align:center;color:#94a3b8;">Nenhuma promessa registrada ainda. Cadastre em <a href="/admin/tarefas/promessa/add/" style="color:#002776;font-weight:600;">Admin → Promessas</a> para mapear as demandas do eleitor por cidade.</div>';
-            }
-            dashEl.innerHTML = html + ph;
-            dashEl.classList.remove('map-dashboard-hidden');
-            return;
-        }
 
         // cards de resumo
         html += '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px;align-items:flex-end;">';
@@ -1351,7 +1620,9 @@ case 'transferencia': {
 
     // ── Roteiros Dashboard ─────────────────────────────────────
     // ── Roteiros: construtor visual + painel de ação ──────────────
-    const rotBuilder = { ativo: false, stops: [] };
+    let rotFiltro = 'todos';   // 'vou' (futuros) | 'passei' (concluídos) | 'todos' (default)
+    let rotVisao = 'roteiro';  // 'roteiro' (itens) | 'dia' (trajeto do dia por horário)
+    let selRoteiroId = null;   // roteiro selecionado (mostra oportunidades no caminho)
 
     function _amanha() {
         const d = new Date(Date.now() + 86400000);
@@ -1363,107 +1634,135 @@ case 'transferencia': {
         return m ? m.pop() : '';
     }
 
-    function renderRoteirosDashboard() {
-        const urgCores = [['#dc2626','Crítico'],['#f97316','Alto'],['#eab308','Médio'],['#86efac','Baixo'],['#d1d5db','Em dia']];
-        let html = '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">';
-        html += '<span style="font-size:.88rem;font-weight:700;color:#1e293b;">Urgência de visita</span>';
-        for (const [cor, lbl] of urgCores) {
-            html += `<span class="legend-item"><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:${cor};margin-right:4px;"></span>${lbl}</span>`;
-        }
-        html += '<span style="color:#cbd5e1;">|</span>';
-        html += '<span class="legend-item"><svg width="24" height="4"><line x1="0" y1="2" x2="24" y2="2" stroke="#3b82f6" stroke-width="2" stroke-dasharray="4,2"/></svg>Roteiro planejado</span>';
-        html += '<span class="legend-item"><svg width="24" height="4"><line x1="0" y1="2" x2="24" y2="2" stroke="#f97316" stroke-width="2"/></svg>Em andamento</span>';
-        html += '<span style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">';
-        html += `<input type="date" id="rotBuilderData" value="${_amanha()}" style="padding:4px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:.76rem;">`;
-        html += `<button id="rotBuilderToggle" onclick="toggleRotBuilder()" class="btn btn-sm" style="padding:5px 12px;border-radius:7px;border:1px solid #002776;background:${rotBuilder.ativo ? '#002776' : '#fff'};color:${rotBuilder.ativo ? '#fff' : '#002776'};font-weight:700;font-size:.76rem;cursor:pointer;">🧭 Montar roteiro${rotBuilder.ativo ? ' (ON)' : ''}</button>`;
-        if (rotBuilder.ativo) {
-            html += `<span id="rotBuilderCount" style="font-size:.76rem;font-weight:700;color:#002776;">${rotBuilder.stops.length} parada(s)</span>`;
-            html += `<button onclick="criarRoteiroVisual()" ${rotBuilder.stops.length ? '' : 'disabled'} style="padding:5px 12px;border-radius:7px;border:none;background:${rotBuilder.stops.length ? '#16a34a' : '#cbd5e1'};color:#fff;font-weight:700;font-size:.76rem;cursor:pointer;">✓ Criar roteiro</button>`;
-            html += `<button onclick="limparRotBuilder()" style="padding:5px 10px;border-radius:7px;border:1px solid #e2e8f0;background:#fff;color:#64748b;font-size:.76rem;cursor:pointer;">Limpar</button>`;
-        }
-        html += '</span></div>';
-        if (rotBuilder.ativo) {
-            html += '<div style="margin-top:6px;font-size:.74rem;color:#64748b;">Entre numa região e <strong>clique nas cidades</strong> para adicionar paradas — a ordem é otimizada pela proximidade. Depois clique em <strong>✓ Criar roteiro</strong>.</div>';
-            if (rotBuilder.stops.length) {
-                html += '<div style="margin-top:4px;font-size:.76rem;color:#1e293b;">' +
-                    rotBuilder.stops.map(s => `<span style="display:inline-flex;align-items:center;gap:4px;background:#eef4ff;border:1px solid #c7d7f5;border-radius:999px;padding:2px 10px;margin:2px 4px 2px 0;">${s.ordem}. ${s.name} <a onclick="removeRotStop('${s.slug}')" style="cursor:pointer;color:#dc2626;font-weight:700;">×</a></span>`).join('') +
-                    '</div>';
+    function _roteirosTimelineHtml() {
+        const _d = new Date();
+        const todayStr = `${_d.getFullYear()}-${String(_d.getMonth() + 1).padStart(2, '0')}-${String(_d.getDate()).padStart(2, '0')}`;
+        const data = (map._itinerariesData || []).filter(it => {
+            if (it.kind === 'evento') {
+                if (map._showEventos === false) return false;
+                const rel = map._eventoRelevancia || 'all';
+                if (rel !== 'all' && it.relevancia !== rel) return false;
             }
+            const isPast = (it.date && it.date < todayStr) || it.status === 'completed';
+            if (rotFiltro === 'vou') return !isPast;
+            if (rotFiltro === 'passei') return isPast;
+            return true;
+        });
+        if (!data.length) return '<div style="margin-top:8px;font-size:.78rem;color:#94a3b8;">Nenhum roteiro neste filtro. Cadastre roteiros, compromissos ou eventos na Agenda.</div>';
+        const stLabel = { planned: 'Planejado', confirmed: 'Confirmado', in_progress: 'Em andamento', completed: 'Concluído' };
+        const stColor = { planned: '#3b82f6', confirmed: '#3b82f6', in_progress: '#f97316', completed: '#22c55e' };
+        let h = '<div style="margin-top:10px;display:flex;flex-direction:column;gap:8px;max-height:230px;overflow:auto;">';
+        data.forEach(it => {
+            const c = stColor[it.status] || '#64748b';
+            const sel = selRoteiroId === String(it.id);
+            const future = it.status !== 'completed';
+            h += `<div onclick="selRot('${it.id}')" title="Clique para ver oportunidades no caminho" style="border:1px solid ${sel ? '#fbbf24' : '#eef1f6'};border-left:3px solid ${c};border-radius:8px;padding:8px 10px;cursor:pointer;background:${sel ? '#fffdf5' : '#fff'};">`;
+            const tag = it.kind === 'evento' ? ' <span style="font-weight:400;color:#8b5cf6;">(evento)</span>' : it.single ? ' <span style="font-weight:400;color:#94a3b8;">(compromisso)</span>' : '';
+            h += `<div style="display:flex;justify-content:space-between;gap:8px;align-items:baseline;"><strong style="font-size:.82rem;color:#1e293b;">${it.name}${tag}</strong><span style="font-size:.7rem;color:${c};font-weight:700;white-space:nowrap;">${stLabel[it.status] || it.status}</span></div>`;
+            if (it.date) h += `<div style="font-size:.7rem;color:#94a3b8;">${it.date.split('-').reverse().join('/')} · ${it.stops.length} parada(s)</div>`;
+            h += '<div style="margin-top:4px;font-size:.76rem;color:#334155;line-height:1.5;">';
+            h += it.stops.map(s => `${s.time ? '<span style="color:#94a3b8">' + s.time.substring(0, 5) + '</span> ' : ''}${s.city_name}`).join(' <span style="color:#cbd5e1">→</span> ');
+            h += '</div>';
+            if (sel) {
+                h += future
+                    ? _oppChipsHtml(map.routeOpportunities(it.stops))
+                    : '<div style="margin-top:6px;font-size:.74rem;color:#94a3b8;">Roteiro concluído — oportunidades só para roteiros que ainda vão acontecer.</div>';
+            }
+            h += '</div>';
+        });
+        h += '</div>';
+        return h;
+    }
+
+    function _oppChipsHtml(opps) {
+        if (!opps.length) return '<div style="margin-top:6px;font-size:.74rem;color:#94a3b8;">Nenhuma oportunidade a ~30 km deste roteiro.</div>';
+        let h = '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed #fde68a;">';
+        h += '<div style="font-size:.74rem;font-weight:700;color:#b45309;margin-bottom:6px;">💡 Oportunidades no caminho <span style="font-weight:400;color:#94a3b8;">(voto real 2022, poucos apoiadores, perto da rota)</span></div>';
+        h += '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
+        for (const o of opps) {
+            h += `<span style="display:inline-flex;align-items:center;gap:6px;border:1px solid #fde68a;background:#fffbeb;border-radius:999px;padding:3px 10px;font-size:.74rem;color:#92400e;">${o.name} <strong>${o.votos.toLocaleString('pt-BR')}</strong> votos · ${o.apoiadores} ap · ~${o.dist}km</span>`;
         }
+        h += '</div></div>';
+        return h;
+    }
+
+    function renderRoteirosDashboard() {
+        const fLabels = { vou: 'Onde vou', passei: 'Onde passei', todos: 'Todos' };
+        window._legRerender = () => renderRoteirosDashboard();
+        let html = legendaCamada(MODO_EXPLICA.roteiros);
+        html += '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">';
+        html += '<span style="font-size:.88rem;font-weight:700;color:#1e293b;">Roteiros</span>';
+        html += '<span style="display:inline-flex;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">';
+        for (const v of ['vou', 'passei', 'todos']) {
+            const on = rotFiltro === v;
+            html += `<button onclick="setRotFiltro('${v}')" style="padding:5px 12px;border:none;background:${on ? '#FF6B00' : '#fff'};color:${on ? '#fff' : '#64748b'};font-weight:700;font-size:.74rem;cursor:pointer;">${fLabels[v]}</button>`;
+        }
+        html += '</span>';
+        // Visão: por roteiro × por dia (trajeto cronológico)
+        html += '<span style="display:inline-flex;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">';
+        for (const [v, l] of [['roteiro', 'Por roteiro'], ['dia', 'Por dia']]) {
+            const on = rotVisao === v;
+            html += `<button onclick="setRotVisao('${v}')" style="padding:5px 12px;border:none;background:${on ? '#0d9488' : '#fff'};color:${on ? '#fff' : '#64748b'};font-weight:700;font-size:.74rem;cursor:pointer;">${l}</button>`;
+        }
+        html += '</span>';
+        html += '<span style="color:#cbd5e1;">|</span>';
+        html += '<span class="legend-item"><svg width="24" height="4"><line x1="0" y1="2" x2="24" y2="2" stroke="#3b82f6" stroke-width="2" stroke-dasharray="4,2"/></svg>Planejado</span>';
+        html += '<span class="legend-item"><svg width="24" height="4"><line x1="0" y1="2" x2="24" y2="2" stroke="#f97316" stroke-width="2"/></svg>Em andamento</span>';
+        html += '<span class="legend-item"><svg width="24" height="4"><line x1="0" y1="2" x2="24" y2="2" stroke="#22c55e" stroke-width="2"/></svg>Concluído</span>';
+        html += '<span class="legend-item"><span style="display:inline-block;width:11px;height:11px;border:2px solid #8b5cf6;border-radius:3px;background:#fff;margin-right:4px;"></span>Evento</span>';
+        const evOn = map._showEventos !== false;
+        html += `<label style="display:inline-flex;align-items:center;gap:5px;font-size:.74rem;color:#475569;cursor:pointer;"><input type="checkbox" ${evOn ? 'checked' : ''} onchange="toggleRotEventos()"> Eventos</label>`;
+        if (evOn) {
+            const rel = map._eventoRelevancia || 'all';
+            html += '<select onchange="setRotEventoRel(this.value)" style="padding:3px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:.73rem;cursor:pointer;">';
+            for (const [v, l] of [['all', 'Toda relevância'], ['alta', 'Alta'], ['media', 'Média'], ['baixa', 'Baixa']]) html += `<option value="${v}" ${rel === v ? 'selected' : ''}>${l}</option>`;
+            html += '</select>';
+        }
+        html += '</div>';
+        html += _roteirosTimelineHtml();
         dashEl.innerHTML = html;
         dashEl.classList.remove('map-dashboard-hidden');
     }
 
-    window.toggleRotBuilder = function () {
-        rotBuilder.ativo = !rotBuilder.ativo;
-        if (!rotBuilder.ativo) { rotBuilder.stops = []; map.setBuilderStops([]); }
+    function _limparSelRoteiro() { selRoteiroId = null; map.drawRouteOpportunities(null); }
+
+    window.selRot = function (id) {
+        id = String(id);
+        selRoteiroId = (selRoteiroId === id) ? null : id;
+        const it = (map._itinerariesData || []).find(x => String(x.id) === selRoteiroId);
+        // desenha oportunidades só do roteiro selecionado e futuro (não concluído)
+        map.drawRouteOpportunities(it && it.status !== 'completed' ? it.stops : null);
         renderRoteirosDashboard();
     };
 
-    window.limparRotBuilder = function () {
-        rotBuilder.stops = [];
-        map.setBuilderStops([]);
+    window.setRotFiltro = async function (f) {
+        rotFiltro = f;
+        _limparSelRoteiro();
+        map._itineraryFilter = f;
+        await map.setItineraries(true, f !== 'vou');   // 'passei'/'todos' buscam concluídos
         renderRoteirosDashboard();
     };
 
-    window.removeRotStop = function (slug) {
-        rotBuilder.stops = rotBuilder.stops.filter(s => s.slug !== slug);
-        otimizarRotStops();
+    window.toggleRotEventos = function () {
+        map._showEventos = (map._showEventos === false);  // alterna (default ligado)
+        _limparSelRoteiro();
+        map.setItineraryFilter(rotFiltro);                // redesenha o mapa
         renderRoteirosDashboard();
-        map.setBuilderStops(rotBuilder.stops);
     };
 
-    function otimizarRotStops() {
-        // vizinho mais próximo a partir da primeira parada (lat/lng das cidades)
-        const stops = rotBuilder.stops;
-        if (stops.length > 2) {
-            const restante = stops.slice(1);
-            const ordenado = [stops[0]];
-            while (restante.length) {
-                const atual = ordenado[ordenado.length - 1];
-                restante.sort((a, b) => {
-                    const da = (a.lat - atual.lat) ** 2 + (a.lng - atual.lng) ** 2;
-                    const db = (b.lat - atual.lat) ** 2 + (b.lng - atual.lng) ** 2;
-                    return da - db;
-                });
-                ordenado.push(restante.shift());
-            }
-            rotBuilder.stops = ordenado;
-        }
-        rotBuilder.stops.forEach((s, i) => { s.ordem = i + 1; });
-    }
-
-    function addRotStop(info) {
-        if (rotBuilder.stops.some(s => s.slug === info.slug)) return;
-        rotBuilder.stops.push({ slug: info.slug, name: info.nome || info.name, id: info.id, lat: info.lat, lng: info.lng, ordem: rotBuilder.stops.length + 1 });
-        otimizarRotStops();
+    window.setRotEventoRel = function (v) {
+        map._eventoRelevancia = v;
+        _limparSelRoteiro();
+        map.setItineraryFilter(rotFiltro);
         renderRoteirosDashboard();
-        map.setBuilderStops(rotBuilder.stops);
-    }
-
-    window.addRotStopFromPanel = function (slug) {
-        const c = (map._visitUrgencyData?.cities || {})[slug];
-        if (!c) return;
-        if (!rotBuilder.ativo) { rotBuilder.ativo = true; }
-        addRotStop({ slug, name: c.name, id: c.id, lat: c.lat, lng: c.lng });
-        closeCityActionPanel();
     };
 
-    window.criarRoteiroVisual = function () {
-        if (!rotBuilder.stops.length) return;
-        const data = document.getElementById('rotBuilderData')?.value || _amanha();
-        fetch('/agenda/api/roteiro-construir/', {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken'), 'X-Requested-With': 'XMLHttpRequest' },
-            body: JSON.stringify({ data: data, cidades: rotBuilder.stops.map(s => s.id) }),
-        })
-            .then(r => r.json())
-            .then(d => {
-                if (d.ok) { window.location.href = d.url; }
-                else { alert(d.error || 'Não foi possível criar o roteiro.'); }
-            })
-            .catch(() => alert('Erro de conexão.'));
+    window.setRotVisao = async function (v) {
+        rotVisao = v;
+        _limparSelRoteiro();
+        map._itineraryView = v;
+        await map.setItineraryView(v);   // refaz o fetch (roteiros vs dia) e redesenha
+        renderRoteirosDashboard();
     };
 
     window.closeCityActionPanel = function () {
@@ -1482,7 +1781,7 @@ case 'transferencia': {
         catch (e) { body.innerHTML = '<div style="color:#dc2626;">Erro ao carregar.</div>'; return; }
 
         document.getElementById('capTitulo').textContent = `${d.nome} · ${d.regiao}`;
-        const dataSel = document.getElementById('rotBuilderData')?.value || _amanha();
+        const dataSel = _amanha();
         let html = '';
 
         // Quem controla? (seletor de controle político — só no modo Estratégico)
@@ -1515,8 +1814,8 @@ case 'transferencia': {
                     const bate = lsBase && r.cidade.votos > lsBase;
                     html += `<div style="display:flex;justify-content:space-between;font-size:.76rem;color:#475569;"><span>${r.nome} <span style="color:#94a3b8;">${r.partido}</span></span><span style="font-weight:${bate ? '700' : '400'};color:${bate ? '#dc2626' : '#475569'};">${r.cidade.votos.toLocaleString('pt-BR')} (${r.cidade.pct || 0}%)</span></div>`;
                 }
-                html += `<div style="display:flex;justify-content:space-between;font-size:.76rem;border-top:1px solid #fecaca;margin-top:4px;padding-top:4px;"><span style="color:#1e293b;font-weight:600;">LS (base federal 2022)</span><span style="font-weight:700;color:#15803d;">${lsBase.toLocaleString('pt-BR')}</span></div>`;
-                html += '<div style="font-size:.68rem;color:#92400e;margin-top:4px;">Rival acima da base do LS = risco. Cruze com o Estratégico (tenho aliado pra revidar?) e use + Compromisso.</div>';
+                html += `<div style="display:flex;justify-content:space-between;font-size:.76rem;border-top:1px solid #fecaca;margin-top:4px;padding-top:4px;"><span style="color:#1e293b;font-weight:600;">Isadora (base federal 2022)</span><span style="font-weight:700;color:#15803d;">${lsBase.toLocaleString('pt-BR')}</span></div>`;
+                html += '<div style="font-size:.68rem;color:#92400e;margin-top:4px;">Rival acima da base da Isadora = risco. Cruze com o Estratégico (tenho aliado pra revidar?) e use + Compromisso.</div>';
             } else {
                 html += '<div style="font-size:.74rem;color:#94a3b8;">Os rivais selecionados não têm votos relevantes nesta cidade.</div>';
             }
@@ -1536,7 +1835,7 @@ case 'transferencia': {
             if ((tc.agenda_aliados || []).length) {
                 html += '<div style="margin-top:6px;font-size:.72rem;color:#dc2626;font-weight:700;">📅 Visita marcada de aliado:</div>';
                 for (const ev of tc.agenda_aliados) html += `<div style="font-size:.72rem;color:#374151;">• ${ev.aliado} — ${ev.data}${ev.titulo ? ' (' + ev.titulo + ')' : ''}</div>`;
-                html += '<div style="margin-top:4px;font-size:.7rem;color:#92400e;">Programe o LS junto: use "+ Compromisso" abaixo.</div>';
+                html += '<div style="margin-top:4px;font-size:.7rem;color:#92400e;">Programe a Isadora junto: use "+ Compromisso" abaixo.</div>';
             }
             html += '</div>';
         }
@@ -1571,20 +1870,9 @@ case 'transferencia': {
             html += '<div style="color:#16a34a;font-weight:600;font-size:.78rem;">Relacionamento em dia nesta cidade. 🎉</div>';
         }
 
-        // Promessas ao eleitor nesta cidade
-        if ((d.promessas || []).length) {
-            html += `<div style="font-size:.7rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.4px;margin:12px 0 5px;" data-help="promessas">🤝 Promessas (${d.prom_entregues} entregues · ${d.prom_pendentes} pendentes)</div>`;
-            for (const pr of d.promessas) {
-                const cor = pr.status === 'entregue' ? '#16a34a' : pr.status === 'cancelada' ? '#94a3b8' : '#ea580c';
-                html += `<div style="display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px solid #f8fafc;font-size:.76rem;"><span>${pr.descricao}${pr.bairro ? ' <span style=\"color:#94a3b8;\">('+pr.bairro+')</span>' : ''}</span><span style="color:${cor};font-weight:700;white-space:nowrap;">${pr.status_label}</span></div>`;
-            }
-        }
-
         html += '<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">';
-        html += `<a href="/agenda/compromissos/?cidade=${d.id}&data=${dataSel}" data-help="acao:compromisso" style="flex:1;text-align:center;background:#002776;color:#fff;border-radius:8px;padding:8px 10px;font-size:.76rem;font-weight:700;text-decoration:none;">+ Compromisso</a>`;
-        html += `<button onclick="addRotStopFromPanel('${d.slug}')" data-help="acao:roteiro" style="flex:1;background:#fff;border:1px solid #002776;color:#002776;border-radius:8px;padding:8px 10px;font-size:.76rem;font-weight:700;cursor:pointer;">🧭 + Roteiro</button>`;
+        html += `<a href="/agenda/compromissos/?cidade=${d.id}&data=${dataSel}" data-help="acao:compromisso" style="flex:1;text-align:center;background:#FF6B00;color:#fff;border-radius:8px;padding:8px 10px;font-size:.76rem;font-weight:700;text-decoration:none;">+ Compromisso</a>`;
         html += '</div>';
-        html += `<a href="/tarefas/promessas/nova/?cidade=${d.id}" onclick="return openFormModal(this.href, 'Nova Promessa')" data-help="acao:promessa" style="display:block;text-align:center;margin-top:8px;background:#fff;border:1px solid #16a34a;color:#16a34a;border-radius:8px;padding:8px 10px;font-size:.76rem;font-weight:700;text-decoration:none;">🤝 + Registrar promessa do eleitor</a>`;
         body.innerHTML = html;
     }
 
@@ -1612,8 +1900,21 @@ case 'transferencia': {
         }).catch(() => alert('Erro de conexão.'));
     };
 
+    // ── Estado do explainer ("Como ler este mapa") ────────────────
+    // Regra: começa SEMPRE recolhido a cada carregamento da página. Se o
+    // usuário abrir, permanece aberto ao trocar de modo (mesma sessão);
+    // um reload volta a fechar. Sem persistência entre sessões, de propósito.
+    function _explainSalvarPref() { /* no-op: não persistimos mais entre reloads */ }
+    const _explainDefault = false;
+
     // ── Vitória 2026: dashboard estratégico ───────────────────────
     let _victoryQuadFiltro = null;
+    let _vitLegOpen = _explainDefault;   // §2: persistido (ver _EXPLAIN_PREF)
+    window.toggleVitLeg = function () {
+        _vitLegOpen = !_vitLegOpen;
+        _explainSalvarPref(_vitLegOpen);
+        if (map._victoryData) renderVictoryDashboard(map._victoryData);
+    };
     const QUAD_INFO = {
         celeiro:   { label: '🛡️ Celeiro',     cor: '#16a34a', desc: 'Forte e grande — defender a base' },
         fortaleza: { label: '✅ Fortaleza',   cor: '#22c55e', desc: 'Forte e pequena — manter' },
@@ -1621,23 +1922,283 @@ case 'transferencia': {
         marginal:  { label: '⚪ Marginal',     cor: '#94a3b8', desc: 'Fraca e pequena — baixa prioridade' },
     };
 
+    // ===== Legenda didática reutilizável (mesmo padrão do Vitória 2026) =====
+    // Regra: até a tia Marlene precisa entender. Frase simples → escala →
+    // "de onde vêm os números" (Fato/Meta/Conta/Estimado) → como interpretar.
+    let _legCamadaAberta = _explainDefault;   // §2: persistido (ver _EXPLAIN_PREF)
+    window._legRerender = null;
+    window.toggleLegenda = function () {
+        _legCamadaAberta = !_legCamadaAberta;
+        _explainSalvarPref(_legCamadaAberta);
+        if (window._legRerender) window._legRerender();
+    };
+    function legendaCamada(cfg) {
+        let h = `<div style="margin:2px 0 12px;"><span class="vleg-toggle" onclick="toggleLegenda()">${_legCamadaAberta ? '▾ Esconder explicação' : '▸ Como ler este mapa'}</span></div>`;
+        if (!_legCamadaAberta) return h;
+        let sec = 0;   // numeração segue as seções realmente presentes
+        h += `<div class="vleg-h">${++sec} · O que a cor mostra</div>`;
+        h += `<div style="font-size:.88rem;color:#334155;margin-bottom:8px;">${cfg.frase}</div>`;
+        if (cfg.escala && cfg.escala.length) {
+            h += '<div style="display:flex;gap:10px 16px;flex-wrap:wrap;margin-bottom:10px;">';
+            for (const e of cfg.escala) h += `<span style="display:inline-flex;align-items:center;gap:6px;font-size:.78rem;color:#475569;"><span style="width:14px;height:14px;border-radius:3px;background:${e.cor};border:1px solid rgba(0,0,0,.08);flex-shrink:0;"></span>${e.label}</span>`;
+            h += '</div>';
+        }
+        if (cfg.calc && cfg.calc.length) {
+            h += `<div class="vleg-h">${++sec} · De onde vêm os números</div>`;
+            const tagLbl = { fato: 'Fato', meta: 'Meta', conta: 'Conta', estimado: 'Estimado' };
+            h += '<table class="vtable"><tbody>';
+            for (const r of cfg.calc) h += `<tr><td class="v">${r.v}</td><td style="color:#475569;">${r.desc}</td><td style="text-align:right;"><span class="vtag ${r.tipo}">${tagLbl[r.tipo] || r.tipo}</span></td></tr>`;
+            h += '</tbody></table>';
+            h += '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:.76rem;color:#64748b;"><span><span class="vtag fato">Fato</span> real, medido</span><span><span class="vtag meta">Meta</span> decisão nossa</span><span><span class="vtag conta">Conta</span> fórmula</span><span><span class="vtag estimado">Estimado</span> indício</span></div>';
+        }
+        if (cfg.interpreta && cfg.interpreta.length) {
+            h += `<div class="vleg-h">${++sec} · Como interpretar</div><div style="font-size:.84rem;color:#334155;line-height:1.75;">`;
+            for (const it of cfg.interpreta) h += `• ${it}<br>`;
+            h += '</div>';
+        }
+        if (cfg.estimado) h += '<div style="margin-top:10px;font-size:.8rem;color:#92400e;background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:8px 10px;">⚠️ Esta camada usa <b>estimativa</b> (perfil socioeconômico do IBGE), não medição de campanha — use como pista, não prova.</div>';
+        if (cfg.nota) h += `<div style="margin-top:8px;font-size:.8rem;color:#64748b;">${cfg.nota}</div>`;
+        h += '<div style="height:12px;"></div>';
+        return h;
+    }
+
+    // "Como ler este mapa" por modo — config estática usada pelos dashboards e
+    // como fallback quando a API do painel falha (a explicação nunca some).
+    // As cores das escalas ESPELHAM as cores reais pintadas pelo sc-map.js —
+    // divergência entre escala daqui e cor do mapa é bug (CLAUDE.md §5.3).
+    const MODO_EXPLICA = {
+        eleicoes_2022: {
+            frase: 'Mostra em que <b>lugar a Isadora ficou em cada cidade na eleição de 2022</b>, entre todos os candidatos. Verde = ficou no topo; vermelho = ficou para trás. Na visão do estado, a cor da região usa a <b>posição mediana</b> das cidades dela.',
+            escala: [
+                { cor: '#15803d', label: '1º lugar' },
+                { cor: '#22c55e', label: 'Top 3' },
+                { cor: '#eab308', label: 'Top 5' },
+                { cor: '#f97316', label: 'Top 10' },
+                { cor: '#ef4444', label: '11º ou pior' },
+                { cor: '#e2e8f0', label: 'Sem registro' },
+            ],
+            calc: [
+                { v: 'Posição', desc: 'lugar da Isadora no ranking de votos da cidade (2022)', tipo: 'fato' },
+                { v: '% votos', desc: 'participação dela nos votos válidos da cidade', tipo: 'fato' },
+            ],
+            nota: 'É o <b>passado real</b> (TSE). Compare com o “Vitória 2026” para ver onde ainda há voto a ganhar.',
+        },
+        regioes: {
+            frase: 'Mostra as <b>21 associações de municípios</b> (regiões) de SC, cada uma com uma cor fixa só para separar os limites — a cor <b>não indica desempenho</b>.',
+            calc: [
+                { v: 'População', desc: 'população da região (IBGE)', tipo: 'fato' },
+                { v: 'Apoiadores', desc: 'contatos cadastrados e aprovados no CRM', tipo: 'fato' },
+                { v: 'Votos 2022', desc: 'votos da Isadora na região (TSE)', tipo: 'fato' },
+            ],
+            nota: 'Clique numa região para abrir as cidades dela.',
+        },
+        vitoria: {
+            frase: 'Mostra <b>quantos votos ainda dá para conquistar</b> em cada cidade em 2026. Quanto mais laranja, mais voto sobrando para buscar.',
+            escala: [
+                { cor: '#e25e00', label: 'Muita lacuna' },
+                { cor: '#ff8f3c', label: 'Alta' },
+                { cor: '#ffc187', label: 'Média' },
+                { cor: '#ffe4c4', label: 'Baixa' },
+                { cor: '#eceef2', label: 'Saturada' },
+            ],
+            calc: [
+                { v: 'Votos 2022', desc: 'votos da Isadora na cidade (TSE)', tipo: 'fato' },
+                { v: 'Meta da cidade', desc: 'maior entre crescer % sobre 2022 e % dos eleitores', tipo: 'meta' },
+                { v: 'Votos disponíveis', desc: 'meta − votos 2022 (é o que pinta a cor)', tipo: 'conta' },
+            ],
+        },
+        calor: {
+            frase: 'Mostra a <b>concentração</b> da métrica escolhida no seletor "Camada" abaixo. Cor = intensidade: quanto mais quente, mais alto o valor naquela cidade.',
+            calc: [
+                { v: 'Penetração', desc: 'votos de 2022 ÷ eleitores da cidade', tipo: 'fato' },
+                { v: 'Apoiadores', desc: 'quantos você já cadastrou na cidade', tipo: 'fato' },
+                { v: 'Lacuna', desc: 'meta da cidade − votos de 2022 (o que falta)', tipo: 'conta' },
+            ],
+            nota: 'O que a cor mede <b>muda conforme a camada</b> escolhida no seletor (apoiadores, penetração, lacuna…).',
+        },
+        demandas: {
+            frase: 'Mostra onde há <b>tarefas/demandas da campanha</b> e se estão em dia ou atrasadas. Vermelho = tem demanda <b>vencida</b>; verde = em dia.',
+            escala: [
+                { cor: '#ef4444', label: 'Em atraso — demanda vencida' },
+                { cor: '#22c55e', label: 'Em dia' },
+                { cor: '#d1d5db', label: 'Sem demandas' },
+            ],
+            calc: [
+                { v: 'Em atraso', desc: 'tarefa com prazo no passado e não concluída', tipo: 'fato' },
+                { v: 'Ativas', desc: 'tarefas em aberto na cidade/região', tipo: 'fato' },
+            ],
+            nota: 'Use o seletor <b>Status × Esforço×Oportunidade</b> abaixo para trocar a leitura. Entregar demanda atrasada vira voto — priorize-as.',
+        },
+        roteiros: {
+            frase: 'Mostra os <b>roteiros, compromissos e eventos</b> da Isadora no mapa — por onde ela vai e por onde passou. A linha liga as paradas na ordem (losango = saída, círculos numerados = paradas); eventos são <b>quadrados roxos com estrela (★)</b>.',
+            interpreta: [
+                '<b>Onde vou</b> = o que ainda vai acontecer · <b>Onde passei</b> = concluídos · <b>Todos</b>.',
+                '<b>Por roteiro</b> = cada agenda separada · <b>Por dia</b> = tudo do dia em ordem de horário.',
+                '<b>Cor da linha</b> = situação: azul tracejado = planejado · laranja = em andamento · verde = concluído.',
+                '<b>Clique num roteiro</b> (futuro) para ver as <b>oportunidades no caminho</b> — cidades com voto real e poucos apoiadores perto da rota.',
+            ],
+            nota: 'Os roteiros vêm da <b>Agenda</b> (Roteiro, Compromisso do tipo Roteiro e Eventos com cidade).',
+        },
+        estrategico: {
+            frase: 'Diz a <b>situação política de cada cidade e o que fazer ali</b> — cruzando quem manda na cidade, os aliados que você já tem e a estrutura de campo.',
+            escala: [
+                { cor: '#15803d', label: '🏭 Máquina de voto — defender' },
+                { cor: '#f59e0b', label: '🤝 Aliado a ativar — ligar os cabos' },
+                { cor: '#f97316', label: '🏗️ Construir — recrutar estrutura' },
+                { cor: '#7c3aed', label: '⚔️ Disputa — território disputado' },
+                { cor: '#dc2626', label: '🚫 Hostil — adversário domina' },
+                { cor: '#9ca3af', label: '⚪ Neutro — avaliar pelo perfil' },
+            ],
+            calc: [
+                { v: 'Controle', desc: 'quem domina a cidade (aliado / disputado / adversário)', tipo: 'fato' },
+                { v: 'Aliados', desc: 'prefeito, vereadores e diretório do partido cadastrados', tipo: 'fato' },
+                { v: 'Cabos', desc: 'cabos eleitorais que você tem na cidade', tipo: 'fato' },
+                { v: 'Lacuna', desc: 'meta − votos 2022 (usada no “Construir”)', tipo: 'conta' },
+            ],
+            interpreta: [
+                'Tem aliado <b>e</b> cabo → <b>🏭 máquina de voto</b>: defenda e mobilize.',
+                'Tem aliado <b>sem</b> cabo → <b>🤝 aliado a ativar</b>: a máquina está parada, ligue os cabos.',
+                'Sem aliado, mas muito voto a buscar → <b>🏗️ construir</b>: recrute estrutura.',
+                'Adversário forte → <b>🚫 hostil</b>: não gaste energia. Disputado → <b>⚔️</b> avalie.',
+            ],
+        },
+        transferencia: {
+            frase: 'Mostra onde a Isadora pode <b>pegar carona no palanque de um aliado de chapa</b> — cidades onde um aliado é forte e os votos dele somam com os dela.',
+            escala: [
+                { cor: '#7c3aed', label: '🎤 Palanque conjunto — 2+ aliados fortes' },
+                { cor: '#f59e0b', label: '🤝 Reduto de aliado — 1 aliado forte' },
+                { cor: '#15803d', label: '🏠 Polo da Isadora — você já é forte' },
+                { cor: '#d1d5db', label: '⚪ Sem carona — ninguém forte aqui' },
+            ],
+            calc: [
+                { v: 'Aliado forte', desc: 'aliado com votos de 2022 acima da média dele', tipo: 'fato' },
+                { v: 'Você forte', desc: 'sua penetração 2022 acima da média do estado', tipo: 'fato' },
+                { v: 'Votos de carona', desc: 'votos que o aliado fez ali e que você pode herdar', tipo: 'conta' },
+            ],
+            interpreta: [
+                '<b>Roxo/laranja</b> e você fraca → leve a Isadora junto: herda parte do eleitorado do aliado.',
+                '<b>Verde</b> (você já é polo) → não precisa de carona, é base própria.',
+                '<b>Cinza</b> → sem aliado forte: trabalho só seu.',
+            ],
+        },
+        concorrencia: {
+            frase: 'Mostra <b>quem disputa os mesmos eleitores que a Isadora</b>. Cada candidato adicionado no painel do mapa ganha uma <b>cor própria</b>; a cidade é pintada com a cor de quem teve <b>mais votos ali em 2022</b>, e quanto mais escura, mais forte ele é. Cinza = nenhum selecionado tem voto na cidade.',
+            calc: [
+                { v: 'Votos por cidade', desc: 'votação oficial de 2022 de cada candidato (TSE)', tipo: 'fato' },
+                { v: '% de ameaça', desc: 'quanto da base da Isadora o rival disputa onde os dois competem', tipo: 'conta' },
+            ],
+            interpreta: [
+                'Use o <b>ranking de ameaça</b> (painel sobre o mapa) para escolher quais rivais analisar primeiro.',
+                'Cidade escura do rival = reduto dele: só dispute com aliado seu (cruze com <b>Estratégico</b> e <b>Transferência</b>).',
+                'Cidade clara/cinza = terreno em aberto: cruze com o <b>Vitória 2026</b> para ver se há voto disponível.',
+            ],
+            nota: 'Adicione candidatos em <b>“Comparar Candidatos”</b> no canto do mapa (até 8 ao mesmo tempo).',
+        },
+        perfil_ideologico: {
+            frase: 'Mostra o <b>perfil ideológico do eleitorado</b> de cada cidade, combinando voto real de 2022 com indicadores socioeconômicos do IBGE — a mistura você monta no painel sobre o mapa. Serve para <b>calibrar o discurso</b>, não para escolher cidade sozinho.',
+            escala: [
+                { cor: '#E53935', label: 'Menos conservador' },
+                { cor: '#FF7043', label: 'Moderado' },
+                { cor: '#FFD54F', label: 'Conservador' },
+                { cor: '#66BB6A', label: 'Muito conservador' },
+                { cor: '#1565C0', label: 'Ultra conservador' },
+            ],
+            calc: [
+                { v: 'Voto à direita 2022', desc: 'proporção de votos em candidatos de direita (Gov. 1T/2T, Senador)', tipo: 'fato' },
+                { v: 'PIB, renda, BF, MEIs…', desc: 'indicadores oficiais por município (IBGE / Transparência / Receita)', tipo: 'fato' },
+                { v: 'Índice final', desc: 'média dos dados marcados, ponderada pelo slider (escala relativa em SC)', tipo: 'conta' },
+                { v: '🎯 Oportunidade', desc: 'conservadorismo × tamanho do eleitorado × déficit de presença', tipo: 'conta' },
+            ],
+            interpreta: [
+                'O mapa começa <b>cinza</b>: escolha um <b>cenário pronto</b> ou marque os dados no painel para pintar.',
+                'Azul (ultra conservador) = terreno fértil para o discurso; vermelho = entre por demanda concreta, não por ideologia.',
+                'No modo <b>🎯 Oportunidade</b> a escala muda para cinza → amarelo → laranja → vermelho (alvo prioritário).',
+            ],
+            nota: 'A escala é <b>relativa dentro de SC</b> (a cidade mais conservadora do estado = 100). Clique em até 3 cidades para comparar.',
+        },
+    };
+
     function renderVictoryDashboard(data) {
-        const s = data.summary;
+        const s = data.summary || {}, t = data.totais || {}, pr = data.premissas || {};
+        const fmt = n => (n || 0).toLocaleString('pt-BR');
+        const ex = Object.values(data.cities || {}).filter(c => c.votos_2022 > 0).sort((a, b) => b.gap - a.gap)[0];
         let html = '<div class="dash-summary"><span class="dash-summary-title">🎯 Vitória 2026 — onde estão os votos que faltam</span></div>';
 
-        html += '<div style="display:flex;gap:18px;flex-wrap:wrap;margin:6px 0 12px;align-items:flex-end;">';
-        const big = [
-            ['Base 2022', s.votos_2022.toLocaleString('pt-BR'), '#1e293b', 'vit:base2022'],
-            ['Meta da campanha', s.meta_campanha.toLocaleString('pt-BR'), '#002776', 'vit:meta'],
-            ['Faltam p/ a meta', s.falta_meta.toLocaleString('pt-BR'), '#dc2626', 'vit:falta'],
-            ['Potencial mapeado', s.potencial.toLocaleString('pt-BR'), '#64748b', 'vit:potencial'],
-        ];
-        for (const [lbl, val, cor, help] of big) {
-            html += `<div data-help="${help}"><div style="font-size:1.5rem;font-weight:800;color:${cor};line-height:1;">${val}</div><div style="font-size:.7rem;color:#64748b;text-transform:uppercase;letter-spacing:.4px;">${lbl}</div></div>`;
+        // ── Hero: potencial total (sempre visível) ──
+        html += '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px 22px;border:1px solid #f1d9b8;background:linear-gradient(180deg,#fff,#fffaf2);border-radius:14px;padding:14px 18px;margin:8px 0 10px;">';
+        html += `<div style="display:flex;align-items:baseline;gap:10px;"><span style="font-size:2.2rem;font-weight:800;color:#FF6B00;line-height:1;">${fmt(t.potencial)}</span><span style="font-size:.86rem;font-weight:600;color:#1e293b;line-height:1.25;">votos de potencial<br><span style="font-weight:500;color:#64748b;font-size:.76rem;">somando as ${fmt(t.cidades)} cidades onde a Isadora fez votos em 2022</span></span></div>`;
+        html += '<div style="display:flex;align-items:center;gap:12px;margin-left:auto;">';
+        html += `<div style="text-align:right;"><div style="font-weight:800;">${fmt(t.votos_2022)}</div><div style="font-size:.72rem;color:#64748b;">votos hoje (2022)</div></div>`;
+        html += '<span style="color:#cbd5e1;font-size:1.1rem;">→</span>';
+        html += `<div style="text-align:right;"><div style="font-weight:800;color:#e25e00;">+${fmt(t.disponiveis)}</div><div style="font-size:.72rem;color:#64748b;">a conquistar</div></div>`;
+        html += '</div></div>';
+
+        // ── Botão para recolher/expandir a explicação ──
+        html += `<div style="margin:2px 0 12px;"><span class="vleg-toggle" onclick="toggleVitLeg()">${_vitLegOpen ? '▾ Esconder explicação' : '▸ Como ler este mapa'}</span></div>`;
+
+        if (_vitLegOpen) {
+            // 1 · O que a cor mostra
+            html += '<div class="vleg-h">1 · O que a cor mostra</div>';
+            html += '<div style="font-size:.88rem;color:#334155;margin-bottom:7px;">A cor de cada cidade mostra <b>quantos votos ainda dá para conquistar</b> ali em 2026. Quanto mais <b style="color:#e25e00;">laranja</b>, mais voto sobrando para buscar.</div>';
+            html += '<div style="display:flex;height:16px;border-radius:8px;overflow:hidden;border:1px solid #e5e8f0;max-width:460px;">';
+            for (const c of ['#eceef2', '#ffe4c4', '#ffc187', '#ff8f3c', '#e25e00']) html += `<i style="flex:1;background:${c}"></i>`;
+            html += '</div><div style="display:flex;justify-content:space-between;max-width:460px;font-size:.72rem;color:#94a3b8;margin-top:5px;"><span>já quase no limite</span><span>tem voto a buscar</span><span>muito voto disponível</span></div>';
+
+            // 2 · De onde vêm os números (exemplo real, aberto)
+            if (ex) {
+                html += `<div class="vleg-h">2 · De onde vêm os números — exemplo: ${ex.name}</div>`;
+                html += `<div style="font-size:.9rem;color:#2a3242;background:#fbfcfe;border:1px solid #e7eaf0;border-left:3px solid #FF6B00;border-radius:10px;padding:12px 14px;">Em <b>${ex.name}</b>, a Isadora teve <b>${fmt(ex.votos_2022)}</b> votos em 2022. A cidade tem <b>${fmt(ex.eleitores)}</b> eleitores. Nossa meta é conquistar <b>${pr.penetracao_pct}% deles = ${fmt(ex.meta)} votos</b>. Como já tem ${fmt(ex.votos_2022)}, ainda <b>faltam <span style="color:#e25e00;">+${fmt(ex.gap)} votos</span></b>.</div>`;
+                const rows = [[fmt(ex.votos_2022), 'votos da Isadora em 2022', 'fato', 'Fato'], [fmt(ex.eleitores), 'eleitores da cidade', 'fato', 'Fato'], [pr.penetracao_pct + '%', 'meta: % do eleitorado da cidade', 'meta', 'Meta'], ['+' + pr.crescimento_pct + '%', 'crescimento mínimo sobre 2022', 'meta', 'Meta'], [fmt(ex.meta), 'meta de votos da cidade', 'conta', 'Conta'], ['+' + fmt(ex.gap), 'o que falta — é o que pinta a cor', 'conta', 'Conta']];
+                html += '<table class="vtable"><tbody>';
+                for (const r of rows) html += `<tr><td class="v">${r[0]}</td><td style="color:#475569;">${r[1]}</td><td style="text-align:right;"><span class="vtag ${r[2]}">${r[3]}</span></td></tr>`;
+                html += '</tbody></table>';
+                html += '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:.78rem;color:#64748b;"><span><span class="vtag fato">Fato</span> número real, medido</span><span><span class="vtag meta">Meta</span> decisão nossa (pode mudar)</span><span><span class="vtag conta">Conta</span> resultado de fórmula</span></div>';
+            }
+
+            // 3 · Premissas (cards)
+            html += '<div class="vleg-h">3 · Os números que a campanha escolheu</div>';
+            html += '<div class="vprem">';
+            const _penPct = String(pr.penetracao_pct).replace('.', ',');
+            const _penMil = Math.round(pr.penetracao_pct * 10);   // 1,2% → 12 a cada 1.000
+            const prem = [
+                [pr.penetracao_pct + '%', 'Nossa fatia de votos', `É a porcentagem <b>dos eleitores da cidade</b> (as pessoas que podem votar ali) que queremos conquistar: <b>${_penPct}%</b>. Em números fáceis, <b>de cada 1.000 que votam, ${_penMil} na Isadora</b>. Não é crescer sobre 2022 — isso é o card ao lado.`],
+                ['+' + pr.crescimento_pct + '%', 'Crescimento mínimo', `A outra régua: crescer pelo menos <b>${pr.crescimento_pct}% sobre os votos de 2022</b> (pesa mais em cidade pequena). Vale a que der o maior número.`],
+                [fmt(pr.porte_grande), '“Cidade grande”', `A partir de ${fmt(pr.porte_grande)} eleitores, a cidade pesa muito no total.`],
+                [pr.forte_pct + '%', '“Já somos fortes”', `Se a Isadora tem ${pr.forte_pct}% ou mais dos eleitores, é base forte.`],
+            ];
+            for (const p of prem) html += `<div class="vpcard"><div class="pv">${p[0]}</div><div class="pt">${p[1]}</div><div class="pd">${p[2]}</div></div>`;
+            html += '</div><div style="font-size:.8rem;color:#64748b;margin-top:8px;">São <b>decisões da campanha</b>, não verdades fixas — a equipe ajusta e o mapa recalcula tudo.</div>';
+
+            // 4 · O que fazer em cada cidade (matriz 2×2)
+            html += '<div class="vleg-h">4 · O que fazer em cada cidade</div>';
+            html += '<div class="vmx">';
+            html += '<div class="vmx-corner"></div>';
+            html += '<div class="colh ca">Cidade grande<small>muitos eleitores</small></div>';
+            html += '<div class="colh cb">Cidade pequena<small>poucos eleitores</small></div>';
+            html += '<div class="rowh rf">Somos<br>fracos</div>';
+            html += '<div class="cell c-ouro mina"><div class="t">💰 Mina de ouro <span class="act">atacar</span></div><div class="d">Muito eleitor e a Isadora ainda é fraca. Maior chance de crescer.</div></div>';
+            html += '<div class="cell c-marg marg"><div class="t">⚪ Marginal <span class="act">deixar</span></div><div class="d">Pouco eleitor e somos fracos. Pouco voto a ganhar.</div></div>';
+            html += '<div class="rowh rs">Somos<br>fortes</div>';
+            html += '<div class="cell c-cel cel"><div class="t">🌾 Celeiro <span class="act">defender</span></div><div class="d">Grande e já forte. É aqui que se ganha em volume.</div></div>';
+            html += '<div class="cell c-fort fort"><div class="t">🛡️ Fortaleza <span class="act">manter</span></div><div class="d">Pequena e já forte. Só não deixar esfriar.</div></div>';
+            html += '</div>';
+
+            // 5 · Sinais no mapa
+            html += '<div class="vleg-h">5 · Sinais no mapa</div>';
+            html += '<div class="vsignals">';
+            html += '<span class="grp"><span class="vdot real"></span> <b>Bolinha cheia</b> — dado real (TSE / nossa rede)</span>';
+            html += '<span class="grp"><span class="vdot est"></span> <b>Bolinha vazada</b> — estimativa (use como pista)</span>';
+            html += '<span class="grp">🚨 <b>Órfã</b> — mina de ouro sem ninguém trabalhando lá</span>';
+            html += '<span class="grp">❄️ <b>Esfriando</b> — base forte sem contato há tempo</span>';
+            html += '</div>';
+
+            // Ver a conta exata
+            html += `<details style="margin-top:10px;border:1px solid #e7eaf0;border-radius:10px;background:#fbfcfe;"><summary style="cursor:pointer;padding:9px 12px;font-weight:700;font-size:.8rem;color:#475569;">Ver a conta exata (para quem quer conferir)</summary><div style="padding:0 12px 12px;font-size:.8rem;color:#2a3242;font-family:monospace;line-height:1.85;">Meta da cidade = a <b>maior</b> entre:<br>&nbsp;&nbsp;• Votos 2022 × ${(1 + (pr.crescimento_pct || 0) / 100)}&nbsp;&nbsp;(crescer ${pr.crescimento_pct}%)<br>&nbsp;&nbsp;• Eleitores × ${pr.penetracao_pct}%&nbsp;&nbsp;(meta de penetração)<br>Votos disponíveis = Meta − Votos 2022&nbsp;&nbsp;(pinta a cor)<br>Meta manual da cidade, se houver, substitui a fórmula.</div></details>`;
+            html += '<div style="height:14px;"></div>';
         }
-        html += '</div>';
 
         // Cards de quadrante (clicáveis = filtro)
+        html += '<div style="font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8;margin:6px 0;">Filtrar cidades por classificação</div>';
         html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:8px;">';
         for (const q of ['mina_ouro','celeiro','fortaleza','marginal']) {
             const info = QUAD_INFO[q];
@@ -1725,7 +2286,9 @@ case 'transferencia': {
         const avgPen = data.avg_penetration || 0;
         const tp = data.totais_politicos || {};
 
-        let html = '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;">';
+        window._legRerender = () => renderStrategicDashboard(data);
+        let html = legendaCamada(MODO_EXPLICA.estrategico);
+        html += '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;">';
         html += '<span style="font-size:.88rem;font-weight:700;color:#1e293b;">Terreno político — caminho até o voto</span>';
         html += `<span style="font-size:.75rem;color:#94a3b8;margin-left:auto;">${tp.aliados || 0} cidades com aliado político · penetração média ${avgPen.toFixed(2)}%</span>`;
         html += '</div>';
@@ -1755,7 +2318,7 @@ case 'transferencia': {
         let lista = _stratFiltro ? cities.filter(c => c.classification === _stratFiltro) : cities;
         lista = [...lista].sort((a, b) => (b.politicos?.aliados || 0) - (a.politicos?.aliados || 0) || b.gap - a.gap);
         const titulo = _stratFiltro ? strategicLabels[_stratFiltro] : 'Todas as cidades';
-        html += `<div class="dash-table-wrap"><div class="dash-table-header"><h3>${titulo}</h3><span>${lista.length} cidades${_stratFiltro ? ' · <a onclick="filtrarEstrategico(null)" style="cursor:pointer;color:#002776;">limpar</a>' : ''}</span></div>`;
+        html += `<div class="dash-table-wrap"><div class="dash-table-header"><h3>${titulo}</h3><span>${lista.length} cidades${_stratFiltro ? ' · <a onclick="filtrarEstrategico(null)" style="cursor:pointer;color:#FF6B00;">limpar</a>' : ''}</span></div>`;
         html += '<table class="dash-table"><thead><tr><th>Cidade</th><th>Região</th><th>Classificação</th><th class="text-right">Aliados</th><th class="text-right">Cabos</th><th class="text-right">Votos disp.</th><th>Diagnóstico</th></tr></thead><tbody>';
         for (const c of lista.slice(0, 60)) {
             const cls = c.classification || 'neutro';
@@ -1785,7 +2348,7 @@ case 'transferencia': {
         if (window._strategicData) renderStrategicDashboard(window._strategicData);
     };
 
-    // ── Rede PL Dashboard ──────────────────────────────────────
+    // ── Rede NOVO Dashboard ──────────────────────────────────────
     const plColors = {forte: '#1e3a8a', moderada: '#2563eb', fraca: '#93c5fd', ausente: '#d1d5db'};
     const plLabels = {forte: 'Forte', moderada: 'Moderada', fraca: 'Fraca', ausente: 'Ausente'};
 
@@ -1799,7 +2362,7 @@ case 'transferencia': {
 
         // Legend
         let html = '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">';
-        html += '<span style="font-size:.88rem;font-weight:700;color:#1e293b;">Forca da Rede PL</span>';
+        html += '<span style="font-size:.88rem;font-weight:700;color:#1e293b;">Forca da Rede NOVO</span>';
         for (const [key, label] of Object.entries(plLabels)) {
             html += `<span class="legend-item"><span class="legend-dot" style="background:${plColors[key]}"></span>${label}</span>`;
         }
@@ -1832,7 +2395,7 @@ case 'transferencia': {
 
         // Table
         html += '<div class="dash-table-wrap"><div class="dash-table-header">';
-        html += `<h3>Rede PL por Cidade</h3><span>${cities.length} cidades</span>`;
+        html += `<h3>Rede NOVO por Cidade</h3><span>${cities.length} cidades</span>`;
         html += '</div><table class="dash-table"><thead><tr>';
         html += '<th>Cidade</th><th>Regiao</th><th>Nivel</th>';
         html += '<th class="text-right">Score</th><th>Coordenador</th>';
@@ -1853,8 +2416,8 @@ case 'transferencia': {
             html += `<td><span class="perf-badge" style="background:${plColors[lv]}">${plLabels[lv]}</span></td>`;
             html += `<td class="text-right"><strong>${c.score}</strong></td>`;
             html += `<td>${c.has_coordinator ? 'Sim' : '-'}</td>`;
-            html += `<td class="text-right">${c.num_vereadores_pl || 0}/${c.num_vereadores || 0}</td>`;
-            html += `<td>${c.pl_executive_president || '-'}</td>`;
+            html += `<td class="text-right">${c.num_vereadores_partido || 0}/${c.num_vereadores || 0}</td>`;
+            html += `<td>${c.diretorio_presidente || '-'}</td>`;
             html += `<td class="text-right">${c.apoiadores || 0}</td>`;
             html += `<td class="text-right">${c.cabos || 0}</td>`;
             html += `<td class="text-right">${fmt.number(c.votes_2022 || 0)}</td>`;
@@ -1884,7 +2447,7 @@ case 'transferencia': {
 
         // Legend
         let html = '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;">';
-        html += '<span style="font-size:.88rem;font-weight:700;color:#1e293b;">Zonas Eleitorais &mdash; Posicao LS 2022</span>';
+        html += '<span style="font-size:.88rem;font-weight:700;color:#1e293b;">Zonas Eleitorais &mdash; Posicà Isadora 2022</span>';
         for (const [key, label] of Object.entries(zoneLabels)) {
             html += `<span class="legend-item"><span class="legend-dot" style="background:${zoneColors[key]}"></span>${label}</span>`;
         }
@@ -1919,10 +2482,10 @@ case 'transferencia': {
         html += '<div class="dash-table-wrap"><div class="dash-table-header">';
         html += `<h3>Ranking de Zonas Eleitorais</h3><span>${zones.length} zonas</span>`;
         html += '</div><table class="dash-table"><thead><tr>';
-        html += '<th>#</th><th>Zona</th><th>Posicao LS</th><th>Performance</th>';
-        html += '<th class="text-right">Votos LS</th><th class="text-right">% LS</th>';
+        html += '<th>#</th><th>Zona</th><th>Posicà Isadora</th><th>Performance</th>';
+        html += '<th class="text-right">Votos Isadora</th><th class="text-right">% Isadora</th>';
         html += '<th class="text-right">Apoiadores</th><th class="text-right">Cabos</th>';
-        html += '<th title="Coordenador regional">Coord.</th><th title="Diretorio PL">Dir.</th>';
+        html += '<th title="Coordenador regional">Coord.</th><th title="Diretorio NOVO">Dir.</th>';
         html += '<th class="text-right" title="Votos por apoiador">Eficiencia</th>';
         html += '<th>Cidades</th>';
         html += '</tr></thead><tbody>';
@@ -1960,13 +2523,13 @@ case 'transferencia': {
     };
     const transferLabels = {
         palanque_conjunto: '🎤 Palanque conjunto', reduto_aliado: '🤝 Reduto de aliado',
-        polo_ls: '🏠 Polo do LS', sem_carona: '⚪ Sem carona',
+        polo_ls: '🏠 Polo da Isadora', sem_carona: '⚪ Sem carona',
     };
     const transferDesc = {
         palanque_conjunto: '2+ aliados fortes — evento conjunto, multidão emprestada',
         reduto_aliado: '1 aliado forte — pegar carona na agenda dele',
-        polo_ls: 'LS já forte aqui',
-        sem_carona: 'Sem aliado forte e LS fraco',
+        polo_ls: 'Isadora já forte aqui',
+        sem_carona: 'Sem aliado forte e Isadora fraca',
     };
 
     window.toggleAliado = function (id) {
@@ -2175,7 +2738,9 @@ case 'transferencia': {
         const aliados = data.aliados || [];
         const sum = data.summary || {};
 
-        let html = '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;">';
+        window._legRerender = () => renderTransferDashboard(data);
+        let html = legendaCamada(MODO_EXPLICA.transferencia);
+        html += '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px;">';
         html += '<span style="font-size:.88rem;font-weight:700;color:#1e293b;">Carona de chapa — palanque compartilhado</span>';
         html += '<span style="font-size:.75rem;color:#94a3b8;margin-left:auto;" data-help="votos_carona">' + fmt.number(sum.votos_carona_total || 0) + ' votos de carona nos redutos aliados</span>';
         html += '</div>';
@@ -2203,7 +2768,7 @@ case 'transferencia': {
         html += '</div>';
 
         if (sum.palanques_prontos) {
-            html += `<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:.78rem;color:#92400e;">📅 <strong>${sum.palanques_prontos} cidades têm aliado forte COM visita já marcada.</strong> Programe o LS junto — palanque pronto.</div>`;
+            html += `<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:.78rem;color:#92400e;">📅 <strong>${sum.palanques_prontos} cidades têm aliado forte COM visita já marcada.</strong> Programe a Isadora junto — palanque pronto.</div>`;
         }
 
         // tabela: maiores caronas (filtrável)
@@ -2211,7 +2776,7 @@ case 'transferencia': {
         lista = [...lista].sort((a, b) => (b.votos_carona||0) - (a.votos_carona||0));
         const titulo = _transferFiltro ? transferLabels[_transferFiltro] : 'Maiores caronas (palanque + reduto)';
         html += `<div class="dash-table-wrap"><div class="dash-table-header"><h3>${titulo}</h3><span>${lista.length} cidades · clique para agendar</span></div>`;
-        html += '<table class="dash-table"><thead><tr><th>Cidade</th><th>Região</th><th>Aliados fortes</th><th class="text-right">Votos carona</th><th class="text-right">LS hoje</th><th>Agenda</th></tr></thead><tbody>';
+        html += '<table class="dash-table"><thead><tr><th>Cidade</th><th>Região</th><th>Aliados fortes</th><th class="text-right">Votos carona</th><th class="text-right">Isadora hoje</th><th>Agenda</th></tr></thead><tbody>';
         for (const c of lista.slice(0, 50)) {
             const ag = (c.agenda_aliados||[]).length ? '<span style="color:#dc2626;font-weight:700;">📅 marcada</span>' : '';
             html += `<tr style="cursor:pointer;" onclick="openCityActionPanel('${c.slug}')">`;
@@ -2239,7 +2804,7 @@ case 'transferencia': {
     };
     const depLabels = {
         ponte_forte: 'Ponte Forte', base_conjunta: 'Base Conjunta',
-        territorio_dep: 'Territorio Dep.', territorio_ls: 'Territorio LS', sem_presenca: 'Sem Presenca',
+        territorio_dep: 'Territorio Dep.', territorio_ls: 'Territoria Isadora', sem_presenca: 'Sem Presenca',
     };
 
     function renderDeputadosDashboard(data) {
@@ -2269,7 +2834,7 @@ case 'transferencia': {
         html += '<div class="dash-table-wrap"><div class="dash-table-header">';
         html += `<h3>Analise por Cidade</h3><span>${cities.length} cidades</span>`;
         html += '</div><table class="dash-table"><thead><tr>';
-        html += '<th>Class.</th><th>Cidade</th><th class="text-right">LS %</th>';
+        html += '<th>Class.</th><th>Cidade</th><th class="text-right">Isadora %</th>';
         html += '<th>Dep. Mais Votado</th><th class="text-right">Dep. %</th>';
         html += '<th>Outros Dep. PL</th>';
         html += '</tr></thead><tbody>';
@@ -2301,7 +2866,7 @@ case 'transferencia': {
         let html = '<div class="dash-summary">';
         html += '<span class="dash-summary-title">Doacoes por Regiao</span>';
         html += '<span class="dash-summary-stats">';
-        html += `<span style="color:#002776;font-weight:600">Total: ${fmt.currency(totalArrecadado)}</span>`;
+        html += `<span style="color:#FF6B00;font-weight:600">Total: ${fmt.currency(totalArrecadado)}</span>`;
         html += `<span>${totalDoadores} doadores</span>`;
         html += `<span>${regions.filter(r => r.total > 0).length} regioes com doacoes</span>`;
         html += '</span></div>';
@@ -2318,7 +2883,7 @@ case 'transferencia': {
         for (const r of sorted) {
             html += '<tr>';
             html += `<td><strong>${r.name}</strong></td>`;
-            html += `<td class="text-right" style="color:#002776;font-weight:600">${fmt.currency(r.total)}</td>`;
+            html += `<td class="text-right" style="color:#FF6B00;font-weight:600">${fmt.currency(r.total)}</td>`;
             html += `<td class="text-right">${r.count || 0}</td>`;
             html += `<td class="text-right">${r.doadores || 0}</td>`;
             html += '</tr>';
@@ -2456,7 +3021,7 @@ case 'transferencia': {
     }
     window.pickThreat = function (key) { addConcCandidateByKey(key); };
 
-    // Painel "Ranking de ameaça ao LS" — rivais a estadual por sobreposição de base
+    // Painel "Ranking de ameaça à Isadora" — rivais a estadual por sobreposição de base
     function renderThreatRanking() {
         const box = document.getElementById('threatRanking');
         if (!box) return;
@@ -2466,7 +3031,7 @@ case 'transferencia': {
             .sort((a, b) => (a.threat_rank || 999) - (b.threat_rank || 999))
             .slice(0, 8);
         if (!est.length) { box.innerHTML = ''; return; }
-        let h = '<div style="font-size:.66rem;font-weight:700;color:#991b1b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;" data-help="conc:ameaca">🎯 Ranking de ameaça ao LS</div>';
+        let h = '<div style="font-size:.66rem;font-weight:700;color:#991b1b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;" data-help="conc:ameaca">🎯 Ranking de ameaça à Isadora</div>';
         for (const c of est) {
             const on = selected.has(c.key);
             const bg = on ? '#fee2e2' : 'transparent';
@@ -2476,7 +3041,7 @@ case 'transferencia': {
             h += `<span style="color:#dc2626;font-weight:700;">${c.overlap_pct}%</span>`;
             h += '</div>';
         }
-        h += '<div style="font-size:.63rem;color:#94a3b8;margin-top:3px;line-height:1.3;">% da base do LS que o rival disputa. Clique para ver onde ele é forte.</div>';
+        h += '<div style="font-size:.63rem;color:#94a3b8;margin-top:3px;line-height:1.3;">% da base da Isadora que o rival disputa. Clique para ver onde ele é forte.</div>';
         box.innerHTML = h;
     }
 
@@ -2542,6 +3107,11 @@ case 'transferencia': {
     }
 
     async function applyMode(mode) {
+        // Trocar de mapa sempre volta ao nível estado — senão o mapa fica preso
+        // no desenho da região aberta no modo anterior.
+        if (map.currentLevel !== 'state') {
+            await map.loadState();
+        }
         renderLegend(mode);
         // ao terminar de carregar os dados, atualiza os números reais da dica (se o painel estiver aberto)
         renderDashboard(mode).then(() => {
@@ -2563,11 +3133,6 @@ case 'transferencia': {
         map.victoryEnabled = false;
         if (mode !== 'roteiros' && mode !== 'vitoria') {
             closeCityActionPanel();
-        }
-        if (mode !== 'roteiros') {
-            rotBuilder.ativo = false;
-            rotBuilder.stops = [];
-            map.setBuilderStops([]);
         }
 
         // Limpar modos especiais ao sair
@@ -2593,10 +3158,9 @@ case 'transferencia': {
             document.getElementById('threatRanking').innerHTML = '<div style="font-size:.72rem;color:#94a3b8;">Carregando ranking de ameaça…</div>';
             ensureCompCandidates().then(() => {
                 renderThreatRanking();
-                const top = compCandidatesList
-                    .filter(c => c.cargo === 'deputado_estadual' && c.overlap_pct != null)
-                    .sort((a, b) => (a.threat_rank || 999) - (b.threat_rank || 999))[0];
-                if (top && !(map._concCandidates || []).length) addConcCandidateByKey(top.key);
+                // Default = a própria candidata (Isadora), não a maior ameaça.
+                const candidata = compCandidatesList.find(c => c.is_candidato);
+                if (candidata && !(map._concCandidates || []).length) addConcCandidateByKey(candidata.key);
             });
         }
 
@@ -2612,8 +3176,10 @@ case 'transferencia': {
                 await map.setDemands(true);
                 break;
             case 'roteiros':
-                await map.setItineraries(true, false);
-                await map.setVisitUrgency(true);
+                selRoteiroId = null;
+                map._itineraryFilter = rotFiltro;
+                await map.setItineraries(true, rotFiltro !== 'vou');
+                renderRoteirosDashboard();   // re-render: o painel inicial roda antes do fetch
                 break;
             case 'vitoria':
                 await map.setVictory(true);
@@ -2974,7 +3540,7 @@ case 'transferencia':
                 let row = [c.nome, (score * 100).toFixed(1), label, (opp[slug] !== undefined ? (opp[slug] * 100).toFixed(1) : ''), (c.penetration !== undefined ? c.penetration.toFixed(1) : ''), c.pop || 0, c.apoiadores || 0, c.demandas || 0];
                 for (const k of elChecks) row.push(c[k] !== undefined ? (c[k] * 100).toFixed(1) : '');
                 for (const k of soChecks) {
-                    if (k === 'pib') row.push(c.pib_raw || 0);
+                    if (k === 'pib') row.push(c.pib_pc || 0);
                     else if (k === 'renda') row.push(c.renda_raw || 0);
                     else if (k === 'bf') row.push(c.bf_raw || 0);
                     else if (k === 'meis') row.push(c.meis_raw || 0);
@@ -3054,7 +3620,7 @@ case 'transferencia':
                 if (c && c[key] !== undefined) {
                     if (['governador_1t', 'governador_2t', 'senador_1t'].includes(key)) {
                         val = (c[key] * 100).toFixed(1) + '% D';
-                    } else if (key === 'pib') val = 'R$ ' + (c.pib_raw || 0).toLocaleString('pt-BR', {maximumFractionDigits: 0});
+                    } else if (key === 'pib') val = 'R$ ' + (c.pib_pc || 0).toLocaleString('pt-BR', {maximumFractionDigits: 0});
                     else if (key === 'renda') val = 'R$ ' + (c.renda_raw || 0).toLocaleString('pt-BR', {maximumFractionDigits: 0});
                     else if (key === 'bf') val = (c.bf_raw || 0).toLocaleString('pt-BR') + ' fam.';
                     else if (key === 'meis') val = (c.meis_raw || 0).toLocaleString('pt-BR');
@@ -3139,18 +3705,26 @@ case 'transferencia':
 <script>
 (function () {
     const H = {
+        // ── Glossário de decisão (legenda das receitas) ─────────
+        'dec:expandir': {t:'EXPANDIR', o:'Há voto disponível e você ainda não tem estrutura para colher ali. Investir/crescer.', j:'Ex.: cidade "mina de ouro" sem cabo nem apoiadores.'},
+        'dec:blindar': {t:'BLINDAR', o:'Você é forte aqui e há rival crescendo. Defender o que já é seu.', j:'Ex.: 1º lugar em 2022 com concorrente subindo na Concorrência.'},
+        'dec:carona': {t:'CARONA', o:'Você é fraco, mas um aliado de chapa é forte na cidade. Entrar pela estrutura dele.', j:'Ex.: reduto da Carol/Jorginho/Daniela onde a Isadora vai mal — agende junto.'},
+        'dec:ignorar': {t:'IGNORAR', o:'Não há voto a colher — mercado saturado, eleitorado pequeno ou território perdido. Não desperdiçar tempo do candidato.', j:'Ex.: capital adversária ou cidade já saturada de apoiadores.'},
+        'src:real': {t:'Dado real', o:'Vem de fonte oficial verificável: resultados eleitorais (TSE) e a rede cadastrada no CRM.', j:'Pode decidir com confiança.'},
+        'src:proxy': {t:'Dado estimado', o:'Perfil socioeconômico derivado do PIB (renda, % urbana, Bolsa Família…) — não medido diretamente.', j:'Use como indício para calibrar discurso, não como prova.'},
+        'src:misto': {t:'Dado misto', o:'Combina parte real (eleitoral TSE / rede CRM) com parte estimada (perfil socioeconômico).', j:'A leitura é sólida no eleitoral; trate a parte socioeconômica como indício.'},
         // ── Modos ───────────────────────────────────────────────
-        'mode:eleicoes_2022': {t:'Eleições 2022', o:'Onde o LS ficou em cada cidade na última eleição (ranking entre os candidatos).', j:'Veja onde já é forte (defender) e onde ficou para trás (atacar).'},
+        'mode:eleicoes_2022': {t:'Eleições 2022', o:'Onde a Isadora ficou em cada cidade na última eleição (ranking entre os candidatos).', j:'Veja onde já é forte (defender) e onde ficou para trás (atacar).'},
         'mode:vitoria': {t:'Vitória 2026', o:'Cruza seus votos de 2022 com a meta possível e revela a lacuna de votos a conquistar.', j:'Priorize cidades com muito voto disponível e pouca estrutura sua — cada visita rende mais.'},
         'mode:calor': {t:'Mapa de Calor', o:'Intensidade da sua presença/força por camada (votos, estrutura, força política).', j:'Enxergue concentração e vazios: reforce os polos e ocupe os buracos.'},
-        'mode:demandas': {t:'Demandas', o:'Onde há pedidos/promessas registrados e se estão em dia ou atrasados.', j:'Entregar demanda vira voto. Resolva as atrasadas antes que virem desgaste.'},
+        'mode:demandas': {t:'Demandas', o:'Onde há demandas/tarefas registradas e se estão em dia ou atrasadas.', j:'Entregar demanda vira voto. Resolva as atrasadas antes que virem desgaste.'},
         'mode:roteiros': {t:'Roteiros', o:'Trajetos de visita planejados, em andamento e concluídos.', j:'Transforme as cidades-alvo em roteiro otimizado: menos estrada, mais contato.'},
         'mode:estrategico': {t:'Estratégico', o:'Classifica cada cidade pela força política viva do cadastro (prefeitos, vereadores, cabos).', j:'Ative aliados adormecidos e construa nos vazios — é o tabuleiro da articulação.'},
-        'mode:transferencia': {t:'Transferência — Carona de chapa', o:'Redutos dos seus aliados de chapa (governador, senador, federal), cujos votos somam com os seus.', j:'Leve o LS junto onde o aliado é forte: você herda parte daquele eleitorado.'},
+        'mode:transferencia': {t:'Transferência — Carona de chapa', o:'Redutos dos seus aliados de chapa (governador, senador, federal), cujos votos somam com os seus.', j:'Leve a Isadora junto onde o aliado é forte: você herda parte daquele eleitorado.'},
         'mode:concorrencia': {t:'Concorrência', o:'Força dos concorrentes diretos ao mesmo cargo por cidade.', j:'Não gaste energia em reduto consolidado do rival; dispute o que está em aberto.'},
         'mode:perfil_ideologico': {t:'Perfil Ideológico', o:'Inclinação ideológica do eleitorado de cada cidade (de menos a ultra conservador).', j:'Calibre o discurso por região — fale a língua de cada eleitorado.'},
         // ── Legenda: Eleições 2022 ──────────────────────────────
-        'leg:el:1': {t:'1º Lugar', o:'O LS foi o mais votado da cidade.', j:'Reduto consolidado: blindar e usar como vitrine.'},
+        'leg:el:1': {t:'1º Lugar', o:'A Isadora foi o mais votado da cidade.', j:'Reduto consolidado: blindar e usar como vitrine.'},
         'leg:el:3': {t:'Top 3', o:'Ficou entre os 3 mais votados.', j:'Base forte: pequeno empurrão garante a liderança.'},
         'leg:el:5': {t:'Top 5', o:'Entre os 5 primeiros.', j:'Boa presença; cresce com estrutura.'},
         'leg:el:10': {t:'Top 10', o:'Entre os 10 primeiros.', j:'Presença média: avaliar se vale investir.'},
@@ -3162,7 +3736,7 @@ case 'transferencia':
         'leg:vit:baixa': {t:'Lacuna baixa', o:'Já está perto do potencial.', j:'Defender o que tem; pouco a ganhar.'},
         'leg:vit:sat': {t:'Saturada', o:'Você já colhe quase todo o voto possível.', j:'Não desperdice energia — apenas conserve.'},
         // ── Legenda: Demandas ───────────────────────────────────
-        'leg:dem:atraso': {t:'Em atraso', o:'Há promessas/demandas vencidas sem entrega.', j:'Risco de desgaste: priorize resolver.'},
+        'leg:dem:atraso': {t:'Em atraso', o:'Há demandas/tarefas vencidas sem entrega.', j:'Risco de desgaste: priorize resolver.'},
         'leg:dem:dia': {t:'Em dia', o:'Demandas sendo atendidas no prazo.', j:'Comunique as entregas — vira voto.'},
         'leg:dem:sem': {t:'Sem demandas', o:'Nenhuma demanda registrada.', j:'Ouça a cidade: registre o que o eleitor pede.'},
         // ── Legenda: Roteiros ───────────────────────────────────
@@ -3176,15 +3750,15 @@ case 'transferencia':
         'leg:est:hostil': {t:'Território Hostil', o:'Domínio adversário consolidado.', j:'Só dispute pontos reais de virada.'},
         'leg:est:neutro': {t:'Neutro', o:'Sem definição clara de força.', j:'Sonde e teste antes de investir pesado.'},
         // ── Legenda: Transferência ──────────────────────────────
-        'leg:tr:palanque': {t:'Palanque conjunto', o:'2 ou mais aliados fortes na mesma cidade.', j:'Palco perfeito: leve o LS num evento com eles.'},
-        'leg:tr:reduto': {t:'Reduto de aliado', o:'Um aliado é forte e o LS ainda é fraco.', j:'Maior oportunidade de transferência — colher voto novo.'},
-        'leg:tr:polo': {t:'Polo do LS', o:'O LS já é forte aqui.', j:'Defender e usar como base de irradiação.'},
-        'leg:tr:sem': {t:'Sem carona', o:'Nem aliado forte nem LS forte.', j:'Baixa prioridade na lógica de chapa.'},
+        'leg:tr:palanque': {t:'Palanque conjunto', o:'2 ou mais aliados fortes na mesma cidade.', j:'Palco perfeito: leve a Isadora num evento com eles.'},
+        'leg:tr:reduto': {t:'Reduto de aliado', o:'Um aliado é forte e a Isadora ainda é fraca.', j:'Maior oportunidade de transferência — colher voto novo.'},
+        'leg:tr:polo': {t:'Polo da Isadora', o:'A Isadora já é forte aqui.', j:'Defender e usar como base de irradiação.'},
+        'leg:tr:sem': {t:'Sem carona', o:'Nem aliado forte nem Isadora forte.', j:'Baixa prioridade na lógica de chapa.'},
         // ── Legenda: Perfil Ideológico ──────────────────────────
         'leg:perf:menos': {t:'Menos conservador', o:'Eleitorado mais progressista.', j:'Ajuste o tom; foque pautas que dialoguem aqui.'},
         'leg:perf:moderado': {t:'Moderado', o:'Eleitorado de centro.', j:'Discurso equilibrado conquista o indeciso.'},
         'leg:perf:conserv': {t:'Conservador', o:'Inclinação conservadora.', j:'Pautas de ordem, família e segurança rendem.'},
-        'leg:perf:muito': {t:'Muito conservador', o:'Forte perfil conservador.', j:'Terreno fértil para o discurso do LS.'},
+        'leg:perf:muito': {t:'Muito conservador', o:'Forte perfil conservador.', j:'Terreno fértil para o discurso da Isadora.'},
         'leg:perf:ultra': {t:'Ultra conservador', o:'Conservador ao extremo.', j:'Reduto ideológico: mobilize a base.'},
         // ── Legenda: Oportunidade (modo gap) ────────────────────
         'leg:opp:metric': {t:'Perfil ⇄ Oportunidade', o:'Perfil pinta o quão conservadora é a cidade. Oportunidade pinta onde vale investir = conservadorismo × tamanho do eleitorado × déficit de presença (penetração 2022 + apoiadores baixos).', j:'Use Perfil para calibrar a mensagem; Oportunidade para escolher onde atacar.'},
@@ -3224,32 +3798,30 @@ case 'transferencia':
         'leg:conc:fraco': {t:'Rival fraco', o:'Rival com pouca presença.', j:'Espaço livre para crescer.'},
         'leg:conc:sem': {t:'Rival sem votos', o:'Concorrente sem força aqui.', j:'Terreno seu a ocupar primeiro.'},
         // ── Termos do painel da cidade ──────────────────────────
-        'carona': {t:'Carona de chapa', o:'Votos dos seus aliados de chapa nesta cidade — somam com os seus, não competem.', j:'Use os redutos deles para apresentar o LS a um eleitorado já alinhado.'},
+        'carona': {t:'Carona de chapa', o:'Votos dos seus aliados de chapa nesta cidade — somam com os seus, não competem.', j:'Use os redutos deles para apresentar a Isadora a um eleitorado já alinhado.'},
         'estrela_forte': {t:'★ Aliado forte aqui', o:'O aliado fez mais voto que a média dele neste município — é reduto real dele.', j:'Cidade onde a carona vale mais: priorize agenda conjunta.'},
-        'votos_carona': {t:'Votos de carona', o:'Soma dos votos dos aliados fortes nesta cidade.', j:'Tamanho do eleitorado que você pode herdar levando o LS junto.'},
-        'votos_2022': {t:'Votos 2022', o:'Quanto o LS fez aqui na última eleição.', j:'Ponto de partida para medir crescimento.'},
+        'votos_carona': {t:'Votos de carona', o:'Soma dos votos dos aliados fortes nesta cidade.', j:'Tamanho do eleitorado que você pode herdar levando a Isadora junto.'},
+        'votos_2022': {t:'Votos 2022', o:'Quanto a Isadora fez aqui na última eleição.', j:'Ponto de partida para medir crescimento.'},
         'potencial': {t:'Potencial', o:'Meta de votos estimada para a cidade.', j:'Teto realista a perseguir com estrutura.'},
         'votos_disponiveis': {t:'Votos disponíveis', o:'Diferença entre o potencial e o que você já tem.', j:'Voto novo ao seu alcance — foco aqui rende mais.'},
         'vencidos': {t:'Contatos vencidos', o:'Lideranças sem interação há muito tempo.', j:'Base esfriando: reaqueça antes de perder.'},
         'nunca': {t:'Nunca contatados', o:'Cadastrados que ainda não receberam nenhuma interação.', j:'Primeiro toque pendente — abra relacionamento.'},
         'alta': {t:'Prioridade alta', o:'Contatos marcados como prioridade alta.', j:'Não deixe esfriar: visite primeiro.'},
-        'ultima_visita': {t:'Última visita do candidato', o:'Há quanto tempo o LS esteve nesta cidade.', j:'Muito tempo sem ir? Hora de reaparecer.'},
+        'ultima_visita': {t:'Última visita do candidato', o:'Há quanto tempo a Isadora esteve nesta cidade.', j:'Muito tempo sem ir? Hora de reaparecer.'},
         'proximo_compromisso': {t:'Próximo compromisso', o:'Próxima agenda marcada aqui.', j:'Cidade-alvo sem nada marcado? Agende.'},
         'quem_visitar': {t:'Quem visitar primeiro', o:'Contatos com relacionamento mais vencido — fila de prioridade.', j:'Comece por eles na próxima passagem pela cidade.'},
-        'promessas': {t:'Promessas ao eleitor', o:'Compromissos assumidos com a cidade e seu status.', j:'Entregar = voto. Cobre andamento das pendentes.'},
         // ── Botões de ação do painel ────────────────────────────
-        'acao:compromisso': {t:'Marque presença com propósito', o:'Seja estratégico: agende o LS para quando um aliado forte desta cidade tiver evento (palanque conjunto) e puxe junto os contatos “vencidos / nunca” listados acima.', j:'Ativa a base local, gera interação automática no cadastro e converte reduto de aliado em voto seu.'},
+        'acao:compromisso': {t:'Marque presença com propósito', o:'Seja estratégico: agende a Isadora para quando um aliado forte desta cidade tiver evento (palanque conjunto) e puxe junto os contatos “vencidos / nunca” listados acima.', j:'Ativa a base local, gera interação automática no cadastro e converte reduto de aliado em voto seu.'},
         'acao:roteiro': {t:'Transforme a cidade em rota de colheita', o:'Seja estratégico: encadeie esta cidade com alvos próximos num único dia de estrada e comece pelos relacionamentos mais frios.', j:'Menos quilômetro rodado, mais contatos por viagem e cobertura das oportunidades órfãs antes do adversário.'},
-        'acao:promessa': {t:'Registre hoje, cobre voto amanhã', o:'Seja estratégico: anote o que a cidade pediu (obra, demanda, pauta) com prazo e responsável, e acompanhe até entregar.', j:'Promessa cumprida vira prova de trabalho e fideliza voto; pendência rastreada evita o desgaste de “prometeu e sumiu”.'},
         // ── Vitória 2026: métricas, quadrantes e alertas ────────
-        'vit:base2022': {t:'Base 2022', o:'Total de votos que o LS fez no estado na última eleição.', j:'Seu piso. Toda a estratégia parte daqui para crescer.'},
+        'vit:base2022': {t:'Base 2022', o:'Total de votos que a Isadora fez no estado na última eleição.', j:'Seu piso. Toda a estratégia parte daqui para crescer.'},
         'vit:meta': {t:'Meta da campanha', o:'Quantidade de votos definida como alvo para 2026.', j:'Norte de toda a operação — distribua-a por cidade.'},
         'vit:falta': {t:'Faltam p/ a meta', o:'Quantos votos ainda separam você do alvo.', j:'Esse é o tamanho real do desafio: cubra-o nas mina de ouro.'},
         'vit:potencial': {t:'Potencial mapeado', o:'Soma dos votos alcançáveis em todas as cidades.', j:'Teto teórico; mostra se a meta cabe no território.'},
-        'quad:mina_ouro': {t:'💰 Mina de ouro', o:'Cidade grande onde o LS é fraco.', j:'Maior retorno por esforço — ataque prioritário.'},
-        'quad:celeiro': {t:'🛡️ Celeiro', o:'Cidade grande onde o LS já é forte.', j:'Defenda a base: aqui se ganha em volume.'},
-        'quad:fortaleza': {t:'✅ Fortaleza', o:'Cidade pequena onde o LS é forte.', j:'Manutenção barata — só não deixe esfriar.'},
-        'quad:marginal': {t:'⚪ Marginal', o:'Cidade pequena onde o LS é fraco.', j:'Baixa prioridade — pouco voto a colher.'},
+        'quad:mina_ouro': {t:'💰 Mina de ouro', o:'Cidade grande onde a Isadora é fraca.', j:'Maior retorno por esforço — ataque prioritário.'},
+        'quad:celeiro': {t:'🛡️ Celeiro', o:'Cidade grande onde a Isadora já é forte.', j:'Defenda a base: aqui se ganha em volume.'},
+        'quad:fortaleza': {t:'✅ Fortaleza', o:'Cidade pequena onde a Isadora é forte.', j:'Manutenção barata — só não deixe esfriar.'},
+        'quad:marginal': {t:'⚪ Marginal', o:'Cidade pequena onde a Isadora é fraca.', j:'Baixa prioridade — pouco voto a colher.'},
         'vit:orfas': {t:'🚨 Oportunidades órfãs', o:'Cidades com muito voto disponível e nenhuma estrutura sua.', j:'Plante estrutura aqui antes do adversário — terreno vazio e rico.'},
         'vit:esfriando': {t:'⚠️ Bases esfriando', o:'Cidades onde você é forte mas o relacionamento está vencido.', j:'Reaqueça antes de perder o que já é seu.'},
         // ── Estratégico: classes e destaque ─────────────────────
@@ -3260,7 +3832,7 @@ case 'transferencia':
         'est:hostil': {t:'🚫 Hostil', o:'Reduto adversário consolidado.', j:'Baixo retorno — não desperdice energia.'},
         'est:neutro': {t:'⚪ Neutro', o:'Sem aliados e pouca oportunidade.', j:'Sonde antes de investir.'},
         'est:dormindo': {t:'Aliados dormindo', o:'Cidades com aliado político mas nenhum cabo engajado.', j:'Cada uma é uma máquina de voto esperando ser ligada — ative os cabos primeiro.'},
-        'conc:ameaca': {t:'🎯 Ranking de ameaça ao LS', o:'Rivais a deputado estadual de 2022 ordenados pela sobreposição geográfica com a base do LS — quem mais disputa as mesmas cidades.', j:'Concentre defesa onde o topo do ranking é forte; cruze com o Estratégico (tenho aliado pra revidar?) e a Vitória (é mina de ouro?).'},
+        'conc:ameaca': {t:'🎯 Ranking de ameaça à Isadora', o:'Rivais a deputado estadual de 2022 ordenados pela sobreposição geográfica com a base da Isadora — quem mais disputa as mesmas cidades.', j:'Concentre defesa onde o topo do ranking é forte; cruze com o Estratégico (tenho aliado pra revidar?) e a Vitória (é mina de ouro?).'},
     };
 
     let pop = null;

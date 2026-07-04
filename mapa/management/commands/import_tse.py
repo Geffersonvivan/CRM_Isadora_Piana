@@ -26,6 +26,7 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
@@ -109,30 +110,32 @@ class Command(BaseCommand):
 
     # ------------------------------------------------------------------ pós-import
     def _atualizar_votos_cidade(self, ano, eleicao_por_chave):
-        """Atualiza Cidade.votos_sorgatto_2022 somando votos do Sorgatto por cidade."""
-        dep_fed = eleicao_por_chave.get(('deputado_federal', 1))
-        if not dep_fed:
+        """Atualiza Cidade.votos_referencia_2022 somando os votos do candidato da
+        campanha (settings.CAMPANHA) por cidade, no cargo-base configurado."""
+        cargo_base = settings.CAMPANHA['TSE_CARGO_BASE']
+        base = eleicao_por_chave.get((cargo_base, 1))
+        if not base:
             return
 
         from django.db.models import Sum
         votos_por_cidade = (
             ResultadoCandidato.objects
-            .filter(eleicao=dep_fed, is_sorgatto=True)
+            .filter(eleicao=base, is_candidato=True)
             .values('cidade_id')
             .annotate(total=Sum('votos'))
         )
         updated = 0
         for item in votos_por_cidade:
             n = Cidade.objects.filter(id=item['cidade_id']).update(
-                votos_sorgatto_2022=item['total']
+                votos_referencia_2022=item['total']
             )
             updated += n
 
-        # Zerar cidades sem votos do Sorgatto
+        # Zerar cidades sem votos do candidato
         ids_com_votos = {item['cidade_id'] for item in votos_por_cidade}
-        Cidade.objects.exclude(id__in=ids_com_votos).update(votos_sorgatto_2022=0)
+        Cidade.objects.exclude(id__in=ids_com_votos).update(votos_referencia_2022=0)
 
-        self.stdout.write(f'{updated} cidades atualizadas com votos Sorgatto {ano}.')
+        self.stdout.write(f'{updated} cidades atualizadas com votos de referência {ano}.')
 
     # ------------------------------------------------------------------ download
     def _obter_zip(self, ano, arquivo, forcar):
@@ -156,7 +159,7 @@ class Command(BaseCommand):
         self.stdout.write(f'Baixando do TSE: {url}')
         tmp = destino.with_suffix('.zip.part')
         try:
-            req = urllib.request.Request(url, headers={'User-Agent': 'CRM-Sorgatto/import_tse'})
+            req = urllib.request.Request(url, headers={'User-Agent': 'CRM-Isadora/import_tse'})
             with urllib.request.urlopen(req, timeout=120) as resp:
                 total = int(resp.headers.get('Content-Length', 0))
                 baixado = 0
@@ -319,7 +322,7 @@ class Command(BaseCommand):
                 total = total_mun.get((tipo, turno, cd_mun), 0)
                 pct = round(c['votos'] * 100 / total, 2) if total else 0
                 nome_upper = (c['nome'] or '').upper()
-                sorgatto = 'SORGATTO' in nome_upper
+                eh_candidato = settings.CAMPANHA['TSE_TERMO_BUSCA'] in nome_upper
                 batch.append(ResultadoCandidato(
                     eleicao=eleicao_por_chave[(tipo, turno)],
                     candidato_nome=c['nome'][:255],
@@ -329,7 +332,7 @@ class Command(BaseCommand):
                     votos=c['votos'],
                     percentual=pct,
                     eleito=c['eleito'],
-                    is_sorgatto=sorgatto,
+                    is_candidato=eh_candidato,
                 ))
             ResultadoCandidato.objects.bulk_create(batch, batch_size=1000)
             self.stdout.write(f'{len(batch)} resultados por candidato gravados.')
@@ -342,7 +345,7 @@ class Command(BaseCommand):
                     if not cidade:
                         continue
                     nome_upper_z = (z['nome'] or '').upper()
-                    sorgatto_z = 'SORGATTO' in nome_upper_z
+                    eh_candidato_z = settings.CAMPANHA['TSE_TERMO_BUSCA'] in nome_upper_z
                     batch_z.append(ResultadoZona(
                         eleicao=eleicao_por_chave[(tipo, turno)],
                         candidato_nome=z['nome'][:255],
@@ -352,7 +355,7 @@ class Command(BaseCommand):
                         zona=str(nr_zona)[:10],
                         votos=z['votos'],
                         percentual=0,
-                        is_sorgatto=sorgatto_z,
+                        is_candidato=eh_candidato_z,
                     ))
                 ResultadoZona.objects.bulk_create(batch_z, batch_size=1000)
                 self.stdout.write(f'{len(batch_z)} resultados por zona gravados.')
@@ -360,5 +363,5 @@ class Command(BaseCommand):
         for (tipo, turno), eleicao in sorted(eleicao_por_chave.items()):
             self.stdout.write(f'  • {eleicao}')
 
-        # Atualizar Cidade.votos_sorgatto_2022 a partir dos resultados TSE.
+        # Atualizar Cidade.votos_referencia_2022 a partir dos resultados TSE.
         self._atualizar_votos_cidade(ano, eleicao_por_chave)

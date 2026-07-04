@@ -37,11 +37,10 @@ const API = {
     demandas: {
         mapStatus: (tipo) => apiGet('/mapa/api/demandas/' + (tipo ? '?tipo=' + tipo : '')),
     },
-    promessas: {
-        map: () => apiGet('/mapa/api/promessas/'),
-    },
     roteiros: {
         mapData: (showCompleted) => apiGet(`/mapa/api/roteiros/?completed=${showCompleted}`),
+        dia: (showCompleted) => apiGet(`/mapa/api/roteiro-dia/?completed=${showCompleted}`),
+        oportunidades: () => apiGet('/mapa/api/roteiro-oportunidades/'),
         urgency: () => apiGet('/mapa/api/urgencia-visita/'),
         cityAction: (slug) => apiGet(`/mapa/api/cidade-acao/${slug}/`),
     },

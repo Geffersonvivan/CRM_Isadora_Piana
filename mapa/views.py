@@ -1,7 +1,10 @@
 import math
 from collections import defaultdict
 
-from django.db.models import Count, Sum, Q, F, Avg
+from django.conf import settings
+
+from django.db.models import Count, Sum, Q, F, Avg, OuterRef, Subquery, IntegerField
+from django.db.models.functions import Coalesce
 from django.shortcuts import render
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -10,11 +13,10 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 
 from liderancas.models import (
-    Regiao, Cidade, Apoiador, CoordenadorRegional, CaboEleitoral, Bairro,
+    Regiao, Cidade, Lideranca, Bairro, q_apoiadores_aprovados,
 )
-from doacoes.models import Doacao
 from tarefas.models import Tarefa
-from agenda.models import Compromisso, Roteiro, RoteiroPonto
+from agenda.models import Compromisso, Roteiro, RoteiroPonto, Evento
 from usuarios.models import Usuario
 from usuarios.views import secao_required
 from mapa.models import Eleicao, ResultadoCandidato, ResultadoZona, IndicadorMunicipal
@@ -30,7 +32,7 @@ def _politicos_por_cidade():
                                'presidente': 0, 'votos_maquina': 0, 'meta_transferir': 0})
     cargo_map = {'prefeito': 'prefeito', 'vice_prefeito': 'vice',
                  'vereador': 'vereador', 'presidente_diretorio': 'presidente'}
-    for ap in Apoiador.objects.filter(tipo='politico', status='ativo').values(
+    for ap in Lideranca.objects.apoiadores_aprovados().filter(tipo='politico').values(
         'cidade_id', 'cargo', 'votos_referencia', 'meta_votos_transferir',
     ):
         d = pol[ap['cidade_id']]
@@ -71,12 +73,14 @@ def mapa_cidade(request, slug):
 class StateMapAPI(APIView):
     """GeoJSON do estado com todas as regiões."""
     def get(self, request):
+        # Contagem de apoiadores via Subquery — não pode ir junto dos Sum no mesmo
+        # annotate, senão o JOIN de liderancas multiplica os Sum (eleitores/votos).
+        ap_por_regiao = Lideranca.objects.apoiadores_aprovados().filter(
+            cidade__regiao=OuterRef('pk'),
+        ).values('cidade__regiao').annotate(c=Count('id')).values('c')
         regions = Regiao.objects.annotate(
-            total_apoiadores=Count(
-                'cidades__apoiadores',
-                filter=Q(cidades__apoiadores__status='ativo'),
-            ),
-            total_votos_2022=Sum('cidades__votos_sorgatto_2022'),
+            total_apoiadores=Coalesce(Subquery(ap_por_regiao, output_field=IntegerField()), 0),
+            total_votos_2022=Sum('cidades__votos_referencia_2022'),
             total_eleitores=Sum('cidades__eleitores'),
         )
         features = []
@@ -106,7 +110,7 @@ class RegionMapAPI(APIView):
         region = Regiao.objects.get(slug=slug)
         cities = region.cidades.annotate(
             total_apoiadores=Count(
-                'apoiadores', filter=Q(apoiadores__status='ativo'),
+                'liderancas', filter=q_apoiadores_aprovados('liderancas'),
             ),
         )
         features = []
@@ -118,7 +122,7 @@ class RegionMapAPI(APIView):
                         'name': city.nome,
                         'slug': city.slug,
                         'population': city.populacao,
-                        'votes_2022': city.votos_sorgatto_2022,
+                        'votes_2022': city.votos_referencia_2022,
                         'registered_voters': city.eleitores,
                         'meta_votes': city.meta_votos,
                         'total_apoiadores': city.total_apoiadores,
@@ -174,7 +178,7 @@ class StateCitiesMapAPI(APIView):
             .select_related('regiao')
             .annotate(
                 total_apoiadores=Count(
-                    'apoiadores', filter=Q(apoiadores__status='ativo'),
+                    'liderancas', filter=q_apoiadores_aprovados('liderancas'),
                 ),
             )
             .exclude(geojson__isnull=True)
@@ -189,7 +193,7 @@ class StateCitiesMapAPI(APIView):
                     'region_name': city.regiao.sigla,
                     'region_slug': city.regiao.slug,
                     'population': city.populacao,
-                    'votes_2022': city.votos_sorgatto_2022,
+                    'votes_2022': city.votos_referencia_2022,
                     'registered_voters': city.eleitores,
                     'meta_votes': city.meta_votos,
                     'total_apoiadores': city.total_apoiadores,
@@ -208,21 +212,19 @@ class HeatmapAPI(APIView):
         if level == 'city':
             return self._city_level(metric)
 
+        # Contagens via Subquery: dois Count (liderancas + tarefas) sobre relações
+        # distintas mais um Sum no mesmo annotate inflariam tudo (join cartesiano).
+        hoje_hm = timezone.now().date()
+        ap_por_regiao = Lideranca.objects.apoiadores_aprovados().filter(
+            cidade__regiao=OuterRef('pk'),
+        ).values('cidade__regiao').annotate(c=Count('id')).values('c')
+        venc_por_regiao = Tarefa.objects.filter(
+            excluida_em__isnull=True, prazo__lt=hoje_hm, cidade__regiao=OuterRef('pk'),
+        ).exclude(fase='concluida').values('cidade__regiao').annotate(c=Count('id')).values('c')
         regions = Regiao.objects.annotate(
-            total_apoiadores=Count(
-                'cidades__apoiadores',
-                filter=Q(cidades__apoiadores__status='ativo'),
-            ),
-            total_votos_2022=Sum('cidades__votos_sorgatto_2022'),
-            total_doacoes=Sum(
-                'cidades__doacoes__valor',
-                filter=Q(cidades__doacoes__status='confirmada'),
-            ),
-            demandas_vencidas=Count(
-                'cidades__tarefas',
-                filter=Q(cidades__tarefas__excluida_em__isnull=True, cidades__tarefas__prazo__lt=timezone.now().date())
-                & ~Q(cidades__tarefas__fase='concluida'),
-            ),
+            total_apoiadores=Coalesce(Subquery(ap_por_regiao, output_field=IntegerField()), 0),
+            total_votos_2022=Sum('cidades__votos_referencia_2022'),
+            demandas_vencidas=Coalesce(Subquery(venc_por_regiao, output_field=IntegerField()), 0),
         )
         data = []
         for r in regions:
@@ -237,8 +239,6 @@ class HeatmapAPI(APIView):
             elif metric == 'saturation':
                 if r.populacao > 0:
                     value = round((r.total_apoiadores / r.populacao) * 100, 4)
-            elif metric == 'doacoes':
-                value = float(r.total_doacoes or 0)
             elif metric == 'demandas_vencidas':
                 value = r.demandas_vencidas
             elif metric == 'gap':
@@ -254,17 +254,14 @@ class HeatmapAPI(APIView):
     def _city_level(self, metric):
         today = timezone.now().date()
         cities = Cidade.objects.select_related('regiao').annotate(
+            # distinct: dois Count sobre relações to-many diferentes (liderancas/tarefas)
             total_apoiadores=Count(
-                'apoiadores', filter=Q(apoiadores__status='ativo'),
-            ),
-            total_doacoes=Sum(
-                'doacoes__valor',
-                filter=Q(doacoes__status='confirmada'),
+                'liderancas', filter=q_apoiadores_aprovados('liderancas'), distinct=True,
             ),
             demandas_vencidas=Count(
                 'tarefas',
                 filter=Q(tarefas__excluida_em__isnull=True, tarefas__prazo__lt=today)
-                & ~Q(tarefas__fase='concluida'),
+                & ~Q(tarefas__fase='concluida'), distinct=True,
             ),
         )
         data = []
@@ -275,25 +272,20 @@ class HeatmapAPI(APIView):
             if metric == 'apoiadores':
                 value = c.total_apoiadores
             elif metric == 'votes_2022':
-                value = c.votos_sorgatto_2022 or 0
+                value = c.votos_referencia_2022 or 0
             elif metric == 'meta_progress':
                 if c.meta_votos > 0:
                     value = round((c.total_apoiadores / c.meta_votos) * 100, 2)
             elif metric == 'saturation':
                 if pop > 0:
                     value = round((c.total_apoiadores / pop) * 100, 4)
-            elif metric == 'doacoes':
-                value = float(c.total_doacoes or 0)
-            elif metric == 'doacoes_per_capita':
-                if pop > 0:
-                    value = round(float(c.total_doacoes or 0) / pop, 2)
             elif metric == 'demandas_vencidas':
                 value = c.demandas_vencidas
             elif metric == 'gap':
-                value = (c.votos_sorgatto_2022 or 0) - c.total_apoiadores
+                value = (c.votos_referencia_2022 or 0) - c.total_apoiadores
             elif metric == 'penetration':
                 if voters > 0:
-                    value = round((c.votos_sorgatto_2022 or 0) / voters * 100, 2)
+                    value = round((c.votos_referencia_2022 or 0) / voters * 100, 2)
             data.append({
                 'slug': c.slug,
                 'name': c.nome,
@@ -307,10 +299,10 @@ class HeatmapAPI(APIView):
 
 class DashboardOverviewAPI(APIView):
     def get(self, request):
-        ativos = Apoiador.objects.filter(status='ativo')
+        ativos = Lideranca.objects.apoiadores_aprovados()
         total_apoiadores = ativos.count()
-        total_coordenadores = CoordenadorRegional.objects.count()
-        total_cabos = CaboEleitoral.objects.count()
+        total_coordenadores = Lideranca.objects.filter(papel='coordenador').count()
+        total_cabos = Lideranca.objects.filter(papel='cabo').count()
         total_parceiros = ativos.filter(tipo='empresarial').count()
         total_liderancas = ativos.filter(tipo='politico').count()
         total_empresas = ativos.filter(tipo='empresarial').count()
@@ -319,11 +311,11 @@ class DashboardOverviewAPI(APIView):
         # Separate queries to avoid JOIN multiplication
         votos_by_region = dict(
             Cidade.objects.values('regiao_id')
-            .annotate(total=Sum('votos_sorgatto_2022'))
+            .annotate(total=Sum('votos_referencia_2022'))
             .values_list('regiao_id', 'total')
         )
         apoiadores_by_region = dict(
-            Apoiador.objects.filter(status='ativo')
+            Lideranca.objects.apoiadores_aprovados()
             .values('cidade__regiao_id')
             .annotate(total=Count('id'))
             .values_list('cidade__regiao_id', 'total')
@@ -359,15 +351,15 @@ class DashboardOverviewAPI(APIView):
 class RegionDashboardAPI(APIView):
     def get(self, request, slug):
         region = Regiao.objects.get(slug=slug)
-        total_apoiadores = Apoiador.objects.filter(
-            cidade__regiao=region, status='ativo',
+        total_apoiadores = Lideranca.objects.apoiadores_aprovados().filter(
+            cidade__regiao=region,
         ).count()
-        total_coordenadores = CoordenadorRegional.objects.filter(regiao=region).count()
-        total_cabos = CaboEleitoral.objects.filter(cidade__regiao=region).count()
+        total_coordenadores = Lideranca.objects.filter(papel='coordenador', regiao=region).count()
+        total_cabos = Lideranca.objects.filter(papel='cabo', cidade__regiao=region).count()
 
         cities = region.cidades.annotate(
             total_apoiadores=Count(
-                'apoiadores', filter=Q(apoiadores__status='ativo'),
+                'liderancas', filter=q_apoiadores_aprovados('liderancas'),
             ),
         )
 
@@ -382,7 +374,7 @@ class RegionDashboardAPI(APIView):
             'total_coordenadores': total_coordenadores,
             'total_cabos': total_cabos,
             'cities': list(cities.values(
-                'nome', 'slug', 'populacao', 'votos_sorgatto_2022',
+                'nome', 'slug', 'populacao', 'votos_referencia_2022',
                 'meta_votos', 'total_apoiadores',
             )),
         })
@@ -393,11 +385,10 @@ class CityDashboardAPI(APIView):
         city = Cidade.objects.select_related('regiao').get(slug=slug)
         today = timezone.now().date()
 
-        apoiadores_ativos = Apoiador.objects.filter(cidade=city, status='ativo').count()
+        apoiadores_ativos = Lideranca.objects.apoiadores_aprovados().filter(cidade=city).count()
 
-        # Doações
-        doacoes_city = Doacao.objects.filter(cidade=city, status='confirmada')
-        total_doacoes = doacoes_city.aggregate(t=Sum('valor'))['t'] or 0
+        # Doações (módulo removido — métrica neutralizada)
+        total_doacoes = 0
 
         # Tarefas
         tarefas_city = Tarefa.objects.filter(cidade=city).exclude(excluida_em__isnull=False)
@@ -422,14 +413,14 @@ class CityDashboardAPI(APIView):
                 'mayor_name': city.prefeito_nome,
                 'mayor_party': city.prefeito_partido,
                 'num_vereadores': city.num_vereadores,
-                'num_vereadores_pl': city.num_vereadores_pl,
-                'pl_executive_president': city.presidente_pl,
-                'votes_sorgatto_2022': city.votos_sorgatto_2022,
+                'num_vereadores_partido': city.num_vereadores_partido,
+                'diretorio_presidente': city.presidente_diretorio,
+                'votes_referencia_2022': city.votos_referencia_2022,
                 'meta_votes': city.meta_votos,
             },
             'total_apoiadores': apoiadores_ativos,
-            'total_coordenadores': CoordenadorRegional.objects.filter(regiao=city.regiao).count(),
-            'total_cabos': CaboEleitoral.objects.filter(cidade=city).count(),
+            'total_coordenadores': Lideranca.objects.filter(papel='coordenador', regiao=city.regiao).count(),
+            'total_cabos': Lideranca.objects.filter(papel='cabo', cidade=city).count(),
             'total_doacoes': float(total_doacoes),
             'tarefas_total': tarefas_total,
             'tarefas_concluidas': tarefas_concluidas,
@@ -439,13 +430,13 @@ class CityDashboardAPI(APIView):
         })
 
     def _build_strategic(self, city, apoiadores_count, today):
-        votes_2022 = city.votos_sorgatto_2022 or 0
+        votes_2022 = city.votos_referencia_2022 or 0
         meta = city.meta_votos or 0
         voters = city.eleitores or 0
         penetration = round((votes_2022 / voters * 100), 2) if voters > 0 else 0
 
         state = Cidade.objects.aggregate(
-            total_votes=Sum('votos_sorgatto_2022'),
+            total_votes=Sum('votos_referencia_2022'),
             total_voters=Sum('eleitores'),
         )
         avg_penetration = round(
@@ -482,14 +473,14 @@ class CityDashboardAPI(APIView):
         }
 
         align_score = {'allied': 100, 'neutral': 50, 'adversary': 0}[alignment]
-        ver_pct = (city.num_vereadores_pl / city.num_vereadores * 100) if city.num_vereadores else 0
+        ver_pct = (city.num_vereadores_partido / city.num_vereadores * 100) if city.num_vereadores else 0
         pen_normalized = min(penetration / max(avg_penetration * 2, 0.01) * 100, 100)
-        has_structure = 100 if city.presidente_pl else 0
+        has_structure = 100 if city.presidente_diretorio else 0
         total_score = round(
             align_score * 0.30 + ver_pct * 0.20 + pen_normalized * 0.35 + has_structure * 0.15
         )
 
-        has_coordinator = CoordenadorRegional.objects.filter(regiao=city.regiao).exists()
+        has_coordinator = Lideranca.objects.filter(papel='coordenador', regiao=city.regiao).exists()
         tarefas_vencidas = Tarefa.objects.filter(
             cidade=city, prazo__lt=today,
         ).exclude(fase='concluida').exclude(excluida_em__isnull=False).count()
@@ -535,8 +526,8 @@ class CityDashboardAPI(APIView):
                 'mayor_name': city.prefeito_nome or '',
                 'mayor_party': city.prefeito_partido or '',
                 'num_vereadores': city.num_vereadores,
-                'num_vereadores_pl': city.num_vereadores_pl,
-                'pl_executive_president': city.presidente_pl or '',
+                'num_vereadores_partido': city.num_vereadores_partido,
+                'diretorio_presidente': city.presidente_diretorio or '',
                 'has_coordinator': has_coordinator,
             },
         }
@@ -551,25 +542,29 @@ class StrategicAnalysisAPI(APIView):
             Cidade.objects
             .select_related('regiao')
             .annotate(
+                # distinct=True é obrigatório: são vários Count() sobre relações
+                # to-many diferentes (liderancas, tarefas, compromissos) na mesma
+                # query — sem distinct, o JOIN cartesiano multiplica as contagens
+                # (ex.: 1 apoiador virava 53). CLAUDE.md §12/§3.
                 total_apoiadores=Count(
-                    'apoiadores', filter=Q(apoiadores__status='ativo'),
+                    'liderancas', filter=q_apoiadores_aprovados('liderancas'), distinct=True,
                 ),
                 total_demandas=Count(
                     'tarefas',
-                    filter=Q(tarefas__excluida_em__isnull=True),
+                    filter=Q(tarefas__excluida_em__isnull=True), distinct=True,
                 ),
                 demandas_vencidas=Count(
                     'tarefas',
                     filter=Q(tarefas__excluida_em__isnull=True, tarefas__prazo__lt=today)
-                    & ~Q(tarefas__fase='concluida'),
+                    & ~Q(tarefas__fase='concluida'), distinct=True,
                 ),
                 demandas_concluidas=Count(
                     'tarefas',
-                    filter=Q(tarefas__excluida_em__isnull=True, tarefas__fase='concluida'),
+                    filter=Q(tarefas__excluida_em__isnull=True, tarefas__fase='concluida'), distinct=True,
                 ),
-                total_compromissos=Count('compromissos'),
-                cabo_count=Count('cabos_eleitorais'),
-                coord_count=Count('regiao__coordenadores'),
+                total_compromissos=Count('compromissos', distinct=True),
+                cabo_count=Count('liderancas', filter=Q(liderancas__papel='cabo'), distinct=True),
+                coord_count=Count('regiao__liderancas', filter=Q(regiao__liderancas__papel='coordenador'), distinct=True),
             )
             .order_by('regiao__nome', 'nome')
         )
@@ -581,7 +576,7 @@ class StrategicAnalysisAPI(APIView):
             'prefeito': 0, 'vice': 0, 'vereador': 0, 'presidente': 0,
             'votos_maquina': 0, 'meta_transferir': 0,
         })
-        for ap in Apoiador.objects.filter(tipo='politico', status='ativo').values(
+        for ap in Lideranca.objects.apoiadores_aprovados().filter(tipo='politico').values(
             'cidade_id', 'cargo', 'votos_referencia', 'meta_votos_transferir',
         ):
             d = politicos[ap['cidade_id']]
@@ -596,7 +591,7 @@ class StrategicAnalysisAPI(APIView):
         TARGET_PEN, GROWTH = 0.012, 1.4
 
         totals = Cidade.objects.aggregate(
-            total_votes=Sum('votos_sorgatto_2022'),
+            total_votes=Sum('votos_referencia_2022'),
             total_voters=Sum('eleitores'),
         )
         avg_penetration = 0
@@ -609,14 +604,12 @@ class StrategicAnalysisAPI(APIView):
             for ind in IndicadorMunicipal.objects.all().order_by('-ano_referencia')
         }
 
-        # State-level PL network density for normalization
-        state_totals = Cidade.objects.aggregate(
-            total_apoiadores=Count('apoiadores', filter=Q(apoiadores__status='ativo')),
-            total_voters=Sum('eleitores'),
-        )
-        state_density = 0
-        if state_totals['total_voters']:
-            state_density = (state_totals['total_apoiadores'] or 0) / state_totals['total_voters'] * 100
+        # State-level PL network density for normalization.
+        # Count e Sum em queries separadas: juntos, o join de liderancas inflaria
+        # o Sum('eleitores').
+        state_apoiadores = Lideranca.objects.apoiadores_aprovados().count()
+        state_voters = Cidade.objects.aggregate(v=Sum('eleitores'))['v'] or 0
+        state_density = (state_apoiadores / state_voters * 100) if state_voters else 0
 
         result = []
         summary = {
@@ -626,14 +619,14 @@ class StrategicAnalysisAPI(APIView):
 
         for city in cities:
             voters = city.eleitores or 0
-            votes = city.votos_sorgatto_2022 or 0
+            votes = city.votos_referencia_2022 or 0
             penetration = (votes / voters * 100) if voters > 0 else 0
             mayor_party = (city.prefeito_partido or '').upper().strip()
 
             # ativos políticos aliados desta cidade (do cadastro)
             pol = politicos.get(city.id, {'prefeito': 0, 'vice': 0, 'vereador': 0,
                                           'presidente': 0, 'votos_maquina': 0, 'meta_transferir': 0})
-            tem_diretorio = pol['presidente'] > 0 or bool(city.presidente_pl)
+            tem_diretorio = pol['presidente'] > 0 or bool(city.presidente_diretorio)
             aliados = pol['prefeito'] + pol['vice'] + pol['vereador'] + (1 if tem_diretorio else 0)
             cabos = city.cabo_count or 0
             meta = city.meta_votos or int(round(max(votes * GROWTH, voters * TARGET_PEN) / 10) * 10)
@@ -672,7 +665,7 @@ class StrategicAnalysisAPI(APIView):
             # PL Network score (same formula as PLNetworkAPI)
             coord_s = 100 if (city.coord_count or 0) > 0 else 0
             ver_s = min(ver_pct * 2, 100)
-            dir_s = 100 if city.presidente_pl else 0
+            dir_s = 100 if city.presidente_diretorio else 0
             density = ((city.total_apoiadores or 0) / max(voters, 1)) * 100
             contact_s = min(density / max(state_density * 2, 0.01) * 100, 100)
             cabo_s = min((city.cabo_count or 0) * 25, 100)
@@ -687,7 +680,7 @@ class StrategicAnalysisAPI(APIView):
                 pop = ind.populacao
                 ibge = {
                     'renda_per_capita': float(ind.renda_per_capita),
-                    'pib_per_capita': round(float(ind.pib) / pop, 2),
+                    'pib_per_capita': round(ind.pib_per_capita) if ind.pib_per_capita is not None else None,
                     'bf_pct': round(ind.familias_bolsa_familia / pop * 100, 2),
                     'meis_pct': round(ind.meis_ativos / pop * 100, 2),
                     'pop_urbana_pct': round(ind.populacao_urbana / pop * 100, 1) if ind.populacao_urbana else None,
@@ -731,7 +724,7 @@ class StrategicAnalysisAPI(APIView):
                 'mayor_name': city.prefeito_nome or '',
                 'mayor_party': city.prefeito_partido or '',
                 'num_vereadores': city.num_vereadores or 0,
-                'num_vereadores_pl': city.num_vereadores_pl or 0,
+                'num_vereadores_partido': city.num_vereadores_partido or 0,
                 'votes_2022': votes,
                 'penetration': round(penetration, 2),
                 'classification': cls,
@@ -780,38 +773,38 @@ class PLNetworkAPI(APIView):
             Cidade.objects
             .select_related('regiao')
             .annotate(
+                # distinct: vários Count sobre relações to-many diferentes
+                # (liderancas, regiao__liderancas, tarefas) — sem distinct, multiplicam.
                 total_apoiadores=Count(
-                    'apoiadores', filter=Q(apoiadores__status='ativo'),
+                    'liderancas', filter=q_apoiadores_aprovados('liderancas'), distinct=True,
                 ),
-                coord_count=Count('regiao__coordenadores'),
-                cabo_count=Count('cabos_eleitorais'),
+                coord_count=Count('regiao__liderancas', filter=Q(regiao__liderancas__papel='coordenador'), distinct=True),
+                cabo_count=Count('liderancas', filter=Q(liderancas__papel='cabo'), distinct=True),
                 total_demandas=Count(
-                    'tarefas', filter=Q(tarefas__excluida_em__isnull=True),
+                    'tarefas', filter=Q(tarefas__excluida_em__isnull=True), distinct=True,
                 ),
                 demandas_vencidas=Count(
                     'tarefas',
                     filter=Q(tarefas__excluida_em__isnull=True, tarefas__prazo__lt=today)
-                    & ~Q(tarefas__fase='concluida'),
+                    & ~Q(tarefas__fase='concluida'), distinct=True,
                 ),
                 demandas_concluidas=Count(
                     'tarefas',
-                    filter=Q(tarefas__excluida_em__isnull=True, tarefas__fase='concluida'),
+                    filter=Q(tarefas__excluida_em__isnull=True, tarefas__fase='concluida'), distinct=True,
                 ),
             )
             .order_by('regiao__nome', 'nome')
         )
 
-        totals = Cidade.objects.aggregate(
-            total_apoiadores=Count('apoiadores', filter=Q(apoiadores__status='ativo')),
-            total_voters=Sum('eleitores'),
-            total_votes=Sum('votos_sorgatto_2022'),
+        # Totais de estado: Count e Sum em queries separadas (join inflaria os Sum).
+        total_apoiadores_st = Lideranca.objects.apoiadores_aprovados().count()
+        sums_st = Cidade.objects.aggregate(
+            total_voters=Sum('eleitores'), total_votes=Sum('votos_referencia_2022'),
         )
-        state_density = 0
-        if totals['total_voters']:
-            state_density = (totals['total_apoiadores'] or 0) / totals['total_voters'] * 100
-        avg_penetration = 0
-        if totals['total_voters']:
-            avg_penetration = (totals['total_votes'] or 0) / totals['total_voters'] * 100
+        total_voters_st = sums_st['total_voters'] or 0
+        total_votes_st = sums_st['total_votes'] or 0
+        state_density = (total_apoiadores_st / total_voters_st * 100) if total_voters_st else 0
+        avg_penetration = (total_votes_st / total_voters_st * 100) if total_voters_st else 0
 
         politicos = _politicos_por_cidade()   # ativos do cadastro (Apoiador.cargo)
         raw_results = []
@@ -820,13 +813,13 @@ class PLNetworkAPI(APIView):
             pol = politicos.get(city.id, {'prefeito': 0, 'vice': 0, 'vereador': 0,
                                           'presidente': 0, 'votos_maquina': 0, 'meta_transferir': 0})
             voters = city.eleitores or 0
-            votes_2022 = city.votos_sorgatto_2022 or 0
+            votes_2022 = city.votos_referencia_2022 or 0
             penetration = (votes_2022 / voters * 100) if voters > 0 else 0
 
             coord_score = 100 if (city.coord_count or 0) > 0 else 0
             ver_score = min(pol['vereador'] * 30, 100)        # cada vereador aliado = 30 pts
             pref_score = 100 if pol['prefeito'] > 0 else 0
-            dir_score = 100 if (pol['presidente'] > 0 or city.presidente_pl) else 0
+            dir_score = 100 if (pol['presidente'] > 0 or city.presidente_diretorio) else 0
             density = ((city.total_apoiadores or 0) / max(voters, 1)) * 100
             contact_score = min(density / max(state_density * 2, 0.01) * 100, 100)
             cabo_score = min((city.cabo_count or 0) * 25, 100)
@@ -861,10 +854,10 @@ class PLNetworkAPI(APIView):
                 'registered_voters': voters,
                 'mayor_party': city.prefeito_partido or '',
                 'num_vereadores': city.num_vereadores or 0,
-                'num_vereadores_pl': pol['vereador'],
+                'num_vereadores_partido': pol['vereador'],
                 'prefeito_aliado': pol['prefeito'] > 0,
                 'has_coordinator': (city.coord_count or 0) > 0,
-                'pl_executive_president': city.presidente_pl or ('Diretório' if pol['presidente'] else ''),
+                'diretorio_presidente': city.presidente_diretorio or ('Diretório' if pol['presidente'] else ''),
                 'votos_maquina': pol['votos_maquina'],
                 'apoiadores': city.total_apoiadores or 0,
                 'cabos': city.cabo_count or 0,
@@ -929,51 +922,12 @@ class PLNetworkAPI(APIView):
 
 
 class DoacoesMapAPI(APIView):
-    """Doações agrupadas por região e cidade para choropleth."""
+    """Doações por região/cidade — módulo de doações removido.
+
+    A rota é mantida por compatibilidade com o front (setDoacoes), mas não há
+    mais fonte de dados: retorna lista vazia (métrica neutralizada)."""
     def get(self, request):
-        # Doações por região
-        regions_data = {}
-        for r in Regiao.objects.all():
-            doacoes = Doacao.objects.filter(
-                cidade__regiao=r, status='confirmada',
-            )
-            agg = doacoes.aggregate(
-                total=Sum('valor'),
-                count=Count('id'),
-            )
-            total = float(agg['total'] or 0)
-
-            # Doadores distintos
-            doadores = doacoes.values('doador_nome').distinct().count() if total > 0 else 0
-
-            regions_data[r.slug] = {
-                'slug': r.slug,
-                'name': r.sigla,
-                'total': total,
-                'count': agg['count'],
-                'doadores': doadores,
-                'captadores': 0,
-                'top_captadores': [],
-            }
-
-        # Doações por cidade
-        cities_data = {}
-        for city in Cidade.objects.all():
-            doacoes_city = Doacao.objects.filter(
-                cidade=city, status='confirmada',
-            )
-            agg = doacoes_city.aggregate(total=Sum('valor'), count=Count('id'))
-            total = float(agg['total'] or 0)
-            if total > 0:
-                cities_data[city.slug] = {
-                    'total': total,
-                    'count': agg['count'],
-                    'doadores': doacoes_city.values('doador_nome').distinct().count(),
-                }
-
-        # Retornar como array (para compatibilidade com setDoacoes que converte para map)
-        result = list(regions_data.values())
-        return Response(result)
+        return Response([])
 
 
 class DemandasMapAPI(APIView):
@@ -1021,7 +975,7 @@ class DemandasMapAPI(APIView):
         cities, regions = {}, {}
         for cid in Cidade.objects.select_related('regiao'):
             d = cdata.get(cid.id, {'total': 0, 'active': 0, 'overdue': 0, 'completed': 0})
-            v = cid.votos_sorgatto_2022 or 0
+            v = cid.votos_referencia_2022 or 0
             elei = cid.eleitores or 0
             meta = cid.meta_votos or int(round(max(v * GROWTH, elei * TARGET_PEN) / 10) * 10)
             gap = max(0, meta - v)
@@ -1097,66 +1051,266 @@ class DemandasMapAPI(APIView):
         })
 
 
+def _coords_cidade(city):
+    """lat/lng da cidade; cai no centróide do geojson se faltar coordenada."""
+    lat, lng = city.latitude, city.longitude
+    if (not lat or not lng) and city.geojson:
+        geo = city.geojson
+        coords = geo.get('coordinates', [])
+        ring = coords[0] if geo.get('type') == 'Polygon' else (coords[0][0] if coords else [])
+        if ring:
+            lng = sum(p[0] for p in ring) / len(ring)
+            lat = sum(p[1] for p in ring) / len(ring)
+    return lat, lng
+
+
+def _stop_from_compromisso(comp, ordem, is_origin, observacao=''):
+    """Monta um ponto de roteiro a partir de um Compromisso (com cidade)."""
+    city = comp.cidade
+    lat, lng = _coords_cidade(city)
+    if not lat or not lng:
+        return None
+    # Converter para horário local antes de extrair data/hora (DB guarda em UTC).
+    ini = timezone.localtime(comp.data_hora_inicio) if comp.data_hora_inicio else None
+    fim = timezone.localtime(comp.data_hora_fim) if comp.data_hora_fim else None
+    dur = int((fim - ini).total_seconds() // 60) if (ini and fim) else None
+    return {
+        'city_name': city.nome,
+        'city_slug': city.slug,
+        'lat': lat,
+        'lng': lng,
+        'date': ini.date().isoformat() if ini else '',
+        'time': ini.strftime('%H:%M:%S') if ini else '',
+        'end_time': fim.strftime('%H:%M:%S') if fim else '',
+        'duration_min': dur,
+        'task_title': comp.titulo or '',
+        'compromisso_id': comp.id,
+        'observacao': observacao or '',
+        'is_overnight': False,
+        'is_origin': is_origin,
+        'order': ordem,
+    }
+
+
+def _stop_from_evento(ev):
+    """Monta um ponto de roteiro a partir de um Evento (com cidade)."""
+    city = ev.cidade
+    lat, lng = _coords_cidade(city)
+    if not lat or not lng:
+        return None
+    return {
+        'city_name': city.nome,
+        'city_slug': city.slug,
+        'lat': lat,
+        'lng': lng,
+        'date': ev.data.isoformat() if ev.data else '',
+        'time': ev.horario_inicio.strftime('%H:%M:%S') if ev.horario_inicio else '',
+        'end_time': ev.horario_fim.strftime('%H:%M:%S') if ev.horario_fim else '',
+        'duration_min': None,
+        'task_title': ev.nome,
+        'compromisso_id': None,
+        'observacao': ev.local or '',
+        'publico': ev.publico_estimado,
+        'is_overnight': False,
+        'is_origin': True,
+        'order': 0,
+    }
+
+
 class RoteirosMapAPI(APIView):
-    """Roteiros/itinerários com lat/lng para cada parada."""
+    """Roteiros/itinerários com lat/lng para cada parada.
+
+    Três fontes (CLAUDE.md — "ambos" + eventos):
+      1. Roteiro/RoteiroPonto — caravanas multi-parada do construtor de roteiros.
+      2. Compromisso tipo='roteiro' avulso — vira um roteiro de uma parada só.
+      3. Evento (com cidade) — também é "onde o candidato passou/vai"; entra como
+         ponto único, com `kind='evento'` para o front diferenciar e filtrar.
+    """
+    # status do Roteiro → o que o sc-map.js entende
+    _STATUS_ROTEIRO = {
+        'planejado': 'planned',
+        'em_andamento': 'in_progress',
+        'concluido': 'completed',
+    }
+    # status do Compromisso → idem (avulsos tipo roteiro)
+    _STATUS_COMP = {
+        'pendente': 'planned',
+        'confirmado': 'confirmed',
+        'realizado': 'completed',
+    }
+    # status do Evento → idem (participou = onde passei; demais = onde vou)
+    _STATUS_EVENTO = {
+        'participou': 'completed',
+        'confirmado': 'confirmed',
+        'identificado': 'planned',
+        'avaliando': 'planned',
+    }
+
     def get(self, request):
         show_completed = request.GET.get('completed', 'false') == 'true'
+        roteiros = []
+
         qs = Roteiro.objects.select_related('regiao').prefetch_related(
             'pontos__compromisso__cidade',
         )
         if not show_completed:
-            qs = qs.exclude(status='realizado')
+            qs = qs.exclude(status='concluido')
 
-        roteiros = []
+        usados_comp = set()
         for roteiro in qs:
             stops = []
             for ponto in roteiro.pontos.select_related('compromisso__cidade').order_by('ordem'):
                 comp = ponto.compromisso
                 if not comp or not comp.cidade:
                     continue
-                city = comp.cidade
-
-                # Usar lat/lng da cidade se disponível, senão calcular centróide
-                lat = city.latitude
-                lng = city.longitude
-                if not lat or not lng:
-                    if city.geojson:
-                        geo = city.geojson
-                        coords = geo.get('coordinates', [])
-                        ring = coords[0] if geo['type'] == 'Polygon' else (coords[0][0] if coords else [])
-                        if ring:
-                            lng = sum(p[0] for p in ring) / len(ring)
-                            lat = sum(p[1] for p in ring) / len(ring)
-
-                if lat and lng:
-                    stops.append({
-                        'city_name': city.nome,
-                        'city_slug': city.slug,
-                        'lat': lat,
-                        'lng': lng,
-                        'date': comp.data_hora_inicio.date().isoformat() if comp.data_hora_inicio else '',
-                        'time': comp.data_hora_inicio.strftime('%H:%M:%S') if comp.data_hora_inicio else '',
-                        'task_title': comp.titulo or '',
-                        'is_overnight': ponto.pernoite if hasattr(ponto, 'pernoite') else False,
-                        'is_origin': ponto.ordem == 0,
-                        'order': ponto.ordem,
-                    })
-
+                usados_comp.add(comp.id)
+                st = _stop_from_compromisso(comp, ponto.ordem, ponto.ordem == 0, ponto.observacao_ponto)
+                if st:
+                    stops.append(st)
             if stops:
-                # Mapear status do CRM para o que sc-map.js espera
-                status_map = {
-                    'planejado': 'planned',
-                    'confirmado': 'confirmed',
-                    'em_andamento': 'in_progress',
-                    'realizado': 'completed',
-                }
                 roteiros.append({
+                    'id': roteiro.id,
                     'name': roteiro.titulo,
-                    'status': status_map.get(roteiro.status, roteiro.status),
+                    'date': roteiro.data.isoformat() if roteiro.data else '',
+                    'status': self._STATUS_ROTEIRO.get(roteiro.status, roteiro.status),
+                    'kind': 'roteiro',
+                    'single': False,
                     'stops': stops,
                 })
 
+        # Compromissos tipo 'roteiro' que NÃO estão em nenhum Roteiro → parada única.
+        avulsos = (
+            Compromisso.objects.filter(tipo='roteiro')
+            .exclude(status='cancelado')
+            .exclude(id__in=usados_comp)
+            .select_related('cidade')
+            .order_by('data_hora_inicio')
+        )
+        if not show_completed:
+            avulsos = avulsos.exclude(status='realizado')
+        for comp in avulsos:
+            if not comp.cidade:
+                continue
+            st = _stop_from_compromisso(comp, 0, True)
+            if st:
+                roteiros.append({
+                    'id': f'c{comp.id}',
+                    'name': comp.titulo,
+                    'date': timezone.localtime(comp.data_hora_inicio).date().isoformat() if comp.data_hora_inicio else '',
+                    'status': self._STATUS_COMP.get(comp.status, 'planned'),
+                    'kind': 'compromisso',
+                    'single': True,
+                    'stops': [st],
+                })
+
+        # Eventos com cidade → também são "onde o candidato passa/vai".
+        eventos = (
+            Evento.objects.exclude(status='descartado')
+            .select_related('cidade').order_by('data')
+        )
+        if not show_completed:
+            eventos = eventos.exclude(status='participou')
+        for ev in eventos:
+            if not ev.cidade:
+                continue
+            st = _stop_from_evento(ev)
+            if st:
+                roteiros.append({
+                    'id': f'e{ev.id}',
+                    'name': ev.nome,
+                    'date': ev.data.isoformat() if ev.data else '',
+                    'status': self._STATUS_EVENTO.get(ev.status, 'planned'),
+                    'kind': 'evento',
+                    'relevancia': ev.relevancia,
+                    'single': True,
+                    'stops': [st],
+                })
+
         return Response(roteiros)
+
+
+class RoteiroDiaAPI(APIView):
+    """Roteiro do dia: agrupa por DATA tudo que tem cidade + horário
+    (compromissos com cidade + eventos) e encadeia por ordem de horário, num
+    trajeto único por dia — o "por onde o candidato passou/vai naquele dia"."""
+    def get(self, request):
+        from collections import defaultdict
+        show_completed = request.GET.get('completed', 'false') == 'true'
+        hoje = timezone.localdate()
+        dias = defaultdict(list)
+
+        comps = (
+            Compromisso.objects.exclude(status='cancelado')
+            .select_related('cidade')
+            .filter(cidade__isnull=False, data_hora_inicio__isnull=False)
+        )
+        for c in comps:
+            st = _stop_from_compromisso(c, 0, False)
+            if st:
+                st['kind'] = 'compromisso'
+                dias[timezone.localtime(c.data_hora_inicio).date()].append(st)
+
+        evs = (
+            Evento.objects.exclude(status='descartado')
+            .select_related('cidade')
+            .filter(cidade__isnull=False, data__isnull=False)
+        )
+        for e in evs:
+            st = _stop_from_evento(e)
+            if st:
+                st['kind'] = 'evento'
+                dias[e.data].append(st)
+
+        roteiros = []
+        for d in sorted(dias.keys()):
+            if not show_completed and d < hoje:
+                continue
+            stops = sorted(dias[d], key=lambda s: s['time'] or '99:99:99')
+            for i, s in enumerate(stops):
+                s['order'] = i
+                s['is_origin'] = (i == 0)
+            status = 'completed' if d < hoje else 'in_progress' if d == hoje else 'planned'
+            roteiros.append({
+                'id': f'd{d.isoformat()}',
+                'name': f'Dia {d.strftime("%d/%m/%Y")}',
+                'date': d.isoformat(),
+                'status': status,
+                'kind': 'dia',
+                'single': len(stops) == 1,
+                'stops': stops,
+            })
+        return Response(roteiros)
+
+
+class RoteiroOportunidadesAPI(APIView):
+    """Cidades candidatas a parada extra ao longo de um roteiro: têm voto REAL
+    de 2022 (votos_referencia_2022, fonte TSE) mas poucos/nenhum apoiador
+    cadastrado — ou seja, voto que existe e ainda não está sendo trabalhado.
+    Só dado real (CLAUDE.md §5); a proximidade ao traçado é calculada no front."""
+    @method_decorator(cache_page(60 * 15))
+    def get(self, request):
+        apoiadores = dict(
+            Lideranca.objects.apoiadores_aprovados()
+            .values('cidade__slug').annotate(t=Count('id'))
+            .values_list('cidade__slug', 't')
+        )
+        out = []
+        for c in Cidade.objects.only(
+            'slug', 'nome', 'latitude', 'longitude', 'votos_referencia_2022',
+            'eleitores', 'geojson',
+        ):
+            votos = c.votos_referencia_2022 or 0
+            if votos <= 0:
+                continue
+            lat, lng = _coords_cidade(c)
+            if not lat or not lng:
+                continue
+            out.append({
+                'slug': c.slug, 'name': c.nome, 'lat': lat, 'lng': lng,
+                'votos': votos, 'apoiadores': apoiadores.get(c.slug, 0),
+                'eleitores': c.eleitores or 0,
+            })
+        return Response(out)
 
 
 class ZoneRankingAPI(APIView):
@@ -1164,26 +1318,26 @@ class ZoneRankingAPI(APIView):
     @method_decorator(cache_page(60 * 15))
     def get(self, request):
         eleicao_dep = Eleicao.objects.filter(
-            ano=2022, tipo='deputado_federal',
+            ano=2022, tipo=settings.CAMPANHA['TSE_CARGO_BASE'],
         ).first()
 
         cities = Cidade.objects.select_related('regiao').exclude(zona_eleitoral='')
 
         # Apoiadores e cabos por cidade
         apoiadores_map = dict(
-            Apoiador.objects.filter(status='ativo')
+            Lideranca.objects.apoiadores_aprovados()
             .values('cidade__slug')
             .annotate(total=Count('id'))
             .values_list('cidade__slug', 'total')
         )
         cabos_map = dict(
-            CaboEleitoral.objects.values('cidade__slug')
+            Lideranca.objects.filter(papel='cabo').values('cidade__slug')
             .annotate(total=Count('id'))
             .values_list('cidade__slug', 'total')
         )
         # Coordinators by region slug
         coord_regions = set(
-            CoordenadorRegional.objects.values_list('regiao__slug', flat=True)
+            Lideranca.objects.filter(papel='coordenador').values_list('regiao__slug', flat=True)
         )
 
         # Agrupar cidades por zona
@@ -1199,12 +1353,12 @@ class ZoneRankingAPI(APIView):
                 cand_votes = (
                     ResultadoZona.objects
                     .filter(eleicao=eleicao_dep, zona=zone_number)
-                    .values('candidato_nome', 'is_sorgatto')
+                    .values('candidato_nome', 'is_candidato')
                     .annotate(total_votos=Sum('votos'))
                     .order_by('-total_votos')
                 )
                 for i, cv in enumerate(cand_votes, 1):
-                    if cv['is_sorgatto']:
+                    if cv['is_candidato']:
                         zone_ls_positions[zone_number] = i
                         break
                 if zone_number not in zone_ls_positions:
@@ -1213,12 +1367,12 @@ class ZoneRankingAPI(APIView):
                     cand_votes2 = (
                         ResultadoCandidato.objects
                         .filter(eleicao=eleicao_dep, cidade_id__in=zone_city_ids)
-                        .values('candidato_nome', 'is_sorgatto')
+                        .values('candidato_nome', 'is_candidato')
                         .annotate(total_votos=Sum('votos'))
                         .order_by('-total_votos')
                     )
                     for i, cv in enumerate(cand_votes2, 1):
-                        if cv['is_sorgatto']:
+                        if cv['is_candidato']:
                             zone_ls_positions[zone_number] = i
                             break
 
@@ -1236,7 +1390,7 @@ class ZoneRankingAPI(APIView):
 
             for city in zone_cities_list:
                 voters = city.eleitores or 0
-                ls_votes = city.votos_sorgatto_2022 or 0
+                ls_votes = city.votos_referencia_2022 or 0
                 zone_total_voters += voters
                 zone_ls_votes += ls_votes
                 ap = apoiadores_map.get(city.slug, 0)
@@ -1245,7 +1399,7 @@ class ZoneRankingAPI(APIView):
                 zone_cabos += cb
                 if city.regiao.slug in coord_regions:
                     zone_has_coord = True
-                if city.presidente_pl:
+                if city.presidente_diretorio:
                     zone_has_diretorio = True
 
                 city_infos.append({
@@ -1420,7 +1574,7 @@ class VoteTransferAPI(APIView):
                 lat = sum(p[1] for p in ring) / len(ring)
 
             voters = city.eleitores or 0
-            votes = city.votos_sorgatto_2022 or 0
+            votes = city.votos_referencia_2022 or 0
             penetration = (votes / voters * 100) if voters > 0 else 0
 
             dep = allied_dep_map.get(city.slug)
@@ -1625,11 +1779,11 @@ class VoteTransferAPI(APIView):
 
 
 class Elections2022API(APIView):
-    """Dados eleitorais 2022 por cidade com posição de LS (dep. federal)."""
+    """Dados eleitorais 2022 por cidade com posição do candidato (cargo-base)."""
     @method_decorator(cache_page(60 * 60 * 24))  # dados eleitorais 2022 são estáticos
     def get(self, request):
         eleicao = Eleicao.objects.filter(
-            ano=2022, tipo='deputado_federal',
+            ano=2022, tipo=settings.CAMPANHA['TSE_CARGO_BASE'],
         ).first()
 
         if not eleicao:
@@ -1643,7 +1797,7 @@ class Elections2022API(APIView):
             .values(
                 'cidade__slug', 'cidade__nome', 'cidade__regiao__sigla',
                 'cidade__regiao__slug', 'cidade__eleitores',
-                'candidato_nome', 'votos', 'percentual', 'is_sorgatto',
+                'candidato_nome', 'votos', 'percentual', 'is_candidato',
             )
             .order_by('cidade__slug', '-votos')
         )
@@ -1664,7 +1818,7 @@ class Elections2022API(APIView):
             first_votes = candidates[0]['votos'] if candidates else 0
 
             for i, c in enumerate(candidates, 1):
-                if c['is_sorgatto']:
+                if c['is_candidato']:
                     ls_pos = i
                     ls_votes = c['votos']
                     ls_pct = float(c['percentual'])
@@ -1698,6 +1852,10 @@ class Elections2022API(APIView):
                 'ls_position': ls_pos,
                 'ls_pct': ls_pct,
                 'total_candidates': len(candidates),
+                # Percentil da candidata na cidade: posição relativa ao total de
+                # concorrentes (1º de 400 = top 0,25%). Comparável entre cidades de
+                # portes diferentes, ao contrário da posição absoluta. Badge CONTA.
+                'percentil': round(ls_pos / len(candidates) * 100, 1) if candidates else None,
                 'first_name': first_name,
                 'first_votes': first_votes,
                 'performance': perf,
@@ -1710,7 +1868,7 @@ class Elections2022API(APIView):
             ResultadoZona.objects
             .filter(
                 eleicao=eleicao,
-                is_sorgatto=True,
+                is_candidato=True,
             )
             .values('zona')
             .annotate(total_votes=Sum('votos'))
@@ -1721,7 +1879,30 @@ class Elections2022API(APIView):
             for z in zone_agg
         ]
 
-        avg_pos = round(sum(positions) / len(positions), 1) if positions else 0
+        # Posição da candidata no conjunto das cidades.
+        # A média aritmética simples de posições é distorcida por outliers e ignora
+        # o porte das cidades (3º numa capital ≠ 3º num vilarejo). Expomos duas
+        # medidas robustas — ambas são CONTA (derivadas de FATOs do TSE):
+        #   • mediana — robusta a outliers;
+        #   • média ponderada pelo eleitorado — onde há mais eleitores pesa mais.
+        avg_pos = round(sum(positions) / len(positions), 1) if positions else 0  # legado
+
+        if positions:
+            ordenadas = sorted(positions)
+            n = len(ordenadas)
+            meio = n // 2
+            median_pos = (
+                ordenadas[meio] if n % 2
+                else round((ordenadas[meio - 1] + ordenadas[meio]) / 2, 1)
+            )
+            peso_total = sum(c['voters'] for c in cities)
+            weighted_pos = (
+                round(sum(c['ls_position'] * c['voters'] for c in cities) / peso_total, 1)
+                if peso_total else avg_pos
+            )
+        else:
+            median_pos = 0
+            weighted_pos = 0
 
         perf_summary = {
             'primeiro': sum(1 for c in cities if c['performance'] == 'primeiro'),
@@ -1736,6 +1917,8 @@ class Elections2022API(APIView):
                 'total_cities': len(cities),
                 'total_ls_votes': total_ls_votes,
                 'avg_position': avg_pos,
+                'median_position': median_pos,
+                'weighted_position': weighted_pos,
                 'total_zones': len(zones),
             },
             'perf_summary': perf_summary,
@@ -1812,7 +1995,7 @@ class NeighborDeputiesAPI(APIView):
         cities_list = []
 
         for city in cities:
-            ls_votes = city.votos_sorgatto_2022 or 0
+            ls_votes = city.votos_referencia_2022 or 0
             voters = city.eleitores or 0
             ls_pct = round(ls_votes / max(voters, 1) * 100, 2)
 
@@ -1922,12 +2105,13 @@ class CompeticaoMapAPI(APIView):
             .order_by('eleicao__tipo', '-total')
         )
 
-        # LS votes per city for overlap calculation (dep. federal only)
+        # Votos do candidato por cidade (cargo-base de referência) p/ cálculo de overlap
         ls_by_city = {}
         ls_total = 0
         ls_results = (
             ResultadoCandidato.objects
-            .filter(eleicao__ano=2022, eleicao__turno=1, eleicao__tipo='deputado_federal', is_sorgatto=True)
+            .filter(eleicao__ano=2022, eleicao__turno=1,
+                    eleicao__tipo=settings.CAMPANHA['TSE_CARGO_BASE'], is_candidato=True)
             .values('cidade__slug', 'votos')
         )
         for r in ls_results:
@@ -1939,7 +2123,7 @@ class CompeticaoMapAPI(APIView):
         dep_fed_results = (
             ResultadoCandidato.objects
             .filter(eleicao__ano=2022, eleicao__turno=1, eleicao__tipo='deputado_federal')
-            .exclude(is_sorgatto=True)
+            .exclude(is_candidato=True)
             .values('candidato_nome', 'cidade__slug', 'votos')
         )
         cand_cities = defaultdict(dict)
@@ -1973,6 +2157,7 @@ class CompeticaoMapAPI(APIView):
             est_results = (
                 ResultadoCandidato.objects
                 .filter(eleicao__ano=2022, eleicao__turno=1, eleicao__tipo='deputado_estadual')
+                .exclude(is_candidato=True)
                 .values('candidato_nome', 'cidade__slug', 'votos')
             )
             est_cities = defaultdict(dict)
@@ -2000,6 +2185,7 @@ class CompeticaoMapAPI(APIView):
                 'cargo': r['eleicao__tipo'],
                 'cargo_label': self.CARGO_LABELS.get(r['eleicao__tipo'], r['eleicao__tipo']),
                 'total_votos': r['total'] or 0,
+                'is_candidato': settings.CAMPANHA['TSE_TERMO_BUSCA'] in (r['candidato_nome'] or '').upper(),
             }
             if r['eleicao__tipo'] == 'deputado_federal':
                 ov = dep_fed_overlap.get(r['candidato_nome'])
@@ -2038,7 +2224,7 @@ class CompeticaoMapAPI(APIView):
         # LS votes in same cargo for comparison
         ls_qs = (
             ResultadoCandidato.objects
-            .filter(eleicao__ano=2022, eleicao__turno=1, eleicao__tipo=tipo, is_sorgatto=True)
+            .filter(eleicao__ano=2022, eleicao__turno=1, eleicao__tipo=tipo, is_candidato=True)
             .values('cidade__slug', 'votos', 'percentual')
         )
         ls_by_city = {}
@@ -2048,12 +2234,12 @@ class CompeticaoMapAPI(APIView):
                 'pct': round(float(r['percentual'] or 0), 2),
             }
 
-        # Base geográfica do LS (votos federais 2022) — usada para a lente
-        # Defender×Atacar mesmo quando o rival é de outro cargo (estadual).
+        # Base geográfica do candidato (votos do cargo-base 2022) — usada para a
+        # lente Defender×Atacar mesmo quando o rival é de outro cargo.
         ls_base = {}
         for r in (ResultadoCandidato.objects
                   .filter(eleicao__ano=2022, eleicao__turno=1,
-                          eleicao__tipo='deputado_federal', is_sorgatto=True)
+                          eleicao__tipo=settings.CAMPANHA['TSE_CARGO_BASE'], is_candidato=True)
                   .values('cidade__slug', 'votos')):
             ls_base[r['cidade__slug']] = r['votos'] or 0
 
@@ -2225,6 +2411,8 @@ class PerfilIdeologicoAPI(APIView):
                 c['bf'] = round(1 - (ind.familias_bolsa_familia / pop / max_bf_pct), 4)
                 c['meis'] = round(ind.meis_ativos / pop / max_mei_pct, 4)
                 c['pib_raw'] = float(ind.pib)
+                # PIB per capita real (R$/hab): fonte única em IndicadorMunicipal.
+                c['pib_pc'] = round(ind.pib_per_capita)
                 c['renda_raw'] = float(ind.renda_per_capita)
                 c['bf_raw'] = ind.familias_bolsa_familia
                 c['meis_raw'] = ind.meis_ativos
@@ -2254,7 +2442,7 @@ class PerfilIdeologicoAPI(APIView):
 
         # ── Dados CRM (apoiadores e demandas por cidade) ──
         apoiadores_qs = (
-            Apoiador.objects.filter(status='ativo')
+            Lideranca.objects.apoiadores_aprovados()
             .values('cidade__slug')
             .annotate(total=Count('id'))
         )
@@ -2269,24 +2457,23 @@ class PerfilIdeologicoAPI(APIView):
 
         # ── Classificação estratégica e rede PL por cidade ──
         all_cities = Cidade.objects.select_related('regiao').annotate(
-            coord_count=Count('regiao__coordenadores'),
-            cabo_count=Count('cabos_eleitorais'),
+            # distinct: dois Count sobre relações to-many diferentes
+            coord_count=Count('regiao__liderancas', filter=Q(regiao__liderancas__papel='coordenador'), distinct=True),
+            cabo_count=Count('liderancas', filter=Q(liderancas__papel='cabo'), distinct=True),
         )
-        # Average penetration for classification
-        totals = Cidade.objects.aggregate(
-            total_votes=Sum('votos_sorgatto_2022'),
-            total_voters=Sum('eleitores'),
-            total_apoiadores=Count('apoiadores', filter=Q(apoiadores__status='ativo')),
+        # Médias de estado: Count e Sum em queries separadas (join inflaria os Sum).
+        st_apoiadores = Lideranca.objects.apoiadores_aprovados().count()
+        st_sums = Cidade.objects.aggregate(
+            total_votes=Sum('votos_referencia_2022'), total_voters=Sum('eleitores'),
         )
-        avg_pen = 0
-        if totals['total_voters']:
-            avg_pen = (totals['total_votes'] or 0) / totals['total_voters'] * 100
-        st_density = (totals['total_apoiadores'] or 0) / max(totals['total_voters'] or 1, 1) * 100
+        st_voters = st_sums['total_voters'] or 0
+        avg_pen = ((st_sums['total_votes'] or 0) / st_voters * 100) if st_voters else 0
+        st_density = (st_apoiadores / max(st_voters, 1) * 100)
 
         strategic_map = {}  # slug -> {classification, pl_network_level}
         for ct in all_cities:
             voters = ct.eleitores or 0
-            votes = ct.votos_sorgatto_2022 or 0
+            votes = ct.votos_referencia_2022 or 0
             pen = (votes / voters * 100) if voters > 0 else 0
             mayor_p = (ct.prefeito_partido or '').upper().strip()
             if mayor_p in ALLIED_PARTIES:
@@ -2308,13 +2495,13 @@ class PerfilIdeologicoAPI(APIView):
                 cls = 'potencial_oculto' if good else 'neutro'
 
             # PL network level
-            vp = (ct.num_vereadores_pl / ct.num_vereadores * 100) if ct.num_vereadores else 0
+            vp = (ct.num_vereadores_partido / ct.num_vereadores * 100) if ct.num_vereadores else 0
             ap_count = apoiadores_map.get(ct.slug, 0)
             dens = (ap_count / max(voters, 1)) * 100
             pl_raw = round(
                 (100 if (ct.coord_count or 0) > 0 else 0) * 0.25
                 + min(vp * 2, 100) * 0.25
-                + (100 if ct.presidente_pl else 0) * 0.20
+                + (100 if ct.presidente_diretorio else 0) * 0.20
                 + min(dens / max(st_density * 2, 0.01) * 100, 100) * 0.15
                 + min((ct.cabo_count or 0) * 25, 100) * 0.15
             )
@@ -2397,9 +2584,9 @@ class VisitUrgencyAPI(APIView):
                 if c.prioridade == 'alta':
                     d['alta'] += 1
 
-        acumular(CaboEleitoral.objects.all(), 'cidade_id')
-        acumular(Apoiador.objects.all(), 'cidade_id')
-        acumular(CoordenadorRegional.objects.all(), 'cidade_base_id')
+        acumular(Lideranca.objects.filter(papel='cabo'), 'cidade_id')
+        acumular(Lideranca.objects.aprovados().filter(papel='apoiador'), 'cidade_id')
+        acumular(Lideranca.objects.filter(papel='coordenador'), 'cidade_id')
 
         realizados = dict(
             Compromisso.objects.filter(status='realizado')
@@ -2466,9 +2653,9 @@ class CityActionAPI(APIView):
 
         contatos = []
         fontes = [
-            ('coordenador', CoordenadorRegional.objects.filter(cidade_base=cid)),
-            ('cabo', CaboEleitoral.objects.filter(cidade=cid)),
-            ('apoiador', Apoiador.objects.filter(cidade=cid)),
+            ('coordenador', Lideranca.objects.filter(papel='coordenador', cidade=cid)),
+            ('cabo', Lideranca.objects.filter(papel='cabo', cidade=cid)),
+            ('apoiador', Lideranca.objects.aprovados().filter(papel='apoiador', cidade=cid)),
         ]
         for tipo, qs in fontes:
             for c in qs.annotate(ultima=Max('interacoes__data')):
@@ -2494,14 +2681,6 @@ class CityActionAPI(APIView):
         proximo = Compromisso.objects.filter(cidade=cid, data_hora_inicio__gte=agora) \
             .exclude(status='cancelado').order_by('data_hora_inicio').first()
 
-        from tarefas.models import Promessa
-        promessas = [{
-            'descricao': pr.descricao, 'status': pr.status,
-            'status_label': pr.get_status_display(), 'bairro': pr.bairro_linha,
-        } for pr in Promessa.objects.filter(cidade=cid).exclude(status='cancelada').order_by('status', '-data_registro')[:6]]
-        prom_pendentes = Promessa.objects.filter(cidade=cid).exclude(status__in=['entregue', 'cancelada']).count()
-        prom_entregues = Promessa.objects.filter(cidade=cid, status='entregue').count()
-
         return Response({
             'id': cid.id,
             'nome': cid.nome,
@@ -2523,62 +2702,6 @@ class CityActionAPI(APIView):
                 'data': timezone.localtime(proximo.data_hora_inicio).strftime('%d/%m %H:%M'),
             } if proximo else None,
             'top_vencidos': vencidos[:6],
-            'promessas': promessas,
-            'prom_pendentes': prom_pendentes,
-            'prom_entregues': prom_entregues,
-        })
-
-
-class PromessasMapAPI(APIView):
-    """Promessas/demandas do eleitor por cidade: feitas × entregues (lealdade)."""
-
-    def get(self, request):
-        from tarefas.models import Promessa
-        from collections import defaultdict
-        por_cidade = defaultdict(lambda: {'total': 0, 'entregues': 0, 'pendentes': 0})
-        for p in Promessa.objects.exclude(status='cancelada').values('cidade_id', 'status'):
-            d = por_cidade[p['cidade_id']]
-            d['total'] += 1
-            if p['status'] == 'entregue':
-                d['entregues'] += 1
-            else:
-                d['pendentes'] += 1
-
-        cities, regions = {}, defaultdict(lambda: {'total': 0, 'entregues': 0, 'pendentes': 0})
-        for cid in Cidade.objects.select_related('regiao'):
-            d = por_cidade.get(cid.id)
-            if not d:
-                cities[cid.slug] = {'name': cid.nome, 'total': 0, 'entregues': 0,
-                                    'pendentes': 0, 'taxa': None, 'nivel': 0}
-            else:
-                taxa = round(d['entregues'] / d['total'] * 100) if d['total'] else 0
-                # nível: 0 sem promessas; cor por taxa de entrega (vermelho=pendente, verde=entregue)
-                nivel = 1 if taxa < 34 else 2 if taxa < 67 else 3
-                cities[cid.slug] = {
-                    'name': cid.nome, 'total': d['total'], 'entregues': d['entregues'],
-                    'pendentes': d['pendentes'], 'taxa': taxa, 'nivel': nivel,
-                }
-                rg = regions[cid.regiao.slug]
-                rg['total'] += d['total']
-                rg['entregues'] += d['entregues']
-                rg['pendentes'] += d['pendentes']
-
-        total = sum(c['total'] for c in cities.values())
-        entregues = sum(c['entregues'] for c in cities.values())
-        ultimas = [{
-            'descricao': p.descricao, 'cidade': p.cidade.nome,
-            'bairro': p.bairro_linha, 'status': p.get_status_display(),
-            'status_key': p.status, 'data': p.data_registro.strftime('%d/%m/%Y'),
-            'responsavel': p.responsavel,
-        } for p in Promessa.objects.exclude(status='cancelada').select_related('cidade').order_by('-data_registro')[:20]]
-
-        return Response({
-            'cities': cities,
-            'regions': {k: dict(v) for k, v in regions.items()},
-            'summary': {'total': total, 'entregues': entregues,
-                        'pendentes': total - entregues,
-                        'taxa': round(entregues / total * 100) if total else 0},
-            'ultimas': ultimas,
         })
 
 
@@ -2759,7 +2882,7 @@ class VictoryMapAPI(APIView):
 
     TARGET_PEN = 0.012   # alvo aspiracional de penetração (1,2% do eleitorado)
     GROWTH = 1.4         # crescimento mínimo sobre a base de 2022
-    PEN_FORTE = 1.0      # % penetração para considerar o LS "forte" na cidade
+    PEN_FORTE = 1.0      # % penetração para considerar o candidato "forte" na cidade
     PORTE_GRANDE = 12000  # eleitores para considerar a cidade "grande"
 
     def get(self, request):
@@ -2767,16 +2890,23 @@ class VictoryMapAPI(APIView):
         from liderancas.views import FREQ_PRAZOS
         agora = timezone.now()
 
+        # Premissas configuráveis (env via settings.CAMPANHA; fallback nas constantes).
+        prem = settings.CAMPANHA
+        GROWTH = float(prem.get('VITORIA_CRESCIMENTO', self.GROWTH))
+        TARGET = float(prem.get('VITORIA_PENETRACAO', self.TARGET_PEN))
+        FORTE = float(prem.get('VITORIA_FORTE_PCT', self.PEN_FORTE))
+        PORTE = int(prem.get('VITORIA_PORTE_GRANDE', self.PORTE_GRANDE))
+
         coord_count = dict(
-            CoordenadorRegional.objects.values('cidade_base')
-            .annotate(n=Count('id')).values_list('cidade_base', 'n')
+            Lideranca.objects.filter(papel='coordenador').values('cidade')
+            .annotate(n=Count('id')).values_list('cidade', 'n')
         )
         cabo_count = dict(
-            CaboEleitoral.objects.values('cidade')
+            Lideranca.objects.filter(papel='cabo').values('cidade')
             .annotate(n=Count('id')).values_list('cidade', 'n')
         )
         apoi_count = dict(
-            Apoiador.objects.values('cidade')
+            Lideranca.objects.aprovados().filter(papel='apoiador').values('cidade')
             .annotate(n=Count('id')).values_list('cidade', 'n')
         )
 
@@ -2789,14 +2919,16 @@ class VictoryMapAPI(APIView):
                 if dias is None or dias > prazo:
                     vencidos[getattr(c, campo)] += 1
 
-        acumular(CaboEleitoral.objects.all(), 'cidade_id')
-        acumular(Apoiador.objects.all(), 'cidade_id')
-        acumular(CoordenadorRegional.objects.all(), 'cidade_base_id')
+        acumular(Lideranca.objects.filter(papel='cabo'), 'cidade_id')
+        acumular(Lideranca.objects.aprovados().filter(papel='apoiador'), 'cidade_id')
+        acumular(Lideranca.objects.filter(papel='coordenador'), 'cidade_id')
 
         cities, regions = {}, {}
         quad_labels = ['celeiro', 'fortaleza', 'mina_ouro', 'marginal']
         quad_count = {q: 0 for q in quad_labels}
         tot_v, tot_meta, tot_gap = 0, 0, 0
+        # Totais SÓ das cidades onde o candidato fez votos em 2022 (base real).
+        base_v = base_meta = base_gap = base_n = 0
         n_orfa = n_esfriando = 0
 
         def nivel_gap(g):
@@ -2811,13 +2943,13 @@ class VictoryMapAPI(APIView):
             return 4
 
         for cid in Cidade.objects.select_related('regiao'):
-            v = cid.votos_sorgatto_2022 or 0
+            v = cid.votos_referencia_2022 or 0
             elei = cid.eleitores or 0
-            meta = cid.meta_votos or int(round(max(v * self.GROWTH, elei * self.TARGET_PEN) / 10) * 10)
+            meta = cid.meta_votos or int(round(max(v * GROWTH, elei * TARGET) / 10) * 10)
             gap = max(0, meta - v)
             pen = (v / elei * 100) if elei else 0
-            forte = pen >= self.PEN_FORTE
-            grande = elei >= self.PORTE_GRANDE
+            forte = pen >= FORTE
+            grande = elei >= PORTE
             if forte and grande:
                 quad = 'celeiro'
             elif forte:
@@ -2854,6 +2986,8 @@ class VictoryMapAPI(APIView):
             tot_v += v
             tot_meta += meta
             tot_gap += gap
+            if v > 0:                       # base = cidades onde ela fez votos
+                base_v += v; base_meta += meta; base_gap += gap; base_n += 1
             quad_count[quad] += 1
 
             r = regions.setdefault(cid.regiao.slug, {
@@ -2885,6 +3019,17 @@ class VictoryMapAPI(APIView):
                 'falta_meta': max(0, meta_campanha - tot_v),
                 'cidades': len(cities),
             },
+            # Total da base real: só cidades onde o candidato fez votos em 2022.
+            'totais': {
+                'cidades': base_n, 'votos_2022': base_v,
+                'potencial': base_meta, 'disponiveis': base_gap,
+            },
+            'premissas': {
+                'crescimento_pct': round((GROWTH - 1) * 100),   # 1,4 → 40
+                'penetracao_pct': round(TARGET * 100, 1),        # 0,012 → 1,2
+                'porte_grande': PORTE,                            # 12000
+                'forte_pct': FORTE,                               # 1,0
+            },
             'quadrantes': quad_count,
             'alertas': {'orfas': n_orfa, 'esfriando': n_esfriando},
             'cities': cities,
@@ -2906,23 +3051,19 @@ class HeatLayersAPI(APIView):
 
         # contagens de estrutura/esforço por cidade
         apoi = dict(
-            Apoiador.objects.filter(status='ativo').values('cidade')
+            Lideranca.objects.apoiadores_aprovados().values('cidade')
             .annotate(n=Count('id')).values_list('cidade', 'n')
         )
         visitas = dict(
             Compromisso.objects.filter(status='realizado').values('cidade')
             .annotate(n=Count('id')).values_list('cidade', 'n')
         )
-        doacoes = dict(
-            Doacao.objects.filter(status='confirmada').values('cidade')
-            .annotate(t=Sum('valor')).values_list('cidade', 't')
-        )
         politicos = _politicos_por_cidade()
 
         TARGET_PEN, GROWTH = 0.012, 1.4
         raw = []
         for cid in Cidade.objects.select_related('regiao'):
-            v = cid.votos_sorgatto_2022 or 0
+            v = cid.votos_referencia_2022 or 0
             elei = cid.eleitores or 0
             pen = (v / elei * 100) if elei else 0
             ap = apoi.get(cid.id, 0)
@@ -2938,7 +3079,6 @@ class HeatLayersAPI(APIView):
                 'eleitores': elei, 'votos_2022': v, 'penetracao': round(pen, 2),
                 'apoiadores': ap, 'densidade': round(dens, 2), 'lacuna': gap,
                 'absoluto': v, 'esforco': visitas.get(cid.id, 0),
-                'doacoes': float(doacoes.get(cid.id, 0) or 0),
                 'forca_politica': _forca_politica(pol),
                 'pol_prefeito': pol['prefeito'], 'pol_vice': pol['vice'],
                 'pol_vereador': pol['vereador'], 'pol_presidente': pol['presidente'],
@@ -2980,7 +3120,7 @@ class HeatLayersAPI(APIView):
         # ── Monta resposta (cidades) e agrega regiões ──
         keep = ['slug', 'name', 'region_slug', 'region', 'lat', 'lng', 'eleitores',
                 'votos_2022', 'penetracao', 'apoiadores', 'densidade', 'lacuna',
-                'absoluto', 'esforco', 'doacoes', 'fronteira', 'divergencia',
+                'absoluto', 'esforco', 'fronteira', 'divergencia',
                 'forca_politica', 'pol_prefeito', 'pol_vice', 'pol_vereador',
                 'pol_presidente', 'votos_maquina']
         cities = {r['slug']: {k: r[k] for k in keep} for r in raw}
@@ -2991,7 +3131,7 @@ class HeatLayersAPI(APIView):
             g = regions.setdefault(rs, {
                 'sigla': r['region'], 'nome': r['cid'].regiao.nome,
                 'votos': 0, 'eleitores': 0, 'apoiadores': 0, 'lacuna': 0,
-                'esforco': 0, 'doacoes': 0, 'fronteira': 0, 'div_sum': 0,
+                'esforco': 0, 'fronteira': 0, 'div_sum': 0,
                 'forca_politica': 0, 'pol_prefeito': 0, 'pol_vereador': 0,
                 'pol_presidente': 0, 'votos_maquina': 0, 'populacao': 0, 'n': 0,
             })
@@ -3001,7 +3141,6 @@ class HeatLayersAPI(APIView):
             g['apoiadores'] += r['apoiadores']
             g['lacuna'] += r['lacuna']
             g['esforco'] += r['esforco']
-            g['doacoes'] += r['doacoes']
             g['fronteira'] = max(g['fronteira'], r['fronteira'])
             g['div_sum'] += r['divergencia']
             g['forca_politica'] += r['forca_politica']
