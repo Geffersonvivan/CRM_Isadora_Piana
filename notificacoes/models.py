@@ -9,6 +9,7 @@ class Notificacao(models.Model):
         ('participante', 'Adicionado como participante'),
         ('resposta', 'Resposta ao seu comentário'),
         ('prazo', 'Prazo próximo do vencimento'),
+        ('lead_pwa', 'Novo lead do app'),
     ]
 
     destinatario = models.ForeignKey(
@@ -27,6 +28,7 @@ class Notificacao(models.Model):
     tarefa = models.ForeignKey(
         'tarefas.Tarefa',
         on_delete=models.CASCADE,
+        null=True, blank=True,
         related_name='notificacoes',
     )
     comentario = models.ForeignKey(
@@ -34,6 +36,8 @@ class Notificacao(models.Model):
         on_delete=models.CASCADE,
         null=True, blank=True,
     )
+    # Link genérico p/ notificações que não são de tarefa (ex.: lead do app)
+    url = models.CharField(max_length=300, blank=True)
     texto = models.CharField(max_length=300)
     lida = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)

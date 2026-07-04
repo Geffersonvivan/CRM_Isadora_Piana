@@ -28,6 +28,7 @@ def api_list(request):
             'texto': n.texto,
             'tarefa_id': n.tarefa_id,
             'tarefa_titulo': n.tarefa.titulo if n.tarefa else '',
+            'url': n.url,
             'remetente': n.remetente.get_full_name() if n.remetente else '',
             'remetente_initials': (
                 (n.remetente.first_name[:1] + n.remetente.last_name[:1]).upper()
@@ -56,6 +57,24 @@ def api_mark_read(request):
     return JsonResponse({'ok': True})
 
 
+@login_required
+@require_POST
+def api_dismiss(request):
+    """Remove (dispensa) uma notificação do usuário."""
+    notif_id = request.POST.get('id')
+    if notif_id:
+        Notificacao.objects.filter(id=notif_id, destinatario=request.user).delete()
+    return JsonResponse({'ok': True})
+
+
+@login_required
+@require_POST
+def api_clear_read(request):
+    """Remove todas as notificações já lidas do usuário."""
+    Notificacao.objects.filter(destinatario=request.user, lida=True).delete()
+    return JsonResponse({'ok': True})
+
+
 def _relative_date(dt):
     from django.utils import timezone
     now = timezone.now()
@@ -73,6 +92,52 @@ def _relative_date(dt):
     if days < 7:
         return f'{days}d'
     return dt.strftime('%d/%m/%Y')
+
+
+def criar_notificacao_lead_pwa(remetente, qtd):
+    """Avisa os aprovadores (perfil admin ou seção liderancas:aprovar) que
+    chegaram novos leads do app aguardando aprovação."""
+    from usuarios.models import Usuario
+    if qtd <= 0:
+        return
+    texto = ('cadastrou um novo lead no app' if qtd == 1
+             else f'cadastrou {qtd} novos leads no app') + ' — aguardando aprovação'
+    remetente_id = getattr(remetente, 'id', None)
+    for u in Usuario.objects.filter(is_active=True):
+        if u.id == remetente_id:
+            continue
+        try:
+            if not u.pode_acessar('liderancas:aprovar'):
+                continue
+        except Exception:
+            continue
+        Notificacao.objects.create(
+            destinatario=u, remetente=remetente, tipo='lead_pwa',
+            tarefa=None, url='/liderancas/?aprovacao=pendente', texto=texto,
+        )
+
+
+def criar_notificacao_voluntario_pwa(remetente, qtd):
+    """Avisa os aprovadores de Equipes (seção equipes:aprovar) que chegaram
+    novos voluntários do app aguardando aprovação."""
+    from usuarios.models import Usuario
+    if qtd <= 0:
+        return
+    texto = ('cadastrou um novo voluntário no app' if qtd == 1
+             else f'cadastrou {qtd} novos voluntários no app') + ' — aguardando aprovação'
+    remetente_id = getattr(remetente, 'id', None)
+    for u in Usuario.objects.filter(is_active=True):
+        if u.id == remetente_id:
+            continue
+        try:
+            if not u.pode_acessar('equipes:aprovar'):
+                continue
+        except Exception:
+            continue
+        Notificacao.objects.create(
+            destinatario=u, remetente=remetente, tipo='lead_pwa',
+            tarefa=None, url='/liderancas/mobilizacao/?aprovacao=pendente', texto=texto,
+        )
 
 
 def criar_notificacoes_mencao(texto, tarefa, comentario, remetente):
