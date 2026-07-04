@@ -5,9 +5,16 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
+    # O M2M `cabos` precisa ser reapontado para Lideranca ANTES de a 0018
+    # apagar o modelo antigo CaboEleitoral — senão um banco zerado não migra
+    # (o dev histórico passou porque aplicou na ordem de criação). Só ajusta o
+    # grafo; nenhuma operação muda, bancos já migrados não são afetados.
     dependencies = [
-        ('liderancas', '0018_remove_interacaolog_apoiador_and_more'),
+        ('liderancas', '0017_migrar_dados_lideranca'),
         ('tarefas', '0009_promessa'),
+    ]
+    run_before = [
+        ('liderancas', '0018_remove_interacaolog_apoiador_and_more'),
     ]
 
     operations = [
