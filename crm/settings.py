@@ -46,7 +46,6 @@ INSTALLED_APPS = [
     'dashboard',
     'tarefas',
     'notificacoes',
-    'doacoes',
     'mapa',
     'oportunidades',
 ]

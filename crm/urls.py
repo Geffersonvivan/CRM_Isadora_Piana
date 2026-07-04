@@ -20,7 +20,6 @@ urlpatterns = [
     path('dashboard/', include('dashboard.urls')),
     path('tarefas/', include('tarefas.urls')),
     path('notificacoes/', include('notificacoes.urls')),
-    path('doacoes/', include('doacoes.urls')),
     path('mapa/', include('mapa.urls')),
     path('oportunidades/', include('oportunidades.urls')),
     path('app/', include('pwa.urls')),
