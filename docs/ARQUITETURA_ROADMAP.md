@@ -175,10 +175,11 @@ nenhum segredo versionado.
      o `slug` e o código monta o caminho. Mesmo código serve qualquer marca.
 4. ✅ **Fechar o buraco do mapa:** trocado o hardcode `deputado_estadual` em
    `templates/mapa/index.html` por `TSE_CARGO_2026` vindo do context processor.
+   ✅ Varridas as ~117 strings de marca hardcoded em templates/JS (04/07/2026):
+   templates usam o context processor (formas com artigo via `CANDIDATO_ARTIGO`),
+   `sc-map.js` recebe `window.CAMPANHA`, manifest do PWA injetado pela view.
    ⚠️ O lado **servidor** da concorrência (`CandidatosAPI` em `mapa/views.py`, overlap
    ponderado fixo em estadual) fica para a Fase 2 passo 3 (cargo cruzado).
-   Restam também ~117 strings de marca hardcoded em templates/JS (varrer antes de
-   declarar a fase pronta — critério "zero string de marca").
 5. **Env de cada deploy carrega só o essencial não-versionado:** `MARCA=<slug>` (seletor
    da config) + os **segredos** (`SECRET_KEY`, `DATABASE_URL`, chaves de API). Nada de
    config de marca no env — ela vem de `configs/<slug>.py`.
