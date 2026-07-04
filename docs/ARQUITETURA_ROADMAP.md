@@ -161,7 +161,7 @@ nenhum segredo versionado.
    (`DJANGO_SETTINGS_MODULE`, `wsgi/asgi`, `manage.py`, `Procfile`, `.claude/settings.local.json`
    ajustados; `manage.py check` limpo). ⬜ Falta a pasta-raiz `CRM_Isadora_Piana` →
    `CRM_Base_Eleitoral` (passo manual `mv`, feito fora da sessão — muda o cwd).
-3. **Consolidar a config de marca** num arquivo **versionado** `configs/<slug>.py` (D10),
+3. ✅ **Consolidar a config de marca** num arquivo **versionado** `configs/<slug>.py` (D10),
    carregado pelo `settings.py` conforme `MARCA=<slug>` e exposto como `settings.CAMPANHA`.
    Cobre tudo que difere e **não é segredo**: `CANDIDATO_NOME`, `PARTIDO`/`NUMERO`/`UF`
    (hoje NOVO/30/SC para os 3, mas viram config porque num SaaS variam por cliente),
@@ -173,10 +173,12 @@ nenhum segredo versionado.
      nativos, sem JSON-em-string. Segredo (chave, banco, API) continua **só em env**.
    - **Assets (logo/imagens):** versionados sob `static/marca/<slug>/`; a config guarda só
      o `slug` e o código monta o caminho. Mesmo código serve qualquer marca.
-4. **Fechar o buraco do mapa:** trocar o hardcode `deputado_estadual` em
-   `templates/mapa/index.html` (~1030) por `TSE_CARGO_2026` vindo do context processor.
-   Depois disso o mapa é 100% config-driven e o caso Sorgatto (federal→estadual) e
-   Gilson (federal→federal) funcionam sem tocar em código.
+4. ✅ **Fechar o buraco do mapa:** trocado o hardcode `deputado_estadual` em
+   `templates/mapa/index.html` por `TSE_CARGO_2026` vindo do context processor.
+   ⚠️ O lado **servidor** da concorrência (`CandidatosAPI` em `mapa/views.py`, overlap
+   ponderado fixo em estadual) fica para a Fase 2 passo 3 (cargo cruzado).
+   Restam também ~117 strings de marca hardcoded em templates/JS (varrer antes de
+   declarar a fase pronta — critério "zero string de marca").
 5. **Env de cada deploy carrega só o essencial não-versionado:** `MARCA=<slug>` (seletor
    da config) + os **segredos** (`SECRET_KEY`, `DATABASE_URL`, chaves de API). Nada de
    config de marca no env — ela vem de `configs/<slug>.py`.
