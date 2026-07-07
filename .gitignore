@@ -47,3 +47,6 @@ SESSAO_CRM_ISADORA.patch
 
 # Auditoria interna (detalhes de vulnerabilidades — NUNCA commitar)
 Auditoria_CRM/
+
+# Grafo de conhecimento gerado (graphify)
+graphify-out/
