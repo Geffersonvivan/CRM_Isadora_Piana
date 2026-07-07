@@ -343,7 +343,7 @@
                     {% elif c == 'cidade' %}<td>{{ o.cidade.nome|default:"-" }}</td>
                     {% elif c == 'regiao' %}<td class="nw" style="text-align:center;"><span class="badge">{{ o.cidade.regiao.sigla|default:"-" }}</span></td>
                     {% elif c == 'coordenador_responsavel' %}<td>{% if o.papel == 'cabo' %}{{ o.coordenador_responsavel.nome|default:"-" }}{% else %}-{% endif %}</td>
-                    {% elif c == 'tipo' %}<td>{% if o.papel == 'apoiador' %}{{ o.get_tipo_display }}{% if o.cargo %} · {{ o.get_cargo_display }}{% endif %}{% else %}-{% endif %}</td>
+                    {% elif c == 'tipo' %}<td>{% if o.papel == 'apoiador' %}{{ o.get_tipos_display }}{% if o.cargo %} · {{ o.get_cargo_display }}{% endif %}{% else %}-{% endif %}</td>
                     {% elif c == 'prioridade' %}<td class="nw" style="text-align:center;">{{ o.get_prioridade_display }}</td>
                     {% elif c == 'intencao_voto' %}<td class="nw" style="text-align:center;">{% if o.intencao_voto %}<span class="voto-badge voto-{{ o.intencao_voto }}">{{ o.get_intencao_voto_display }}</span>{% else %}-{% endif %}</td>
                     {% elif c == 'frequencia_relacionamento' %}<td class="col-freq nw" style="text-align:center;">{{ o.get_frequencia_relacionamento_display }}</td>

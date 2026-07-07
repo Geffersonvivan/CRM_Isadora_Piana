@@ -249,7 +249,7 @@ class Command(BaseCommand):
                 'Macrorregião': macro, 'Região': regiao, 'Cidade': cidade, 'UF': 'SC',
                 'Coordenador Responsável': self._coord_inferido(a.cidade.regiao if a.cidade_id else None),
                 'Cargo': a.get_cargo_display() if a.cargo else '',
-                'Categoria do Apoiador': a.get_tipo_display(),
+                'Categoria do Apoiador': a.get_tipos_display(),
                 'Prioridade': a.get_prioridade_display(),
                 'Frequência de Contato': a.get_frequencia_relacionamento_display(),
                 'Grau de Influência': a.get_grau_influencia_display(),

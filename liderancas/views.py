@@ -106,7 +106,7 @@ def _liderancas_csv(qs, filename):
             o.nome, o.get_papel_display(), o.telefone, o.email,
             o.cidade.nome if o.cidade_id else '', o.cidade.regiao.sigla if o.cidade_id else '',
             o.coordenador_responsavel.nome if o.coordenador_responsavel_id else '',
-            o.get_tipo_display() if o.tipo else '', o.get_cargo_display() if o.cargo else '',
+            o.get_tipos_display() if o.tipo else '', o.get_cargo_display() if o.cargo else '',
             o.get_prioridade_display(), o.get_frequencia_relacionamento_display(),
             o.get_status_display() if o.status else '', o.instagram, o.observacoes,
         ])
@@ -663,7 +663,7 @@ def apoiador_list(request):
         writer = csv.writer(response)
         writer.writerow(['Nome', 'Telefone', 'Email', 'Cidade', 'Região', 'Tipo', 'Cargo', 'Origem', 'Instagram', 'Prioridade', 'Influência', 'Frequência', 'Status', 'Observações'])
         for a in apoiadores:
-            writer.writerow([a.nome, a.telefone, a.email, a.cidade.nome, a.cidade.regiao.sigla, a.get_tipo_display(), a.get_cargo_display(), a.origem_contato, a.instagram, a.get_prioridade_display(), a.get_grau_influencia_display(), a.get_frequencia_relacionamento_display(), a.get_status_display(), a.observacoes])
+            writer.writerow([a.nome, a.telefone, a.email, a.cidade.nome, a.cidade.regiao.sigla, a.get_tipos_display(), a.get_cargo_display(), a.origem_contato, a.instagram, a.get_prioridade_display(), a.get_grau_influencia_display(), a.get_frequencia_relacionamento_display(), a.get_status_display(), a.observacoes])
         return response
 
     paginator, page_obj = _paginate(request, apoiadores)
@@ -811,7 +811,7 @@ def bulk_action(request):
         if entity_type == 'apoiador':
             writer.writerow(['Nome', 'Telefone', 'Email', 'Cidade', 'Região', 'Tipo', 'Status', 'Prioridade'])
             for a in qs.select_related('cidade', 'cidade__regiao'):
-                writer.writerow([a.nome, a.telefone, a.email, a.cidade.nome, a.cidade.regiao.sigla, a.get_tipo_display(), a.get_status_display(), a.get_prioridade_display()])
+                writer.writerow([a.nome, a.telefone, a.email, a.cidade.nome, a.cidade.regiao.sigla, a.get_tipos_display(), a.get_status_display(), a.get_prioridade_display()])
         elif entity_type == 'cabo':
             writer.writerow(['Nome', 'Telefone', 'Email', 'Cidade', 'Região', 'Coordenador', 'Prioridade'])
             for c in qs.select_related('cidade', 'cidade__regiao', 'coordenador_responsavel'):

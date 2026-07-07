@@ -317,9 +317,17 @@ class Lideranca(SoftDeleteMixin, models.Model):
     observacoes = models.TextField(blank=True, verbose_name='Observações')
 
     # Específicos de apoiador (ficam vazios/zerados para coordenador e cabo)
+    # `tipo` = categoria PRINCIPAL (1º item de `tipos`), mantida em sincronia no
+    # save() para os consumidores single-value (lista, filtro, export, detector).
+    # `tipos` guarda TODAS as categorias marcadas (o apoiador pode ter várias).
     tipo = models.CharField(
         max_length=20, choices=TIPO_CHOICES, blank=True,
         verbose_name='Categoria do Apoiador',
+    )
+    tipos = models.JSONField(
+        default=list, blank=True,
+        verbose_name='Categorias do Apoiador',
+        help_text='Uma ou mais categorias; a primeira é a principal.',
     )
     cargo = models.CharField(max_length=25, choices=CARGO_CHOICES, blank=True, verbose_name='Cargo Político')
     votos_referencia = models.IntegerField(default=0, verbose_name='Votos de referência')
@@ -444,7 +452,20 @@ class Lideranca(SoftDeleteMixin, models.Model):
             ).first()
             if coord:
                 self.coordenador_responsavel = coord
+        # Categoria: `tipo` (principal) e `tipos` (lista) andam juntos.
+        # Quem escreve a lista manda; quem escreve só o valor único preenche a lista.
+        if self.tipos:
+            self.tipos = list(dict.fromkeys(self.tipos))  # sem duplicatas, ordem preservada
+            self.tipo = self.tipos[0]
+        elif self.tipo:
+            self.tipos = [self.tipo]
         super().save(*args, **kwargs)
+
+    def get_tipos_display(self):
+        """Rótulos de todas as categorias marcadas (fallback ao tipo único)."""
+        rotulos = dict(self.TIPO_CHOICES)
+        lista = self.tipos or ([self.tipo] if self.tipo else [])
+        return ' · '.join(rotulos.get(t, t) for t in lista)
 
     def __str__(self):
         return f'{self.nome} ({self.get_papel_display()})'

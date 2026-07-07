@@ -165,10 +165,18 @@ class ApoiadorForm(DuplicateCheckMixin, forms.ModelForm):
         label='Região',
         widget=forms.Select(attrs={'class': 'form-input', 'id': 'id_regiao'}),
     )
+    # Categoria múltipla (o apoiador pode ter mais de uma). `tipo` (principal)
+    # é derivado da lista no save() do model — não vai mais no ModelForm.
+    tipos = forms.MultipleChoiceField(
+        label='Categoria',
+        required=False,
+        choices=[c for c in Lideranca.TIPO_CHOICES if c[0] != 'pwa'],
+        widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check'}),
+    )
 
     field_order = [
         'nome', 'telefone', 'email', 'regiao', 'cidade', 'uf',
-        'tipo', 'cargo', 'nivel', 'votos_referencia', 'meta_votos_transferir',
+        'tipos', 'cargo', 'nivel', 'votos_referencia', 'meta_votos_transferir',
         'origem_contato', 'instagram', 'facebook',
         'prioridade', 'grau_influencia', 'frequencia_relacionamento', 'status',
         # PLANILHA CENTRAL — atendimento & relacionamento
@@ -182,7 +190,7 @@ class ApoiadorForm(DuplicateCheckMixin, forms.ModelForm):
         model = Lideranca
         fields = [
             'nome', 'telefone', 'email', 'cidade', 'uf',
-            'tipo', 'cargo', 'nivel', 'votos_referencia', 'meta_votos_transferir',
+            'cargo', 'nivel', 'votos_referencia', 'meta_votos_transferir',
             'origem_contato', 'instagram', 'facebook',
             'prioridade', 'grau_influencia',
             'frequencia_relacionamento',
@@ -199,7 +207,6 @@ class ApoiadorForm(DuplicateCheckMixin, forms.ModelForm):
             'email': forms.EmailInput(attrs={'class': 'form-input'}),
             'cidade': forms.Select(attrs={'class': 'form-input', 'id': 'id_cidade'}),
             'uf': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'SC', 'maxlength': 2}),
-            'tipo': forms.Select(attrs={'class': 'form-input'}),
             'cargo': forms.Select(attrs={'class': 'form-input'}),
             'nivel': forms.Select(attrs={'class': 'form-input'}),
             'votos_referencia': forms.NumberInput(attrs={'class': 'form-input', 'placeholder': '0'}),
@@ -232,6 +239,10 @@ class ApoiadorForm(DuplicateCheckMixin, forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.user = user
 
+        if self.instance.pk:
+            # Pré-seleciona as categorias já gravadas (fallback ao tipo único legado)
+            self.fields['tipos'].initial = self.instance.tipos or (
+                [self.instance.tipo] if self.instance.tipo else [])
         if self.instance.pk and self.instance.cidade_id:
             self.fields['regiao'].initial = self.instance.cidade.regiao_id
 
@@ -281,6 +292,8 @@ class ApoiadorForm(DuplicateCheckMixin, forms.ModelForm):
         instance.papel = 'apoiador'
         cidade = self.cleaned_data.get('cidade')
         instance.regiao = cidade.regiao if cidade else None
+        # tipo (principal) é derivado de tipos no save() do model
+        instance.tipos = self.cleaned_data.get('tipos') or []
         if commit:
             instance.save()
         return instance
@@ -348,7 +361,6 @@ class InteracaoLogForm(forms.ModelForm):
         model = InteracaoLog
         fields = ['tipo', 'descricao', 'data']
         widgets = {
-            'tipo': forms.Select(attrs={'class': 'form-input'}),
             'descricao': forms.Textarea(attrs={'class': 'form-input', 'rows': 3, 'placeholder': 'Descreva a interação...'}),
             'data': forms.DateTimeInput(attrs={'class': 'form-input', 'type': 'datetime-local'}),
         }
