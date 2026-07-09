@@ -31,6 +31,7 @@ CAMPANHA = {
     # Lista de Lideranças editável inline: exclusiva da Isadora por ora.
     'LIDERANCA_INLINE_EDIT': False,
     'DASHBOARD_VOTOS_PLANILHA': False,
+    'PWA_CADASTRO_CONTATO': False,
 
     'CORES': {
         '--navy': '#1e40af',        # azul PL (marca)

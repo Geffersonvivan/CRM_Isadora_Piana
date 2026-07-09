@@ -280,12 +280,13 @@ class Lideranca(SoftDeleteMixin, models.Model):
         ('nao', 'Não'),
         ('nao_contactado', 'Não contactado'),
     ]
-    # Fiel à planilha central da Isadora (BASE DA ESTRUTURA), na ordem dela.
+    # Vocabulário de nível/engajamento (usado pela Isadora). "Contato" substituiu
+    # o antigo "Lead" (migration renomeia os registros existentes).
     NIVEL_CHOICES = [
-        ('voluntario', 'Voluntário'),
+        ('contato', 'Contato'),
         ('eleitor', 'Eleitor'),
-        ('lead', 'Lead'),
-        ('multiplicador', 'Multiplicador (líder)'),
+        ('multiplicador', 'Multiplicador'),
+        ('voluntario', 'Voluntário'),
     ]
     CANAL_CHOICES = [
         ('facebook', 'Facebook'),
@@ -365,9 +366,16 @@ class Lideranca(SoftDeleteMixin, models.Model):
         max_length=15, choices=INTENCAO_VOTO_CHOICES, blank=True,
         verbose_name='Intenção de voto',
     )                                                       # planilha: VOTO
+    # `nivel` = nível PRINCIPAL (1º de `niveis`), mantido em sincronia no save()
+    # para os consumidores single-value (lista, filtro, dashboard). `niveis`
+    # guarda TODOS os níveis marcados (o cadastro do PWA pode marcar vários).
     nivel = models.CharField(
         max_length=15, choices=NIVEL_CHOICES, blank=True, verbose_name='Nível',
     )                                                       # planilha: NÍVEL
+    niveis = models.JSONField(
+        default=list, blank=True, verbose_name='Níveis',
+        help_text='Um ou mais níveis; o primeiro é o principal.',
+    )
     uf = models.CharField(
         max_length=2, blank=True, default='SC', verbose_name='UF',
     )                                                       # planilha: UF
@@ -474,6 +482,12 @@ class Lideranca(SoftDeleteMixin, models.Model):
             self.tipo = self.tipos[0]
         elif self.tipo:
             self.tipos = [self.tipo]
+        # Nível: `niveis` (lista) e `nivel` (principal) andam juntos — igual tipos/tipo.
+        if self.niveis:
+            self.niveis = list(dict.fromkeys(self.niveis))
+            self.nivel = self.niveis[0]
+        elif self.nivel:
+            self.niveis = [self.nivel]
         super().save(*args, **kwargs)
 
     def get_tipos_display(self):

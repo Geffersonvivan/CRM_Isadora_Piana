@@ -136,7 +136,10 @@ def api_sync(request):
     except ValueError:
         return JsonResponse({'error': 'JSON inválido'}, status=400)
 
+    contato_mode = django_settings.CAMPANHA.get('PWA_CADASTRO_CONTATO', False)
     tipos_validos = {c[0] for c in Lideranca.TIPO_CHOICES}
+    niveis_validos = {c[0] for c in Lideranca.NIVEL_CHOICES}
+    votos_validos = {c[0] for c in Lideranca.INTENCAO_VOTO_CHOICES}
     results = []
     criados = 0
     for rec in (payload.get('records') or [])[:200]:
@@ -156,20 +159,30 @@ def api_sync(request):
         if not cidade:
             results.append({'client_id': cid, 'status': 'erro', 'error': 'Cidade inválida'})
             continue
-        # Categoria é múltipla e opcional: aceita a lista `tipos` (novo) ou o
-        # `tipo` único (compat. com filas antigas em aparelhos ainda não atualizados).
-        # Só valores válidos entram; vazio fica vazio. tipo principal é derivado no save().
-        tipos_rec = rec.get('tipos')
-        if not isinstance(tipos_rec, list):
-            tipos_rec = [rec.get('tipo')] if rec.get('tipo') else []
-        tipos = [t for t in (str(x).strip() for x in tipos_rec) if t in tipos_validos]
+        # Categoria é múltipla e opcional; só valores válidos entram, vazio fica
+        # vazio, e o principal (tipo/nivel) é derivado no save() do model.
+        campos_extra = {}
+        if contato_mode:
+            # Isadora: Categoria = níveis + Vota? = intenção de voto.
+            niveis_rec = rec.get('niveis')
+            if not isinstance(niveis_rec, list):
+                niveis_rec = [rec.get('nivel')] if rec.get('nivel') else []
+            campos_extra['niveis'] = [n for n in (str(x).strip() for x in niveis_rec) if n in niveis_validos]
+            voto = (rec.get('intencao_voto') or '').strip()
+            campos_extra['intencao_voto'] = voto if voto in votos_validos else ''
+        else:
+            # Demais marcas: aceita a lista `tipos` (novo) ou o `tipo` único (filas antigas).
+            tipos_rec = rec.get('tipos')
+            if not isinstance(tipos_rec, list):
+                tipos_rec = [rec.get('tipo')] if rec.get('tipo') else []
+            campos_extra['tipos'] = [t for t in (str(x).strip() for x in tipos_rec) if t in tipos_validos]
         try:
             Lideranca.objects.create(
                 papel='apoiador', nome=nome, cidade=cidade, regiao=cidade.regiao,
                 telefone=(rec.get('telefone') or '').strip(),
-                tipos=tipos, observacoes=(rec.get('observacoes') or '').strip(),
+                observacoes=(rec.get('observacoes') or '').strip(),
                 status='ativo', cadastrado_por=request.user, pwa_client_id=cid,
-                origem='pwa', aprovacao='pendente',
+                origem='pwa', aprovacao='pendente', **campos_extra,
             )
             criados += 1
             results.append({'client_id': cid, 'status': 'ok'})

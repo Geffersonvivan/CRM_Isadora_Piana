@@ -43,6 +43,11 @@ CAMPANHA = {
     # Capa de campanha desativada: a raiz '/' também vai direto para a Dashboard.
     'CAPA_ATIVA': False,
 
+    # Cadastro de campo (PWA) no modelo da planilha: "Novo Contato" com Categoria =
+    # nível (Contato/Eleitor/Multiplicador/Voluntário) + "Vota {candidato}?".
+    # As outras marcas mantêm o "Novo Apoiador" com as categorias de tipo.
+    'PWA_CADASTRO_CONTATO': True,
+
     # Cores da marca — valores das variáveis CSS históricas (--navy/--ouro/
     # --coral guardam a paleta atual; usar sempre a variável, não hex avulso).
     # Injetadas no :root pelo base.html; global.css traz o fallback.

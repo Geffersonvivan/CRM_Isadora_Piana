@@ -1,18 +1,15 @@
+from django.conf import settings
 from django import forms
 from liderancas.models import Lideranca, Cidade, Regiao, Voluntario
 from usuarios.models import Usuario
 
 
 class ApoiadorPWAForm(forms.ModelForm):
-    """Cadastro de apoiador via PWA — 5 campos: Nome, Cidade, Telefone, Categoria, Observações.
-    Cidade é um select único com todas as cidades (funciona offline, sem cascata)."""
-    # Categoria é múltipla (o apoiador pode ter mais de uma) e opcional.
-    tipos = forms.MultipleChoiceField(
-        label='Categoria',
-        required=False,
-        choices=[c for c in Lideranca.TIPO_CHOICES if c[0] != 'pwa'],
-        widget=forms.CheckboxSelectMultiple(attrs={'class': 'pwa-check'}),
-    )
+    """Cadastro de campo via PWA. Funciona offline (select único de cidade, sem cascata).
+
+    Marca com PWA_CADASTRO_CONTATO (Isadora): "Novo Contato" — Categoria = nível
+    (Contato/Eleitor/Multiplicador/Voluntário, múltipla) + "Vota {candidato}?".
+    Demais marcas: "Novo Apoiador" — Categoria = tipo do apoiador (múltipla)."""
 
     class Meta:
         model = Lideranca
@@ -24,21 +21,47 @@ class ApoiadorPWAForm(forms.ModelForm):
             'observacoes': forms.Textarea(attrs={'class': 'pwa-input', 'placeholder': 'Observações...', 'rows': 3}),
         }
 
-    field_order = ['nome', 'cidade', 'telefone', 'tipos', 'observacoes']
-
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.user = user
+        self.contato_mode = settings.CAMPANHA.get('PWA_CADASTRO_CONTATO', False)
         self.fields['cidade'].queryset = Cidade.objects.select_related('regiao').order_by('nome')
         self.fields['cidade'].empty_label = 'Selecione a cidade…'
+
+        if self.contato_mode:
+            # Categoria = nível (múltipla) + Vota {candidato}? (intenção de voto)
+            self.fields['niveis'] = forms.MultipleChoiceField(
+                label='Categoria', required=False,
+                choices=Lideranca.NIVEL_CHOICES,
+                widget=forms.CheckboxSelectMultiple(attrs={'class': 'pwa-check'}),
+            )
+            candidato = (settings.CAMPANHA.get('CANDIDATO_NOME') or '').split(' ')[0] or 'no candidato'
+            self.fields['intencao_voto'] = forms.ChoiceField(
+                label=f'Vota {candidato}?', required=False,
+                choices=[('', '—'), ('sim', 'Sim'), ('nao', 'Não'), ('talvez', 'Talvez')],
+                widget=forms.Select(attrs={'class': 'pwa-input'}),
+            )
+            self.order_fields(['nome', 'cidade', 'telefone', 'niveis', 'intencao_voto', 'observacoes'])
+        else:
+            self.fields['tipos'] = forms.MultipleChoiceField(
+                label='Categoria', required=False,
+                choices=[c for c in Lideranca.TIPO_CHOICES if c[0] != 'pwa'],
+                widget=forms.CheckboxSelectMultiple(attrs={'class': 'pwa-check'}),
+            )
+            self.order_fields(['nome', 'cidade', 'telefone', 'tipos', 'observacoes'])
 
     def save(self, commit=True):
         instance = super().save(commit=False)
         instance.papel = 'apoiador'
         cidade = self.cleaned_data.get('cidade')
         instance.regiao = cidade.regiao if cidade else None
-        # tipo (principal) é derivado de tipos no save() do model
-        instance.tipos = self.cleaned_data.get('tipos') or []
+        if self.contato_mode:
+            # nivel (principal) é derivado de niveis no save() do model
+            instance.niveis = self.cleaned_data.get('niveis') or []
+            instance.intencao_voto = self.cleaned_data.get('intencao_voto') or ''
+        else:
+            # tipo (principal) é derivado de tipos no save() do model
+            instance.tipos = self.cleaned_data.get('tipos') or []
         if commit:
             instance.save()
         return instance

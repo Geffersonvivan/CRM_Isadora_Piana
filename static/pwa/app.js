@@ -144,13 +144,20 @@
             var tel = (form.querySelector('#id_telefone') || {}).value || '';
             var obs = (form.querySelector('#id_observacoes') || {}).value || '';
             // Categoria é múltipla e opcional — coleta todas as marcadas.
+            // Marcas de tipo (`tipos`) ou de nível (`niveis`) conforme o form da marca;
+            // só um dos conjuntos existe no DOM. `intencao_voto` só existe no modo Contato.
             var tipos = Array.prototype.map.call(
                 form.querySelectorAll('input[name="tipos"]:checked'), function (el) { return el.value; });
+            var niveis = Array.prototype.map.call(
+                form.querySelectorAll('input[name="niveis"]:checked'), function (el) { return el.value; });
+            var votoEl = form.querySelector('[name="intencao_voto"]');
+            var intencaoVoto = votoEl ? votoEl.value : '';
             if (!nome.trim()) { toast('Informe o nome', 'error'); return; }
             if (!cidade) { toast('Selecione a cidade', 'error'); return; }
             var rec = {
                 client_id: uuid(), nome: nome.trim(), cidade_id: cidade,
-                telefone: tel.trim(), tipos: tipos, observacoes: obs.trim(), _ts: Date.now()
+                telefone: tel.trim(), tipos: tipos, niveis: niveis,
+                intencao_voto: intencaoVoto, observacoes: obs.trim(), _ts: Date.now()
             };
             queue(rec).then(function () {
                 form.reset();

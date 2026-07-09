@@ -1,7 +1,7 @@
 {% extends 'pwa/base.html' %}
 {% load static %}
 {% block nav_apoiador %}active{% endblock %}
-{% block title %}Novo Apoiador — {{ campanha.candidato_primeiro_nome }} {{ campanha.partido_numero }}{% endblock %}
+{% block title %}{% if form.contato_mode %}Novo Contato{% else %}Novo Apoiador{% endif %} — {{ campanha.candidato_primeiro_nome }} {{ campanha.partido_numero }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -94,7 +94,7 @@
 
 {% block content %}
 <div class="form-head rise">
-    <h1>Novo Apoiador</h1>
+    <h1>{% if form.contato_mode %}Novo Contato{% else %}Novo Apoiador{% endif %}</h1>
     <p>Funciona offline — envia sozinho ao reconectar.</p>
 </div>
 
@@ -134,14 +134,30 @@
         <div class="pwa-form-group">
             <label class="pwa-label">Categoria <span class="pwa-hint">(pode marcar mais de uma)</span></label>
             <div class="tipo-grid">
+                {% if form.contato_mode %}
+                {% for check in form.niveis %}
+                <div class="tipo-option">
+                    {{ check.tag }}
+                    <label for="{{ check.id_for_label }}">{{ check.choice_label }}</label>
+                </div>
+                {% endfor %}
+                {% else %}
                 {% for check in form.tipos %}
                 <div class="tipo-option">
                     {{ check.tag }}
                     <label for="{{ check.id_for_label }}">{{ check.choice_label }}</label>
                 </div>
                 {% endfor %}
+                {% endif %}
             </div>
         </div>
+
+        {% if form.contato_mode %}
+        <div class="pwa-form-group">
+            <label class="pwa-label">{{ form.intencao_voto.label }}</label>
+            {{ form.intencao_voto }}
+        </div>
+        {% endif %}
 
         <div class="pwa-form-group" style="margin-bottom:18px;">
             <label class="pwa-label">Observações</label>
@@ -154,7 +170,7 @@
             <div class="mic-status" id="micStatus"></div>
         </div>
 
-        <button type="submit" class="pwa-btn pwa-btn-primary" id="btnSalvar">Salvar Apoiador</button>
+        <button type="submit" class="pwa-btn pwa-btn-primary" id="btnSalvar">{% if form.contato_mode %}Salvar Contato{% else %}Salvar Apoiador{% endif %}</button>
     </form>
 </div>
 
