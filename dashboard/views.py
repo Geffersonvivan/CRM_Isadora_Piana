@@ -1,4 +1,5 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
+from django.conf import settings
 from django.core.paginator import Paginator
 from django.db.models import Count, Q
 from django.db.models.functions import TruncDate
@@ -124,6 +125,9 @@ def capa_view(request):
     Um momento de orientação (identidade + relógio + meta + entradas),
     não uma ferramenta. O painel operacional vive atrás do menu Dashboard.
     Os contadores de pendentes vêm do context processor (leads_pendentes)."""
+    # Marca sem capa (Isadora) entra direto no destino pós-login (a Dashboard).
+    if not settings.CAMPANHA.get('CAPA_ATIVA', True):
+        return redirect(settings.LOGIN_REDIRECT_URL)
     from datetime import date
     config = Configuracao.get()
     total_votos = Lideranca.objects.aprovados().filter(papel='apoiador').count()
@@ -149,8 +153,127 @@ def capa_view(request):
     })
 
 
+def _meta_votos_planilha(request):
+    """Dashboard de votos no modelo da planilha central (Isadora): intenção de
+    voto, funil vaquinha→doação e ranking por atendente. Só considera aprovados
+    (base oficial, §3.1). Toda contagem agregada no banco (§12.2)."""
+    config = Configuracao.get()
+    meta = config.meta_votos or 0
+    base = Lideranca.objects.aprovados().filter(papel='apoiador')
+
+    ag = base.aggregate(
+        total=Count('id'),
+        sim=Count('id', filter=Q(intencao_voto='sim')),
+        talvez=Count('id', filter=Q(intencao_voto='talvez')),
+        nao=Count('id', filter=Q(intencao_voto='nao')),
+        nao_contactado=Count('id', filter=Q(intencao_voto='nao_contactado')),
+        contato=Count('id', filter=Q(contato_feito=True)),
+        vaquinha=Count('id', filter=Q(vaquinha_enviada=True)),
+        doou=Count('id', filter=Q(doou=True)),
+        material=Count('id', filter=Q(material_entregue=True)),
+    )
+    total = ag['total']
+    classificados = ag['sim'] + ag['talvez'] + ag['nao'] + ag['nao_contactado']
+    confirmados = ag['sim']
+    potencial = ag['sim'] + ag['talvez']
+
+    percentual = round(confirmados / meta * 100, 1) if meta else 0
+    faltam = max(0, meta - confirmados)
+    cobertura_pct = round(classificados / total * 100, 1) if total else 0
+
+    # Donut sobre os CLASSIFICADOS (decisão do responsável). Stops exatos por
+    # contagem para o conic-gradient fechar 100% sem erro de arredondamento.
+    voto_defs = [
+        ('sim', 'Sim', ag['sim'], '#0d9488'),
+        ('talvez', 'Talvez', ag['talvez'], '#f59e0b'),
+        ('nao', 'Não', ag['nao'], '#dc2626'),
+        ('nao_contactado', 'Não contactado', ag['nao_contactado'], '#94a3b8'),
+    ]
+    voto_legenda, stops, acc = [], [], 0.0
+    for key, label, n, cor in voto_defs:
+        frac = (n / classificados * 100) if classificados else 0
+        stops.append(f'{cor} {acc:.3f}% {acc + frac:.3f}%')
+        acc += frac
+        voto_legenda.append({
+            'key': key, 'label': label, 'n': n,
+            'pct': round((n / classificados * 100), 1) if classificados else 0,
+            'cor': cor,
+        })
+    donut_gradient = 'conic-gradient(' + ', '.join(stops) + ')' if classificados else ''
+
+    # Funil de engajamento. Doação é conversão da VAQUINHA (não da base).
+    def _pct(n, base_n):
+        return round(n / base_n * 100, 1) if base_n else 0
+    funil = [
+        {'label': 'Base cadastrada', 'n': total, 'pct': 100, 'cor': '#FF6B00',
+         'sub': 'aprovados na base oficial'},
+        {'label': 'Contato feito', 'n': ag['contato'], 'pct': _pct(ag['contato'], total),
+         'cor': '#2563eb', 'sub': f"{_pct(ag['contato'], total)}% da base"},
+        {'label': 'Vaquinha enviada', 'n': ag['vaquinha'], 'pct': _pct(ag['vaquinha'], total),
+         'cor': '#7c3aed', 'sub': f"link enviado a {ag['vaquinha']}"},
+        {'label': 'Doou', 'n': ag['doou'], 'pct': _pct(ag['doou'], ag['vaquinha']),
+         'cor': '#0d9488',
+         'sub': (f"{ag['doou']} de {ag['vaquinha']} que receberam · "
+                 f"{_pct(ag['doou'], ag['vaquinha'])}% de conversão"
+                 if ag['vaquinha'] else 'sem vaquinha enviada ainda')},
+    ]
+
+    # Intenção por região de SC (só quem tem cidade/região e intenção definida).
+    regioes = list(
+        base.filter(cidade__regiao__isnull=False)
+        .values('cidade__regiao__sigla')
+        .annotate(
+            sim=Count('id', filter=Q(intencao_voto='sim')),
+            talvez=Count('id', filter=Q(intencao_voto='talvez')),
+            nao=Count('id', filter=Q(intencao_voto='nao')),
+            classificados=Count('id', filter=Q(
+                intencao_voto__in=['sim', 'talvez', 'nao', 'nao_contactado'])),
+        )
+        .filter(classificados__gt=0)
+        .order_by('-sim', '-talvez')[:12]
+    )
+
+    # Ranking por atendente — produtividade real da equipe.
+    atendentes = list(
+        base.filter(atendente_user__isnull=False)
+        .values('atendente_user__id', 'atendente_user__first_name',
+                'atendente_user__last_name', 'atendente_user__username')
+        .annotate(
+            sim=Count('id', filter=Q(intencao_voto='sim')),
+            talvez=Count('id', filter=Q(intencao_voto='talvez')),
+            contato=Count('id', filter=Q(contato_feito=True)),
+            vaquinha=Count('id', filter=Q(vaquinha_enviada=True)),
+            atendidos=Count('id'),
+        )
+        .order_by('-sim', '-atendidos')
+    )
+    for a in atendentes:
+        nome = f"{a['atendente_user__first_name']} {a['atendente_user__last_name']}".strip()
+        a['nome'] = nome or a['atendente_user__username']
+
+    return render(request, 'dashboard/meta_votos_planilha.html', {
+        'meta_votos': meta,
+        'confirmados': confirmados,
+        'potencial': potencial,
+        'percentual': percentual,
+        'faltam': faltam,
+        'base_total': total,
+        'classificados': classificados,
+        'nao_classificados': total - classificados,
+        'cobertura_pct': cobertura_pct,
+        'donut_gradient': donut_gradient,
+        'voto_legenda': voto_legenda,
+        'funil': funil,
+        'regioes': regioes,
+        'atendentes': atendentes,
+    })
+
+
 @secao_required('dashboard:meta_votos')
 def meta_votos(request):
+    if settings.CAMPANHA.get('DASHBOARD_VOTOS_PLANILHA'):
+        return _meta_votos_planilha(request)
+
     vinculo_map = dict(Usuario.VINCULO_CHOICES)
 
     config = Configuracao.get()

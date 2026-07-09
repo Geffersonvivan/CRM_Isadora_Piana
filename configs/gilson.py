@@ -27,6 +27,7 @@ CAMPANHA = {
     # Paleta NOVO — a mesma da Isadora.
     # Lista de Lideranças editável inline: exclusiva da Isadora por ora.
     'LIDERANCA_INLINE_EDIT': False,
+    'DASHBOARD_VOTOS_PLANILHA': False,
 
     'CORES': {
         '--navy': '#FF6B00',        # laranja NOVO (marca)

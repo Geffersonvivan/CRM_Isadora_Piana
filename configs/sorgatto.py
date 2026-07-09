@@ -30,6 +30,7 @@ CAMPANHA = {
     # Paleta PL (azul + amarelo) — ajustar com a identidade oficial da campanha.
     # Lista de Lideranças editável inline: exclusiva da Isadora por ora.
     'LIDERANCA_INLINE_EDIT': False,
+    'DASHBOARD_VOTOS_PLANILHA': False,
 
     'CORES': {
         '--navy': '#1e40af',        # azul PL (marca)

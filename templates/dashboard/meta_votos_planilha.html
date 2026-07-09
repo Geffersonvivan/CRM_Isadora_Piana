@@ -1,0 +1,241 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<style>
+    .progress-bar-container { background: rgba(255,255,255,0.2); border-radius: 8px; height: 10px; margin-top: 10px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; background: #fff; border-radius: 8px; transition: width .6s ease; }
+    .summary-card.hero .summary-sub { color: rgba(255,255,255,0.65); }
+
+    .section { margin-bottom: 26px; }
+    .section-title { font-size: 0.9rem; font-weight: 700; color: #1e293b; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .section-icon { width: 20px; height: 20px; color: var(--navy); }
+
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+
+    /* ===== Intenção de voto: donut + legenda ===== */
+    .voto-wrap { display: grid; grid-template-columns: 200px 1fr; gap: 28px; align-items: center; padding: 22px; }
+    .donut { width: 176px; height: 176px; border-radius: 50%; position: relative; flex-shrink: 0; margin: 0 auto; }
+    .donut-hole { position: absolute; inset: 27px; background: #fff; border-radius: 50%; z-index: 1; }
+    .donut-center { position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .donut-big { font-size: 2rem; font-weight: 800; color: #0d9488; line-height: 1; }
+    .donut-cap { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #64748b; margin-top: 4px; }
+    .donut-empty { width: 176px; height: 176px; border-radius: 50%; border: 14px solid #eef1f5; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 0.78rem; color: #94a3b8; padding: 20px; margin: 0 auto; }
+
+    .legenda { display: flex; flex-direction: column; gap: 2px; }
+    .leg-row { display: flex; align-items: center; gap: 10px; padding: 8px 6px; border-bottom: 1px solid #f1f5f9; }
+    .leg-row:last-child { border-bottom: none; }
+    .leg-dot { width: 12px; height: 12px; border-radius: 4px; flex-shrink: 0; }
+    .leg-label { font-size: 0.86rem; color: #334155; font-weight: 600; }
+    .leg-vals { margin-left: auto; font-size: 0.86rem; color: #475569; }
+    .leg-vals b { color: #1e293b; }
+    .leg-pct { display: inline-block; min-width: 48px; text-align: right; color: #94a3b8; }
+
+    .cobertura { margin: 0 22px 20px; padding: 12px 16px; background: #f8fafc; border: 1px solid #eef1f5; border-radius: 12px; }
+    .cobertura-top { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.82rem; color: #475569; margin-bottom: 8px; }
+    .cobertura-top b { color: #1e293b; font-size: 0.92rem; }
+    .cobertura-bar { background: #e2e8f0; border-radius: 6px; height: 8px; overflow: hidden; }
+    .cobertura-fill { height: 100%; background: var(--navy); border-radius: 6px; }
+
+    /* ===== Funil ===== */
+    .funil { padding: 18px 22px; display: flex; flex-direction: column; gap: 14px; }
+    .funil-row { }
+    .funil-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
+    .funil-label { font-size: 0.86rem; font-weight: 700; color: #1e293b; }
+    .funil-n { font-size: 1.05rem; font-weight: 800; color: #1e293b; }
+    .funil-track { background: #f1f5f9; border-radius: 8px; height: 22px; overflow: hidden; }
+    .funil-fill { height: 100%; border-radius: 8px; min-width: 2px; transition: width .5s ease; }
+    .funil-sub { font-size: 0.74rem; color: #94a3b8; margin-top: 4px; }
+    .funil-sub.zero { color: #dc2626; }
+
+    /* ===== Tabelas ===== */
+    .tbl { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+    .tbl table { width: 100%; border-collapse: collapse; }
+    .tbl th { background: #f8fafc; padding: 10px 16px; text-align: left; font-size: 0.72rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: .05em; border-bottom: 1px solid #e2e8f0; }
+    .tbl td { padding: 10px 16px; font-size: 0.83rem; color: #374151; border-bottom: 1px solid #f1f5f9; }
+    .tbl tr:hover td { background: #f8fafc; }
+    .tbl .text-right { text-align: right; }
+    .pill { display: inline-block; min-width: 30px; text-align: center; padding: 2px 8px; border-radius: 999px; font-weight: 700; font-size: 0.78rem; }
+    .pill-sim { background: #ccfbf1; color: #0f766e; }
+    .pill-talvez { background: #fef3c7; color: #92400e; }
+    .pill-nao { background: #fee2e2; color: #991b1b; }
+    .rank-pos { width: 26px; height: 26px; border-radius: 8px; background: #f1f5f9; display: inline-flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; color: #64748b; }
+    .rank-pos.top1 { background: #fef3c7; color: #92400e; }
+    .rank-pos.top2 { background: #e5e7eb; color: #374151; }
+    .rank-pos.top3 { background: #fed7aa; color: #9a3412; }
+    .muted-row td { text-align: center; color: #9ca3af; padding: 34px; }
+
+    @media (max-width: 720px) {
+        .voto-wrap { grid-template-columns: 1fr; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title" data-tip="Acompanhamento da meta de votos para 2026, com base na planilha central.">Meta de Votos</h1>
+</div>
+
+<!-- Meta -->
+<div class="summary-grid">
+    <div class="summary-card hero">
+        <div class="summary-label" data-tip="Votos necessários para eleger {{ campanha.trat_nome }} em 2026.">Meta</div>
+        <div class="summary-value">{{ meta_votos|floatformat:0 }}</div>
+        <div class="summary-sub">votos necessários</div>
+        <div class="progress-bar-container">
+            <div class="progress-bar-fill" style="width: {% if percentual > 100 %}100{% else %}{{ percentual }}{% endif %}%"></div>
+        </div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-label" data-tip="Contatos com intenção de voto = Sim. É o que conta para a meta.">Votos confirmados</div>
+        <div class="summary-value">{{ confirmados }}</div>
+        <div class="summary-sub">{{ percentual }}% da meta · intenção “sim”</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-label" data-tip="Confirmados + prováveis (Sim + Talvez): o teto se todos os “talvez” virarem “sim”.">Potencial</div>
+        <div class="summary-value">{{ potencial }}</div>
+        <div class="summary-sub">sim + talvez</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-label" data-tip="Base de apoiadores cadastrada e aprovada (não é voto confirmado).">Base cadastrada</div>
+        <div class="summary-value">{{ base_total }}</div>
+        <div class="summary-sub">apoiadores aprovados</div>
+    </div>
+</div>
+
+<!-- Intenção de voto -->
+<div class="section">
+    <div class="section-title">
+        <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 118 2.83"/><path d="M22 12A10 10 0 0012 2v10z"/></svg>
+        <span data-tip="Distribuição da intenção de voto entre os contatos já classificados.">Intenção de Voto</span>
+    </div>
+    <div class="card">
+        <div class="voto-wrap">
+            {% if classificados %}
+            <div class="donut" style="background: {{ donut_gradient }};">
+                <div class="donut-hole"></div>
+                <div class="donut-center">
+                    <div class="donut-big">{{ voto_legenda.0.pct|floatformat:0 }}%</div>
+                    <div class="donut-cap">sim</div>
+                </div>
+            </div>
+            {% else %}
+            <div class="donut-empty">Nenhum contato classificado ainda</div>
+            {% endif %}
+            <div class="legenda">
+                {% for v in voto_legenda %}
+                <div class="leg-row">
+                    <span class="leg-dot" style="background: {{ v.cor }};"></span>
+                    <span class="leg-label">{{ v.label }}</span>
+                    <span class="leg-vals"><b>{{ v.n }}</b><span class="leg-pct">{{ v.pct }}%</span></span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <!-- Cobertura: honestidade sobre quantos já foram classificados -->
+        <div class="cobertura">
+            <div class="cobertura-top">
+                <span>Cobertura da classificação</span>
+                <span><b>{{ classificados }}</b> de {{ base_total }} classificados · {{ cobertura_pct }}%</span>
+            </div>
+            <div class="cobertura-bar"><div class="cobertura-fill" style="width: {{ cobertura_pct }}%;"></div></div>
+            <div class="funil-sub" style="margin-top:8px;">Faltam classificar {{ nao_classificados }} contatos (o donut acima considera só os {{ classificados }} já classificados).</div>
+        </div>
+    </div>
+</div>
+
+<!-- Funil de engajamento -->
+<div class="section">
+    <div class="section-title">
+        <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+        <span data-tip="Do cadastro à doação. A doação é medida sobre quem recebeu o link da vaquinha.">Funil de Engajamento</span>
+    </div>
+    <div class="card">
+        <div class="funil">
+            {% for f in funil %}
+            <div class="funil-row">
+                <div class="funil-head">
+                    <span class="funil-label">{{ f.label }}</span>
+                    <span class="funil-n">{{ f.n }}</span>
+                </div>
+                <div class="funil-track">
+                    <div class="funil-fill" style="width: {{ f.pct }}%; background: {{ f.cor }};"></div>
+                </div>
+                <div class="funil-sub{% if f.n == 0 %} zero{% endif %}">{{ f.sub }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Intenção por região -->
+<div class="section">
+    <div class="section-title">
+        <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <span data-tip="Intenção de voto por associação de municípios (região de SC), entre os classificados.">Intenção por Região</span>
+    </div>
+    <div class="tbl">
+        <table>
+            <thead>
+                <tr>
+                    <th>Região</th>
+                    <th class="text-right">Sim</th>
+                    <th class="text-right">Talvez</th>
+                    <th class="text-right">Não</th>
+                    <th class="text-right">Classificados</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in regioes %}
+                <tr>
+                    <td><strong>{{ r.cidade__regiao__sigla }}</strong></td>
+                    <td class="text-right"><span class="pill pill-sim">{{ r.sim }}</span></td>
+                    <td class="text-right"><span class="pill pill-talvez">{{ r.talvez }}</span></td>
+                    <td class="text-right"><span class="pill pill-nao">{{ r.nao }}</span></td>
+                    <td class="text-right">{{ r.classificados }}</td>
+                </tr>
+                {% empty %}
+                <tr class="muted-row"><td colspan="5">Nenhuma região com intenção classificada ainda.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Ranking por atendente -->
+<div class="section">
+    <div class="section-title">
+        <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+        <span data-tip="Produtividade da equipe: votos e engajamento por atendente responsável.">Ranking por Atendente</span>
+    </div>
+    <div class="tbl">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:44px;">#</th>
+                    <th>Atendente</th>
+                    <th class="text-right" data-tip="Contatos com intenção “sim”.">Sim</th>
+                    <th class="text-right" data-tip="Contatos com intenção “talvez”.">Talvez</th>
+                    <th class="text-right" data-tip="Contatos com “contato feito”.">Contato</th>
+                    <th class="text-right" data-tip="Contatos que receberam o link da vaquinha.">Vaquinha</th>
+                    <th class="text-right" data-tip="Total de contatos sob responsabilidade do atendente.">Atendidos</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in atendentes %}
+                <tr>
+                    <td><span class="rank-pos {% if forloop.counter == 1 %}top1{% elif forloop.counter == 2 %}top2{% elif forloop.counter == 3 %}top3{% endif %}">{{ forloop.counter }}</span></td>
+                    <td><strong>{{ a.nome }}</strong></td>
+                    <td class="text-right"><span class="pill pill-sim">{{ a.sim }}</span></td>
+                    <td class="text-right">{{ a.talvez }}</td>
+                    <td class="text-right">{{ a.contato }}</td>
+                    <td class="text-right">{{ a.vaquinha }}</td>
+                    <td class="text-right">{{ a.atendidos }}</td>
+                </tr>
+                {% empty %}
+                <tr class="muted-row"><td colspan="7">Nenhum atendente vinculado ainda.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

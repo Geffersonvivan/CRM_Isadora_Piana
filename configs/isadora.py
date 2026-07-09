@@ -32,6 +32,17 @@ CAMPANHA = {
     # Só a Isadora usa este layout; as outras marcas seguem a lista padrão.
     'LIDERANCA_INLINE_EDIT': True,
 
+    # Dashboard "Meta de Votos" no modelo da planilha (intenção de voto, funil de
+    # vaquinha/doação, ranking por atendente) em vez do modelo de rede
+    # (coordenador→cabo→replicador). Só a Isadora usa a base da planilha central.
+    'DASHBOARD_VOTOS_PLANILHA': True,
+
+    # Ao logar, entra direto na Dashboard (Meta de Votos), sem passar pela capa
+    # de campanha. As outras marcas mantêm a capa em '/'.
+    'LOGIN_REDIRECT_URL': '/dashboard/meta-votos/',
+    # Capa de campanha desativada: a raiz '/' também vai direto para a Dashboard.
+    'CAPA_ATIVA': False,
+
     # Cores da marca — valores das variáveis CSS históricas (--navy/--ouro/
     # --coral guardam a paleta atual; usar sempre a variável, não hex avulso).
     # Injetadas no :root pelo base.html; global.css traz o fallback.

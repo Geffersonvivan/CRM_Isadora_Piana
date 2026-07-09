@@ -193,3 +193,7 @@ IA_LIMPEZA_MODEL = os.environ.get('IA_LIMPEZA_MODEL', 'claude-haiku-4-5')
 # marca no código.
 MARCA = os.getenv('MARCA', 'isadora')
 CAMPANHA = import_module(f'configs.{MARCA}').CAMPANHA
+
+# Destino pós-login por marca. Isadora entra direto na Dashboard (Meta de Votos);
+# demais marcas mantêm a capa de campanha em '/' (default acima).
+LOGIN_REDIRECT_URL = CAMPANHA.get('LOGIN_REDIRECT_URL', LOGIN_REDIRECT_URL)
