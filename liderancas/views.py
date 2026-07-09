@@ -131,6 +131,7 @@ def lideranca_list(request):
     # --- Filtros alinhados à planilha (só Isadora) ---
     inline_edit = settings.CAMPANHA.get('LIDERANCA_INLINE_EDIT', False)
     f_atendente = request.GET.get('atendente', '')
+    f_uf = request.GET.get('uf', '')
     f_voto = request.GET.get('voto', '')
     f_nivel = request.GET.get('nivel', '')
     f_canal = request.GET.get('canal', '')
@@ -160,7 +161,9 @@ def lideranca_list(request):
         qs = qs.filter(_busca_q(busca))
     if regioes_sel:
         qs = qs.filter(regiao_id__in=regioes_sel)
-    if cidade_id:
+    if cidade_id == '__none__':
+        qs = qs.filter(cidade__isnull=True)
+    elif cidade_id:
         qs = qs.filter(cidade_id=cidade_id)
     if coordenador_id:
         qs = qs.filter(coordenador_responsavel_id=coordenador_id)
@@ -182,8 +185,12 @@ def lideranca_list(request):
 
     # --- Filtros da planilha (Isadora) — combinam em AND com os demais ---
     if inline_edit:
-        if f_atendente:
+        if f_atendente == '__none__':
+            qs = qs.filter(atendente_user__isnull=True)
+        elif f_atendente:
             qs = qs.filter(atendente_user_id=f_atendente)
+        if f_uf:
+            qs = qs.filter(uf=f_uf)
         if f_nivel:
             qs = qs.filter(nivel=f_nivel)
         # voto NÃO entra aqui — vira aba (aplicado após contar por voto, abaixo)
@@ -238,6 +245,16 @@ def lideranca_list(request):
     cidades_filtro = Cidade.objects.filter(regiao_id__in=regioes_sel).order_by('nome') if regioes_sel else []
     coordenadores = Lideranca.objects.filter(papel='coordenador').order_by('nome')
     regioes = Regiao.objects.all().order_by('sigla')
+
+    # UFs presentes na base (Isadora) — a base é nacional; SC primeiro, resto por volume.
+    uf_choices = []
+    if inline_edit:
+        uf_choices = [(r['uf'], r['n']) for r in (
+            Lideranca.objects.exclude(aprovacao='rejeitado')
+            .exclude(uf='').values('uf').annotate(n=Count('id')).order_by('-n')
+        )]
+    atendentes = list(Usuario.objects.filter(is_active=True).order_by('first_name', 'username')
+                      .values('id', 'first_name', 'last_name', 'username'))
 
     # --- Abas-contador por papel (toggle multi) ---
     papeis_set = set(papeis)
@@ -294,8 +311,18 @@ def lideranca_list(request):
         _chip('tipo', 'Categoria', t, dict(Lideranca.TIPO_CHOICES).get(t, t))
     if busca:
         _chip('busca', 'Busca', busca, busca)
-    if cidade_id:
+    if cidade_id == '__none__':
+        _chip('cidade', 'Cidade', cidade_id, 'Sem cidade')
+    elif cidade_id:
         _chip('cidade', 'Cidade', cidade_id, Cidade.objects.filter(id=cidade_id).values_list('nome', flat=True).first() or cidade_id)
+    if f_uf:
+        _chip('uf', 'UF', f_uf, f_uf)
+    if f_atendente == '__none__':
+        _chip('atendente', 'Atendente', f_atendente, 'Sem atendente')
+    elif f_atendente:
+        _chip('atendente', 'Atendente', f_atendente,
+              next((f"{a['first_name']} {a['last_name']}".strip() or a['username']
+                    for a in atendentes if str(a['id']) == f_atendente), f_atendente))
     if coordenador_id:
         _chip('coordenador', 'Coordenador', coordenador_id, coordenadores.filter(id=coordenador_id).values_list('nome', flat=True).first() or coordenador_id)
     if prioridade:
@@ -332,8 +359,7 @@ def lideranca_list(request):
         'voto_choices': Lideranca.INTENCAO_VOTO_CHOICES,
         'nivel_choices': Lideranca.NIVEL_CHOICES,
         'canal_choices': Lideranca.CANAL_CHOICES,
-        'atendentes': list(Usuario.objects.filter(is_active=True).order_by('first_name', 'username')
-                           .values('id', 'first_name', 'last_name', 'username')),
+        'atendentes': atendentes,
         'total': paginator.count,
         'total_geral': Lideranca.objects.count(),
         'qs_sort_base': sort_base.urlencode(),
@@ -361,6 +387,7 @@ def lideranca_list(request):
         'situacao_filtro': situacao,
         # Filtros alinhados à planilha (Isadora) — valores atuais para repovoar o form
         'f_atendente': f_atendente, 'f_voto': f_voto, 'f_nivel': f_nivel, 'f_canal': f_canal,
+        'f_uf': f_uf, 'uf_choices': uf_choices,
         'bool_filtros': [
             {'campo': 'contato_feito', 'rotulo': 'Contato feito?', 'valor': f_bool['contato_feito']},
             {'campo': 'vaquinha_enviada', 'rotulo': 'Vaquinha enviada?', 'valor': f_bool['vaquinha_enviada']},

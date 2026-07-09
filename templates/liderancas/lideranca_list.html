@@ -219,6 +219,7 @@
                 <label>Cidade</label>
                 <select name="cidade" id="filtroCidade">
                     <option value="">Todas</option>
+                    {% if inline_edit %}<option value="__none__" {% if cidade_filtro == '__none__' %}selected{% endif %}>— Sem cidade —</option>{% endif %}
                     {% for c in cidades_filtro %}
                     <option value="{{ c.id }}" {% if cidade_filtro == c.id|stringformat:"d" %}selected{% endif %}>{{ c.nome }}</option>
                     {% endfor %}
@@ -227,9 +228,19 @@
             {% if inline_edit %}
             {# Filtros alinhados à planilha (Isadora) — linha principal #}
             <div class="filter-group">
+                <label>UF</label>
+                <select name="uf">
+                    <option value="">Todas</option>
+                    {% for uf, n in uf_choices %}
+                    <option value="{{ uf }}" {% if f_uf == uf %}selected{% endif %}>{{ uf }} ({{ n }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter-group">
                 <label>Atendente</label>
                 <select name="atendente">
                     <option value="">Todos</option>
+                    <option value="__none__" {% if f_atendente == '__none__' %}selected{% endif %}>— Sem atendente —</option>
                     {% for a in atendentes %}
                     <option value="{{ a.id }}" {% if f_atendente == a.id|stringformat:"d" %}selected{% endif %}>{{ a.first_name }} {{ a.last_name }}{% if not a.first_name %}{{ a.username }}{% endif %}</option>
                     {% endfor %}
