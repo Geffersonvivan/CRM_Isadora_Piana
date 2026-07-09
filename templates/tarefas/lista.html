@@ -3643,6 +3643,10 @@ function iniciarInline() {
 function salvarInline(tr, input) {
     const titulo = input.value.trim();
     if (!titulo) { tr.remove(); return; }
+    // Evita envio duplo: ao apertar Enter, desabilitar o input dispara o blur,
+    // que chamaria salvarInline de novo (criava a tarefa duas vezes).
+    if (input.dataset.saving === '1') return;
+    input.dataset.saving = '1';
 
     input.disabled = true;
     input.style.opacity = '0.5';
