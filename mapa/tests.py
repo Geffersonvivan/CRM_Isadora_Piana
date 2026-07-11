@@ -76,7 +76,7 @@ class AuditoriaIndicadoresTests(TestCase):
                 meis_ativos=(i * 5) % 11 + 1,
                 populacao_urbana=pop // 2, populacao_rural=pop - pop // 2,
                 idosos_60_mais=(i * 3) % 9 + 1, jovens_18_29=(i * 11) % 17 + 1,
-                anos_estudo_medio=5 + (i % 7),
+                taxa_alfabetizacao=5 + (i % 7),
             )
         report, _ = self._rodar()
         self.assertGreaterEqual(abs(report['metricas']['correlacao_pib']['renda_per_capita']), 0.90)
@@ -89,7 +89,7 @@ class AuditoriaIndicadoresTests(TestCase):
             cidade=cidade, ano_referencia=2022, populacao=20_000, pib=80_000,
             renda_per_capita=1_500, familias_bolsa_familia=900, meis_ativos=700,
             populacao_urbana=15_000, populacao_rural=5_000,
-            idosos_60_mais=3_000, jovens_18_29=4_000, anos_estudo_medio=9.1)
+            idosos_60_mais=3_000, jovens_18_29=4_000, taxa_alfabetizacao=9.1)
         report, codigo = self._rodar()
         self.assertEqual(codigo, 0)
         self.assertEqual(report['criticos'], [])

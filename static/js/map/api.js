@@ -12,11 +12,11 @@ function apiGet(url) {
 
 const API = {
     maps: {
-        state: () => apiGet('/mapa/api/state/'),
+        state: (nivel) => apiGet('/mapa/api/state/' + (nivel ? '?nivel=' + nivel : '')),
         stateCities: () => apiGet('/mapa/api/state-cities/'),
         region: (slug) => apiGet(`/mapa/api/region/${slug}/`),
         city: (slug) => apiGet(`/mapa/api/city/${slug}/`),
-        heatmap: (metric) => apiGet(`/mapa/api/heatmap/${metric}/`),
+        heatmap: (metric, nivel) => apiGet(`/mapa/api/heatmap/${metric}/` + (nivel && nivel !== 'associacao' ? '?nivel=' + nivel : '')),
         victory: () => apiGet('/mapa/api/vitoria/'),
         heatLayers: () => apiGet('/mapa/api/calor-camadas/'),
     },

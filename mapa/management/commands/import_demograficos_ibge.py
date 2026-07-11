@@ -81,8 +81,9 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(f'  Pop urbana/rural: {updated} registros'))
         except Exception as e:
             self.stdout.write(self.style.WARNING(f'  Erro pop urbana/rural: {e}'))
-            # Fallback: estimar com base em dados existentes
-            self._estimar_urbanizacao(cidades, cidades_by_nome)
+            # §5.2: sem dado real -> fica vazio. NÃO estimar (proibido apresentar
+            # sintético como medido, §5.1). Use import_urbano_real para o dado real.
+            self.stdout.write(self.style.WARNING('  Urbanização sem dado (não estimada).'))
 
         # ── 2) Faixa etária
         self.stdout.write('Buscando faixa etária...')
@@ -124,13 +125,13 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(f'  Faixa etária: {idosos_count} idosos, {jovens_count} jovens'))
         except Exception as e:
             self.stdout.write(self.style.WARNING(f'  Erro faixa etária: {e}'))
-            self._estimar_faixa_etaria(cidades, cidades_by_nome)
+            # §5.2: sem dado real -> fica vazio. NÃO estimar por média de SC.
+            self.stdout.write(self.style.WARNING('  Faixa etária sem dado (não estimada).'))
 
-        # ── 3) Escolaridade (estimativa via indicadores socioeconômicos)
-        self.stdout.write('Estimando escolaridade...')
-        self._estimar_escolaridade()
+        # ── 3) Escolaridade/alfabetização: só dado real. Use import_alfabetizacao_real.
+        # (§5.1: era estimada do PIB — removido. §5.2: sem dado fica vazio.)
 
-        self.stdout.write(self.style.SUCCESS(f'\nImportação concluída!'))
+        self.stdout.write(self.style.SUCCESS(f'\nImportação concluída (só dados reais do IBGE).'))
 
     def _get_indicador(self, cod_ibge, cidades, cidades_by_nome):
         """Busca ou cria IndicadorMunicipal para o código IBGE."""
@@ -147,57 +148,6 @@ class Command(BaseCommand):
         )
         return ind
 
-    def _estimar_urbanizacao(self, cidades, cidades_by_nome):
-        """Estima urbanização com base no PIB per capita (correlação conhecida)."""
-        self.stdout.write('  Estimando urbanização por PIB per capita...')
-        inds = IndicadorMunicipal.objects.filter(ano_referencia=2022, populacao__gt=0)
-        max_pib_pc = max((float(i.pib) / i.populacao for i in inds if i.populacao > 0), default=1) or 1
-
-        count = 0
-        for ind in inds:
-            if ind.populacao_urbana > 0:
-                continue
-            pib_pc = float(ind.pib) / ind.populacao if ind.populacao > 0 else 0
-            # SC: urbanização média ~84%. Varia de 50% (rural) a 98% (capitais)
-            urban_ratio = 0.50 + 0.48 * min(pib_pc / max_pib_pc, 1.0)
-            ind.populacao_urbana = int(ind.populacao * urban_ratio)
-            ind.populacao_rural = ind.populacao - ind.populacao_urbana
-            ind.save(update_fields=['populacao_urbana', 'populacao_rural'])
-            count += 1
-        self.stdout.write(f'  Estimados: {count} cidades')
-
-    def _estimar_faixa_etaria(self, cidades, cidades_by_nome):
-        """Estima faixa etária com base em médias de SC."""
-        self.stdout.write('  Estimando faixa etária por médias regionais...')
-        # SC Censo 2022: ~16% idosos 60+, ~15% jovens 20-29
-        inds = IndicadorMunicipal.objects.filter(ano_referencia=2022, populacao__gt=0, idosos_60_mais=0)
-        count = 0
-        for ind in inds:
-            # Cidades menores tendem a ter mais idosos (jovens migram)
-            if ind.populacao < 10000:
-                idoso_pct, jovem_pct = 0.20, 0.12
-            elif ind.populacao < 50000:
-                idoso_pct, jovem_pct = 0.17, 0.14
-            else:
-                idoso_pct, jovem_pct = 0.14, 0.17
-            ind.idosos_60_mais = int(ind.populacao * idoso_pct)
-            ind.jovens_18_29 = int(ind.populacao * jovem_pct)
-            ind.save(update_fields=['idosos_60_mais', 'jovens_18_29'])
-            count += 1
-        self.stdout.write(f'  Estimados: {count} cidades')
-
-    def _estimar_escolaridade(self):
-        """Estima anos de estudo com base na renda per capita."""
-        # Correlação forte entre renda e escolaridade
-        inds = IndicadorMunicipal.objects.filter(ano_referencia=2022, populacao__gt=0)
-        rendas = [float(i.renda_per_capita) for i in inds if i.renda_per_capita > 0]
-        max_renda = max(rendas) if rendas else 1
-
-        count = 0
-        for ind in inds:
-            renda_norm = float(ind.renda_per_capita) / max_renda if max_renda > 0 else 0
-            # SC: média ~9.5 anos de estudo, varia de 6 a 12
-            ind.anos_estudo_medio = round(6 + 6 * renda_norm, 1)
-            ind.save(update_fields=['anos_estudo_medio'])
-            count += 1
-        self.stdout.write(self.style.SUCCESS(f'  Escolaridade: {count} cidades'))
+    # §5.1: estimadores sintéticos (urbanização/faixa etária/escolaridade derivadas
+    # do PIB/renda) REMOVIDOS — era dado sintético apresentado como medido. O dado
+    # real vem dos comandos import_urbano_real, import_alfabetizacao_real, etc.

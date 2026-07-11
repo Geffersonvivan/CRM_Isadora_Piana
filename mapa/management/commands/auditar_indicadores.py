@@ -142,8 +142,8 @@ class Command(BaseCommand):
         if pop_baixa:
             warn(f'{len(pop_baixa)} indicadores com populacao < 500 (suspeito): ' +
                  ', '.join(f'{i.cidade.nome}({i.populacao})' for i in pop_baixa[:10]))
-        # anos_estudo_medio passou a guardar a TAXA DE ALFABETIZAÇÃO (%), 0-100.
-        esc_inv = bad(lambda i: float(i.anos_estudo_medio or 0) <= 0 or float(i.anos_estudo_medio or 0) > 100)
+        # taxa_alfabetizacao passou a guardar a TAXA DE ALFABETIZAÇÃO (%), 0-100.
+        esc_inv = bad(lambda i: float(i.taxa_alfabetizacao or 0) <= 0 or float(i.taxa_alfabetizacao or 0) > 100)
         if esc_inv:
             warn(f'{len(esc_inv)} indicadores com alfabetização inválida (0 ou >100%)')
         urb_inc = bad(lambda i: i.populacao and (i.populacao_urbana + i.populacao_rural) > 0
@@ -155,7 +155,7 @@ class Command(BaseCommand):
         zerados = {}
         for campo in ['pib', 'renda_per_capita', 'familias_bolsa_familia', 'meis_ativos',
                       'populacao_urbana', 'populacao_rural', 'idosos_60_mais', 'jovens_18_29',
-                      'anos_estudo_medio']:
+                      'taxa_alfabetizacao']:
             z = sum(1 for i in inds if not getattr(i, campo))
             zerados[campo] = z
             if inds and z == len(inds):
@@ -176,7 +176,7 @@ class Command(BaseCommand):
                 'urbana_pct': [i.populacao_urbana / i.populacao for i in com_pop],
                 'idosos_pct': [i.idosos_60_mais / i.populacao for i in com_pop],
                 'jovens_pct': [i.jovens_18_29 / i.populacao for i in com_pop],
-                'escolaridade': [float(i.anos_estudo_medio) for i in com_pop],
+                'escolaridade': [float(i.taxa_alfabetizacao) for i in com_pop],
             }
             for k, v in campos_pct.items():
                 r = round(_corr(pibpc, v), 3)

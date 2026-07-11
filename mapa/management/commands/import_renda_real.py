@@ -68,8 +68,9 @@ class Command(BaseCommand):
                 continue
             nova = renda.get(cod)
             if nova is None:
-                nova = mediana  # imputa mediana nas 2 sem dado (não contamina escala)
+                # §5.2: sem dado real -> fica vazio (0), NÃO imputar por mediana.
                 imputadas += 1
+                continue
             if i.renda_per_capita != nova:
                 if len(amostra) < 5:
                     amostra.append(f'{i.cidade.nome}: R$ {i.renda_per_capita} -> R$ {nova}')
@@ -83,4 +84,4 @@ class Command(BaseCommand):
             self.stdout.write('   ' + a)
         verbo = 'mudariam' if dry else 'atualizados'
         self.stdout.write(self.style.SUCCESS(
-            f'{mud} indicadores {verbo} com renda REAL do Censo 2022 ({imputadas} imputadas com mediana).'))
+            f'{mud} indicadores {verbo} com renda REAL do Censo 2022 ({imputadas} sem dado — deixadas vazias, §5.2).'))

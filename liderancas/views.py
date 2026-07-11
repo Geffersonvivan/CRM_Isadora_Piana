@@ -120,6 +120,13 @@ def lideranca_list(request):
     """Lista única de Lideranças (coordenadores + cabos + apoiadores) com filtros avançados."""
     papeis = [p for p in request.GET.getlist('papel') if p in ('coordenador', 'cabo', 'apoiador')]
     regioes_sel = [r for r in request.GET.getlist('regiao') if r]
+    # Nível de regionalização do filtro (segue o seletor do mapa): a lista de
+    # regiões e o filtro passam a ser da associação, microrregião ou mesorregião.
+    NIVEL_REGIAO_REL = {'associacao': 'cidade__regiao',
+                        'micro': 'cidade__microrregiao', 'meso': 'cidade__mesorregiao'}
+    f_nivel_regiao = request.GET.get('nivel_regiao', 'associacao')
+    if f_nivel_regiao not in NIVEL_REGIAO_REL:
+        f_nivel_regiao = 'associacao'
     tipos_sel = [t for t in request.GET.getlist('tipo') if t]
     busca = request.GET.get('busca', '')
     cidade_id = request.GET.get('cidade', '')
@@ -161,7 +168,7 @@ def lideranca_list(request):
     if busca:
         qs = qs.filter(_busca_q(busca))
     if regioes_sel:
-        qs = qs.filter(regiao_id__in=regioes_sel)
+        qs = qs.filter(**{f'{NIVEL_REGIAO_REL[f_nivel_regiao]}_id__in': regioes_sel})
     if cidade_id == '__none__':
         qs = qs.filter(cidade__isnull=True)
     elif cidade_id:
@@ -243,9 +250,14 @@ def lideranca_list(request):
 
     paginator, page_obj = _paginate(request, qs)
 
-    cidades_filtro = Cidade.objects.filter(regiao_id__in=regioes_sel).order_by('nome') if regioes_sel else []
+    # Cidades do dropdown seguem o nível: cidades das regiões selecionadas.
+    _cid_rel = {'associacao': 'regiao', 'micro': 'microrregiao', 'meso': 'mesorregiao'}[f_nivel_regiao]
+    cidades_filtro = (Cidade.objects.filter(**{f'{_cid_rel}_id__in': regioes_sel}).order_by('nome')
+                      if regioes_sel else [])
     coordenadores = Lideranca.objects.filter(papel='coordenador').order_by('nome')
-    regioes = Regiao.objects.all().order_by('sigla')
+    # Opções de região do nível escolhido (assoc 21 / micro 20 / meso 6) — não
+    # mais todas as 47 misturadas.
+    regioes = Regiao.objects.filter(nivel=f_nivel_regiao).order_by('nome')
 
     # UFs presentes na base (Isadora) — a base é nacional; SC primeiro, resto por volume.
     uf_choices = []
@@ -377,6 +389,9 @@ def lideranca_list(request):
         'rejeitados_total': Lideranca.objects.filter(aprovacao='rejeitado').count(),
         'regioes': regioes,
         'regioes_sel': regioes_sel,
+        'f_nivel_regiao': f_nivel_regiao,
+        'nivel_regiao_choices': [('associacao', 'Associações'), ('micro', 'Microrregião'),
+                                 ('meso', 'Mesorregião')],
         'tipos_sel': tipos_sel,
         'cidades_filtro': cidades_filtro,
         'coordenadores': coordenadores,

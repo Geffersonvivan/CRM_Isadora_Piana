@@ -2276,9 +2276,10 @@ class SCMap {
             });
     }
 
-    async loadState() {
+    async loadState(nivel) {
         try {
-            const geojson = await API.maps.state();
+            if (nivel) this.currentNivel = nivel;
+            const geojson = await API.maps.state(this.currentNivel || 'associacao');
             if (!geojson.features || geojson.features.length === 0) {
                 this._showEmpty('Sem dados GeoJSON. Execute: python manage.py load_geojson');
                 return;

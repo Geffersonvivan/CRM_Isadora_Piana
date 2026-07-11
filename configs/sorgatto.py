@@ -32,6 +32,7 @@ CAMPANHA = {
     'LIDERANCA_INLINE_EDIT': False,
     'DASHBOARD_VOTOS_PLANILHA': False,
     'PWA_CADASTRO_CONTATO': False,
+    'MAPA_NIVEIS_IBGE': False,
 
     'CORES': {
         '--navy': '#1e40af',        # azul PL (marca)

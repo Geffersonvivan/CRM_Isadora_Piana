@@ -63,35 +63,17 @@ class Command(BaseCommand):
             code7 = ibge_code
 
             pib_val = pib_data.get(code7) or pib_data.get(code6) or 0
-            pibpc_val = pibpc_data.get(code7) or pibpc_data.get(code6) or 0
 
-            pop = cidade.populacao or 1
+            pop = cidade.populacao or 0
 
-            # Estimar Bolsa Família: inversamente proporcional à renda
-            # Média SC ~8% das famílias (família média 3.1 pessoas)
-            if pibpc_val > 0:
-                # Referência: PIB pc médio SC ~R$48k. Quanto menor, mais BF.
-                ratio = min(48000 / max(pibpc_val, 1), 3.0)
-                bf_pct = 0.06 * ratio  # ~6% na média, até ~18% nas mais pobres
-            else:
-                bf_pct = 0.08
-            familias_bf = int(pop / 3.1 * bf_pct)
-
-            # Estimar MEIs: proporcional à atividade econômica
-            # Média SC ~8% da pop adulta, maior em cidades com maior PIB pc
-            if pibpc_val > 0:
-                mei_ratio = min(pibpc_val / 48000, 2.0)
-                mei_pct = 0.05 * mei_ratio  # ~5% na média
-            else:
-                mei_pct = 0.04
-            meis = int(pop * mei_pct)
-
+            # §5.1/5.2: Bolsa Família, MEIs e renda per capita NÃO são estimados do
+            # PIB (era sintético apresentado como medido). Só gravamos o dado REAL:
+            # PIB e população. O resto vem dos comandos import_bolsa_familia_real,
+            # import_mei_real e import_renda_real — e fica vazio até lá (update_or_create
+            # não sobrescreve o que não está em defaults, preservando o dado real).
             defaults = {
                 'pib': Decimal(str(pib_val)),
-                'renda_per_capita': Decimal(str(pibpc_val)),
-                'familias_bolsa_familia': familias_bf,
                 'populacao': pop,
-                'meis_ativos': meis,
             }
 
             _, is_new = IndicadorMunicipal.objects.update_or_create(

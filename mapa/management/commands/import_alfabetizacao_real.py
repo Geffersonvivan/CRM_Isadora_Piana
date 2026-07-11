@@ -1,6 +1,6 @@
 """
 Importa a TAXA DE ALFABETIZAÇÃO real do Censo 2022 (IBGE tabela 10091, var 2513,
-15 anos ou mais, % ) e grava em anos_estudo_medio — que passa a representar
+15 anos ou mais, % ) e grava em taxa_alfabetizacao — que passa a representar
 alfabetização (%), substituindo a "escolaridade" que era estimada do PIB.
 O rótulo no painel foi ajustado para "Alfabetização".
 
@@ -67,14 +67,14 @@ class Command(BaseCommand):
             nova = taxa.get(cod) if cod else None
             if nova is None:
                 continue
-            if i.anos_estudo_medio != nova:
+            if i.taxa_alfabetizacao != nova:
                 if len(amostra) < 5:
-                    amostra.append(f'{i.cidade.nome}: {i.anos_estudo_medio} -> {nova}% alfabetizados')
+                    amostra.append(f'{i.cidade.nome}: {i.taxa_alfabetizacao} -> {nova}% alfabetizados')
                 mud += 1
                 if not dry:
-                    i.anos_estudo_medio = nova
+                    i.taxa_alfabetizacao = nova
         if not dry and mud:
-            IndicadorMunicipal.objects.bulk_update(inds, ['anos_estudo_medio'])
+            IndicadorMunicipal.objects.bulk_update(inds, ['taxa_alfabetizacao'])
 
         for a in amostra:
             self.stdout.write('   ' + a)

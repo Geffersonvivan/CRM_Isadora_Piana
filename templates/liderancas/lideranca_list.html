@@ -204,8 +204,18 @@
                 <label>Busca</label>
                 <input type="text" name="busca" placeholder="Buscar lideranças…" title="Busca por nome, telefone, e-mail, cidade ou observações" value="{{ busca }}">
             </div>
+            {% if campanha.mapa_niveis_ibge %}
             <div class="filter-group">
-                <label>Região</label>
+                <label>Nível</label>
+                <select name="nivel_regiao" onchange="document.querySelectorAll('#msRegiao input').forEach(c=>c.checked=false); this.form.submit();">
+                    {% for val, lbl in nivel_regiao_choices %}
+                    <option value="{{ val }}" {% if f_nivel_regiao == val %}selected{% endif %}>{{ lbl }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="filter-group">
+                <label>{% if f_nivel_regiao == 'meso' %}Mesorregião{% elif f_nivel_regiao == 'micro' %}Microrregião{% else %}Região{% endif %}</label>
                 <div class="ms" data-placeholder="Todas">
                     <button type="button" class="ms-btn" onclick="toggleMs(this)"><span class="ms-label">Todas</span><span class="ms-caret">▾</span></button>
                     <div class="ms-pop" id="msRegiao">

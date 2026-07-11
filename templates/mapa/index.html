@@ -54,6 +54,14 @@
     .mode-btn:hover { background: #f1f5f9; }
     .mode-btn.active { background: var(--navy); color: #fff; }
 
+    /* Seletor de nível de regionalização (IBGE) */
+    .nivel-bar { display: inline-flex; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
+    .nivel-btn { padding: 6px 12px; font-size: .74rem; font-weight: 600; white-space: nowrap;
+        background: #fff; color: #475569; border: none; border-right: 1px solid #e5e7eb; cursor: pointer; transition: all .15s; }
+    .nivel-btn:last-child { border-right: none; }
+    .nivel-btn:hover { background: #f1f5f9; }
+    .nivel-btn.active { background: var(--ouro, #C44B00); color: #fff; }
+
     /* Help button */
     .btn-help {
         width: 36px;
@@ -538,6 +546,14 @@
                     <button class="mode-btn" data-mode="perfil_ideologico" data-help="mode:perfil_ideologico">Perfil Ideológico</button>
                 </div>
             </div>
+            {% if campanha.mapa_niveis_ibge %}
+            {# Nível de regionalização (IBGE) — Associações / Micro / Mesorregião. #}
+            <div class="nivel-bar" id="nivelBar" title="Nível de regionalização do mapa">
+                <button class="nivel-btn active" data-nivel="associacao" onclick="setMapaNivel('associacao', this)">Associações</button>
+                <button class="nivel-btn" data-nivel="micro" onclick="setMapaNivel('micro', this)">Microrregião</button>
+                <button class="nivel-btn" data-nivel="meso" onclick="setMapaNivel('meso', this)">Mesorregião</button>
+            </div>
+            {% endif %}
             <button class="btn-back" id="btnBack" onclick="mapApp.backToState()">
                 <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                 Voltar
@@ -716,7 +732,7 @@
     </div>
 </div>
 
-<script src="{% static 'js/map/api.js' %}?v=36"></script>
+<script src="{% static 'js/map/api.js' %}?v=37"></script>
 <script>
 // Identidade da campanha para os JS estáticos (sc-map.js) — vem da config de marca.
 window.CAMPANHA = {
@@ -728,12 +744,37 @@ window.CAMPANHA = {
     corMarcaEscura: '{{ campanha.cor_marca_escura }}',
 };
 </script>
-<script src="{% static 'js/map/sc-map.js' %}?v=38"></script>
+<script src="{% static 'js/map/sc-map.js' %}?v=39"></script>
 <script>
 (function() {
     const map = new SCMap('map-container');
     map.init();
     window.mapApp = map;
+
+    // Todos os modos analíticos agregam cidades por ASSOCIAÇÃO (dados por assoc/
+    // cidade). Em micro/meso o mapa cai na visão BASE agregada por região
+    // (população/apoiadores/votos — corretos via StateMapAPI). Nenhum modo entra.
+    const MODOS_NIVEL_MULTI = [];
+    function _modoSuportaNivel(mode, nivel) {
+        return nivel === 'associacao' || MODOS_NIVEL_MULTI.includes(mode);
+    }
+
+    // Seletor de nível (IBGE): recarrega a camada no nível escolhido e re-aplica o
+    // modo — a menos que o modo não suporte o nível (aí fica na visão base agregada).
+    window.setMapaNivel = function (nivel, btn) {
+        document.querySelectorAll('.nivel-btn').forEach(b => b.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+        if (!window.mapApp) return;
+        const mode = window.mapApp.mapMode;
+        window.mapApp.loadState(nivel).then(() => {
+            if (_modoSuportaNivel(mode, nivel) && typeof applyMode === 'function') {
+                applyMode(mode);
+            } else {
+                // Base agregada (população/apoiadores/votos) — sem overlay do modo.
+                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            }
+        });
+    };
 
     // Cargo em disputa (valor de máquina do TSE) — vem da config de marca, não
     // hardcodado: o mesmo mapa serve o cargo em disputa de qualquer marca.
@@ -759,7 +800,15 @@ window.CAMPANHA = {
             currentMode = mode;
             map.mapMode = mode;
             setActiveBtn(mode);
-            applyMode(mode);
+            // Modo que não suporta o nível atual (micro/meso) → volta a Associações.
+            const nivelAtual = map.currentNivel || 'associacao';
+            if (!_modoSuportaNivel(mode, nivelAtual)) {
+                document.querySelectorAll('.nivel-btn').forEach(b =>
+                    b.classList.toggle('active', b.dataset.nivel === 'associacao'));
+                map.loadState('associacao').then(() => applyMode(mode));
+            } else {
+                applyMode(mode);
+            }
             updateHelp(mode);
             history.replaceState(null, '', `/mapa/?mapa=${mode}`);
         });
@@ -850,7 +899,7 @@ window.CAMPANHA = {
                 '<table style="width:100%;font-size:.78rem;border-collapse:collapse;margin-bottom:4px">' +
                 '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0;width:30%"><strong>Eleitoral</strong></td><td style="padding-left:8px;color:#64748b">Votação 2022, penetração vs. média estadual, posição no ranking</td></tr>' +
                 '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0"><strong>Estrutura NOVO</strong></td><td style="padding-left:8px;color:#64748b">Score da Rede NOVO (coordenador, vereadores, diretório, cabos, apoiadores)</td></tr>' +
-                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0"><strong>IBGE</strong></td><td style="padding-left:8px;color:#64748b">Renda per capita, PIB, Bolsa Família, MEIs, urbanização, faixa etária, escolaridade</td></tr>' +
+                '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:3px 0"><strong>IBGE</strong></td><td style="padding-left:8px;color:#64748b">Renda per capita, PIB, Bolsa Família, MEIs, urbanização, faixa etária, alfabetização</td></tr>' +
                 '<tr><td style="padding:3px 0"><strong>CRM</strong></td><td style="padding-left:8px;color:#64748b">Demandas (total/vencidas/concluídas), compromissos, cabos eleitorais ativos</td></tr>' +
                 '</table>',
             how: 'Cada cidade recebe uma das <strong>6 classificações</strong> (mesmas cores do mapa):<br><br>' +
@@ -899,7 +948,7 @@ window.CAMPANHA = {
                 '<table style="width:100%;border-collapse:collapse;font-size:.82rem;">' +
                 '<tr style="border-bottom:1px solid #e2e8f0;"><td style="padding:4px 0;vertical-align:top;"><strong style="color:#1e40af;">Eleitorais</strong></td><td style="padding:4px 8px;">Proporção direita vs. esquerda em 2022: Governador (1T e 2T) e Senador</td></tr>' +
                 '<tr style="border-bottom:1px solid #e2e8f0;"><td style="padding:4px 0;vertical-align:top;"><strong style="color:#059669;">Socioeconômicos</strong></td><td style="padding:4px 8px;">PIB e Renda per capita, MEIs ativos, Bolsa Família (inverso)</td></tr>' +
-                '<tr style="border-bottom:1px solid #e2e8f0;"><td style="padding:4px 0;vertical-align:top;"><strong style="color:#7c3aed;">Demográficos</strong></td><td style="padding:4px 8px;">% Pop. urbana, % Idosos 60+, % Jovens 18-29, Escolaridade (IBGE)</td></tr>' +
+                '<tr style="border-bottom:1px solid #e2e8f0;"><td style="padding:4px 0;vertical-align:top;"><strong style="color:#7c3aed;">Demográficos</strong></td><td style="padding:4px 8px;">% Pop. urbana, % Idosos 60+, % Jovens 18-29, Alfabetização (IBGE)</td></tr>' +
                 '<tr style="border-bottom:1px solid #e2e8f0;"><td style="padding:4px 0;vertical-align:top;"><strong style="color:#dc2626;">CRM</strong></td><td style="padding:4px 8px;">Apoiadores cadastrados e demandas por cidade</td></tr>' +
                 '<tr><td style="padding:4px 0;vertical-align:top;"><strong style="color:#f59e0b;">Estratégico</strong></td><td style="padding:4px 8px;">Classificação (Base Forte, Potencial Oculto, etc.), alinhamento do prefeito, nível da Rede NOVO (forte/moderada/fraca/ausente), penetração eleitoral 2022</td></tr>' +
                 '</table><br>' +

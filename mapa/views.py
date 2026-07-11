@@ -70,31 +70,56 @@ def mapa_cidade(request, slug):
 
 # ─── API: MAPAS BASE ──────────────────────────────────────────────
 
+# Nível de regionalização → (FK da Cidade, related_name das cidades). O seletor do
+# mapa escolhe o nível; cada um agrega pela sua relação (não misturar os 3, senão o
+# mapa desenha 47 regiões sobrepostas).
+NIVEL_REL = {
+    'associacao': ('regiao', 'cidades'),
+    'micro': ('microrregiao', 'cidades_micro'),
+    'meso': ('mesorregiao', 'cidades_meso'),
+}
+
+
+def _nivel_param(request):
+    n = request.GET.get('nivel', 'associacao')
+    return n if n in NIVEL_REL else 'associacao'
+
+
 class StateMapAPI(APIView):
-    """GeoJSON do estado com todas as regiões."""
+    """GeoJSON do estado com as regiões do nível pedido (assoc/micro/meso)."""
     def get(self, request):
+        nivel = _nivel_param(request)
+        cidade_fk, cidades_rel = NIVEL_REL[nivel]
         # Contagem de apoiadores via Subquery — não pode ir junto dos Sum no mesmo
         # annotate, senão o JOIN de liderancas multiplica os Sum (eleitores/votos).
         ap_por_regiao = Lideranca.objects.apoiadores_aprovados().filter(
-            cidade__regiao=OuterRef('pk'),
-        ).values('cidade__regiao').annotate(c=Count('id')).values('c')
-        regions = Regiao.objects.annotate(
+            **{f'cidade__{cidade_fk}': OuterRef('pk')},
+        ).values(f'cidade__{cidade_fk}').annotate(c=Count('id')).values('c')
+        regions = Regiao.objects.filter(nivel=nivel).annotate(
             total_apoiadores=Coalesce(Subquery(ap_por_regiao, output_field=IntegerField()), 0),
-            total_votos_2022=Sum('cidades__votos_referencia_2022'),
-            total_eleitores=Sum('cidades__eleitores'),
+            total_votos_2022=Sum(f'{cidades_rel}__votos_referencia_2022'),
+            total_eleitores=Sum(f'{cidades_rel}__eleitores'),
+            # População/meta somadas dos municípios: no meso/micro o campo da própria
+            # região é 0 (não semeado); a soma é a informação que faz sentido.
+            total_populacao=Sum(f'{cidades_rel}__populacao'),
+            total_meta_votos=Sum(f'{cidades_rel}__meta_votos'),
         )
         features = []
         for r in regions:
             if r.geojson:
+                # Associações têm o campo próprio preenchido (histórico); meso/micro
+                # usam a soma. Preferir a soma quando existir (> 0).
+                populacao = r.total_populacao or r.populacao or 0
+                meta = r.total_meta_votos or r.meta_votos or 0
                 features.append({
                     'type': 'Feature',
                     'properties': {
                         'name': r.sigla,
                         'full_name': r.nome_completo or r.nome,
                         'slug': r.slug,
-                        'population': r.populacao,
+                        'population': populacao,
                         'color': r.cor,
-                        'meta_votes': r.meta_votos,
+                        'meta_votes': meta,
                         'total_apoiadores': r.total_apoiadores,
                         'total_votes_2022': r.total_votos_2022 or 0,
                         'registered_voters': r.total_eleitores or 0,
@@ -108,7 +133,9 @@ class RegionMapAPI(APIView):
     """GeoJSON de uma região com suas cidades."""
     def get(self, request, slug):
         region = Regiao.objects.get(slug=slug)
-        cities = region.cidades.annotate(
+        # As cidades da região vêm da relação do NÍVEL dela (assoc/micro/meso).
+        _fk, cidades_rel = NIVEL_REL.get(region.nivel, NIVEL_REL['associacao'])
+        cities = getattr(region, cidades_rel).annotate(
             total_apoiadores=Count(
                 'liderancas', filter=q_apoiadores_aprovados('liderancas'),
             ),
@@ -130,13 +157,15 @@ class RegionMapAPI(APIView):
                     },
                     'geometry': city.geojson,
                 })
+        # População agregada dos municípios (meso/micro têm o campo próprio zerado).
+        pop = getattr(region, cidades_rel).aggregate(s=Sum('populacao'))['s']
         return Response({
             'type': 'FeatureCollection',
             'features': features,
             'region': {
                 'name': region.sigla,
                 'full_name': region.nome_completo or region.nome,
-                'population': region.populacao,
+                'population': pop or region.populacao or 0,
             },
         })
 
@@ -215,30 +244,38 @@ class HeatmapAPI(APIView):
         # Contagens via Subquery: dois Count (liderancas + tarefas) sobre relações
         # distintas mais um Sum no mesmo annotate inflariam tudo (join cartesiano).
         hoje_hm = timezone.now().date()
+        # Nível (assoc/micro/meso): agrega pela relação certa — senão meso/micro dão 0.
+        nivel = _nivel_param(request)
+        cidade_fk, cidades_rel = NIVEL_REL[nivel]
         ap_por_regiao = Lideranca.objects.apoiadores_aprovados().filter(
-            cidade__regiao=OuterRef('pk'),
-        ).values('cidade__regiao').annotate(c=Count('id')).values('c')
+            **{f'cidade__{cidade_fk}': OuterRef('pk')},
+        ).values(f'cidade__{cidade_fk}').annotate(c=Count('id')).values('c')
         venc_por_regiao = Tarefa.objects.filter(
-            excluida_em__isnull=True, prazo__lt=hoje_hm, cidade__regiao=OuterRef('pk'),
-        ).exclude(fase='concluida').values('cidade__regiao').annotate(c=Count('id')).values('c')
-        regions = Regiao.objects.annotate(
+            excluida_em__isnull=True, prazo__lt=hoje_hm,
+            **{f'cidade__{cidade_fk}': OuterRef('pk')},
+        ).exclude(fase='concluida').values(f'cidade__{cidade_fk}').annotate(c=Count('id')).values('c')
+        regions = Regiao.objects.filter(nivel=nivel).annotate(
             total_apoiadores=Coalesce(Subquery(ap_por_regiao, output_field=IntegerField()), 0),
-            total_votos_2022=Sum('cidades__votos_referencia_2022'),
+            total_votos_2022=Sum(f'{cidades_rel}__votos_referencia_2022'),
+            total_populacao=Sum(f'{cidades_rel}__populacao'),
+            total_meta=Sum(f'{cidades_rel}__meta_votos'),
             demandas_vencidas=Coalesce(Subquery(venc_por_regiao, output_field=IntegerField()), 0),
         )
         data = []
         for r in regions:
             value = 0
+            populacao = r.total_populacao or r.populacao or 0
+            meta = r.total_meta or r.meta_votos or 0
             if metric == 'apoiadores':
                 value = r.total_apoiadores
             elif metric == 'votes_2022':
                 value = r.total_votos_2022 or 0
             elif metric == 'meta_progress':
-                if r.meta_votos > 0:
-                    value = round((r.total_apoiadores / r.meta_votos) * 100, 2)
+                if meta > 0:
+                    value = round((r.total_apoiadores / meta) * 100, 2)
             elif metric == 'saturation':
-                if r.populacao > 0:
-                    value = round((r.total_apoiadores / r.populacao) * 100, 4)
+                if populacao > 0:
+                    value = round((r.total_apoiadores / populacao) * 100, 4)
             elif metric == 'demandas_vencidas':
                 value = r.demandas_vencidas
             elif metric == 'gap':
@@ -322,7 +359,9 @@ class DashboardOverviewAPI(APIView):
         )
 
         regions = []
-        for r in Regiao.objects.select_related('macro_regiao').order_by('nome'):
+        # Overview geral é por associação (as 21 históricas); meso/micro não entram
+        # aqui (seriam cards zerados — cidade.regiao_id é a associação).
+        for r in Regiao.objects.filter(nivel='associacao').select_related('macro_regiao').order_by('nome'):
             regions.append({
                 'nome': r.nome,
                 'slug': r.slug,
@@ -351,24 +390,30 @@ class DashboardOverviewAPI(APIView):
 class RegionDashboardAPI(APIView):
     def get(self, request, slug):
         region = Regiao.objects.get(slug=slug)
+        # Relação das cidades pelo nível da região (assoc/micro/meso).
+        _fk, cidades_rel = NIVEL_REL.get(region.nivel, NIVEL_REL['associacao'])
         total_apoiadores = Lideranca.objects.apoiadores_aprovados().filter(
-            cidade__regiao=region,
+            **{f'cidade__{_fk}': region},
         ).count()
+        # Coordenador é vínculo de associação (Lideranca.regiao); em meso/micro fica 0.
         total_coordenadores = Lideranca.objects.filter(papel='coordenador', regiao=region).count()
-        total_cabos = Lideranca.objects.filter(papel='cabo', cidade__regiao=region).count()
+        total_cabos = Lideranca.objects.filter(papel='cabo', **{f'cidade__{_fk}': region}).count()
 
-        cities = region.cidades.annotate(
+        cities = getattr(region, cidades_rel).annotate(
             total_apoiadores=Count(
                 'liderancas', filter=q_apoiadores_aprovados('liderancas'),
             ),
         )
+        # População/meta somadas dos municípios (meso/micro têm o campo próprio zerado).
+        agg = getattr(region, cidades_rel).aggregate(
+            pop=Sum('populacao'), meta=Sum('meta_votos'))
 
         return Response({
             'region': {
                 'name': region.sigla,
                 'full_name': region.nome_completo or region.nome,
-                'population': region.populacao,
-                'meta_votes': region.meta_votos,
+                'population': agg['pop'] or region.populacao or 0,
+                'meta_votes': agg['meta'] or region.meta_votos or 0,
             },
             'total_apoiadores': total_apoiadores,
             'total_coordenadores': total_coordenadores,
@@ -686,7 +731,7 @@ class StrategicAnalysisAPI(APIView):
                     'pop_urbana_pct': round(ind.populacao_urbana / pop * 100, 1) if ind.populacao_urbana else None,
                     'idosos_pct': round(ind.idosos_60_mais / pop * 100, 1) if ind.idosos_60_mais else None,
                     'jovens_pct': round(ind.jovens_18_29 / pop * 100, 1) if ind.jovens_18_29 else None,
-                    'escolaridade': float(ind.anos_estudo_medio),
+                    'escolaridade': float(ind.taxa_alfabetizacao),
                 }
 
             # CRM activity
@@ -2392,7 +2437,7 @@ class PerfilIdeologicoAPI(APIView):
                 default=1,
             ) or 1
             max_escolaridade = float(max(
-                (i.anos_estudo_medio for i in vals), default=1
+                (i.taxa_alfabetizacao for i in vals), default=1
             ) or 1)
 
         cidades = {}
@@ -2442,9 +2487,9 @@ class PerfilIdeologicoAPI(APIView):
                     c['jovens_pct'] = round(jovens_pct / max_jovens_pct, 4) if max_jovens_pct else 0
                     c['jovens_pct_raw'] = round(jovens_pct * 100, 1)
 
-                if float(ind.anos_estudo_medio) > 0:
-                    c['escolaridade'] = round(float(ind.anos_estudo_medio) / max_escolaridade, 4) if max_escolaridade else 0
-                    c['escolaridade_raw'] = float(ind.anos_estudo_medio)
+                if float(ind.taxa_alfabetizacao) > 0:
+                    c['escolaridade'] = round(float(ind.taxa_alfabetizacao) / max_escolaridade, 4) if max_escolaridade else 0
+                    c['escolaridade_raw'] = float(ind.taxa_alfabetizacao)
 
             cidades[slug] = c
 

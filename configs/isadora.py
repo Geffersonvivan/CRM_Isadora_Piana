@@ -48,6 +48,10 @@ CAMPANHA = {
     # As outras marcas mantêm o "Novo Apoiador" com as categorias de tipo.
     'PWA_CADASTRO_CONTATO': True,
 
+    # Seletor de regionalização no mapa (Mesorregião / Microrregião / Associações
+    # IBGE). Só Isadora tem meso/micro semeadas (seed_regioes_ibge).
+    'MAPA_NIVEIS_IBGE': True,
+
     # Cores da marca — valores das variáveis CSS históricas (--navy/--ouro/
     # --coral guardam a paleta atual; usar sempre a variável, não hex avulso).
     # Injetadas no :root pelo base.html; global.css traz o fallback.

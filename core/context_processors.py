@@ -26,6 +26,7 @@ def campanha(request):
             'ano_base': c['TSE_ANO_BASE'],
             'uf': c['UF'],
             'lideranca_inline_edit': c.get('LIDERANCA_INLINE_EDIT', False),
+            'mapa_niveis_ibge': c.get('MAPA_NIVEIS_IBGE', False),
             'cores': c['CORES'],
             # Aliases planos para contextos onde var() do CSS não resolve
             # (meta theme-color, atributos SVG, cores de canvas/Chart.js).

@@ -83,8 +83,12 @@ class IndicadorMunicipal(models.Model):
     populacao_rural = models.IntegerField(default=0, verbose_name='Pop. rural')
     idosos_60_mais = models.IntegerField(default=0, verbose_name='Idosos 60+')
     jovens_18_29 = models.IntegerField(default=0, verbose_name='Jovens 18-29')
-    anos_estudo_medio = models.DecimalField(max_digits=4, decimal_places=1, default=0, verbose_name='Anos de estudo médio')
+    # Taxa de alfabetização (%) das pessoas de 15+ anos (IBGE Censo 2022). O nome
+    # antigo era "anos_estudo_medio" (§5.3: rótulo ≠ conteúdo — corrigido).
+    taxa_alfabetizacao = models.DecimalField(max_digits=4, decimal_places=1, default=0, verbose_name='Taxa de alfabetização (%)')
     ano_referencia = models.IntegerField(verbose_name='Ano de referência')
+    # §5.4: proveniência do dado (ex.: 'IBGE Censo 2022', 'Portal da Transparência').
+    fonte = models.CharField(max_length=200, blank=True, verbose_name='Fonte')
 
     class Meta:
         unique_together = ('cidade', 'ano_referencia')
