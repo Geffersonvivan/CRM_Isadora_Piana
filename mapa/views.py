@@ -4,8 +4,7 @@ from collections import defaultdict
 from django.conf import settings
 
 from django.db import connection
-from django.db.models import Count, Sum, Q, F, Avg, OuterRef, Subquery, IntegerField
-from django.db.models.functions import Coalesce
+from django.db.models import Count, Sum, Q, F, Avg
 from django.shortcuts import render
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -91,13 +90,16 @@ class StateMapAPI(APIView):
     def get(self, request):
         nivel = _nivel_param(request)
         cidade_fk, cidades_rel = NIVEL_REL[nivel]
-        # Contagem de apoiadores via Subquery — não pode ir junto dos Sum no mesmo
-        # annotate, senão o JOIN de liderancas multiplica os Sum (eleitores/votos).
-        ap_por_regiao = Lideranca.objects.apoiadores_aprovados().filter(
-            **{f'cidade__{cidade_fk}': OuterRef('pk')},
-        ).values(f'cidade__{cidade_fk}').annotate(c=Count('id')).values('c')
+        # Apoiadores por região numa ÚNICA agregação (dict) — não pode ir junto dos
+        # Sum no annotate, senão o JOIN de liderancas multiplica os Sum
+        # (eleitores/votos). Antes era Subquery correlacionada (uma por região).
+        ap_por_regiao = dict(
+            Lideranca.objects.apoiadores_aprovados()
+            .values(f'cidade__{cidade_fk}')
+            .annotate(c=Count('id'))
+            .values_list(f'cidade__{cidade_fk}', 'c')
+        )
         regions = Regiao.objects.filter(nivel=nivel).annotate(
-            total_apoiadores=Coalesce(Subquery(ap_por_regiao, output_field=IntegerField()), 0),
             total_votos_2022=Sum(f'{cidades_rel}__votos_referencia_2022'),
             total_eleitores=Sum(f'{cidades_rel}__eleitores'),
             # População/meta somadas dos municípios: no meso/micro o campo da própria
@@ -121,7 +123,7 @@ class StateMapAPI(APIView):
                         'population': populacao,
                         'color': r.cor,
                         'meta_votes': meta,
-                        'total_apoiadores': r.total_apoiadores,
+                        'total_apoiadores': ap_por_regiao.get(r.pk, 0),
                         'total_votes_2022': r.total_votos_2022 or 0,
                         'registered_voters': r.total_eleitores or 0,
                     },
@@ -242,46 +244,51 @@ class HeatmapAPI(APIView):
         if level == 'city':
             return self._city_level(metric)
 
-        # Contagens via Subquery: dois Count (liderancas + tarefas) sobre relações
-        # distintas mais um Sum no mesmo annotate inflariam tudo (join cartesiano).
+        # Apoiadores e demandas vencidas por região em dicts (agregação isolada):
+        # dois Count sobre relações distintas + Sum no mesmo annotate inflariam
+        # tudo (join cartesiano). Antes eram Subqueries correlacionadas por região.
         hoje_hm = timezone.now().date()
         # Nível (assoc/micro/meso): agrega pela relação certa — senão meso/micro dão 0.
         nivel = _nivel_param(request)
         cidade_fk, cidades_rel = NIVEL_REL[nivel]
-        ap_por_regiao = Lideranca.objects.apoiadores_aprovados().filter(
-            **{f'cidade__{cidade_fk}': OuterRef('pk')},
-        ).values(f'cidade__{cidade_fk}').annotate(c=Count('id')).values('c')
-        venc_por_regiao = Tarefa.objects.filter(
-            excluida_em__isnull=True, prazo__lt=hoje_hm,
-            **{f'cidade__{cidade_fk}': OuterRef('pk')},
-        ).exclude(fase='concluida').values(f'cidade__{cidade_fk}').annotate(c=Count('id')).values('c')
+        ap_por_regiao = dict(
+            Lideranca.objects.apoiadores_aprovados()
+            .values(f'cidade__{cidade_fk}').annotate(c=Count('id'))
+            .values_list(f'cidade__{cidade_fk}', 'c')
+        )
+        venc_por_regiao = dict(
+            Tarefa.objects.filter(excluida_em__isnull=True, prazo__lt=hoje_hm)
+            .exclude(fase='concluida')
+            .values(f'cidade__{cidade_fk}').annotate(c=Count('id'))
+            .values_list(f'cidade__{cidade_fk}', 'c')
+        )
         regions = Regiao.objects.filter(nivel=nivel).annotate(
-            total_apoiadores=Coalesce(Subquery(ap_por_regiao, output_field=IntegerField()), 0),
             total_votos_2022=Sum(f'{cidades_rel}__votos_referencia_2022'),
             total_populacao=Sum(f'{cidades_rel}__populacao'),
             total_meta=Sum(f'{cidades_rel}__meta_votos'),
-            demandas_vencidas=Coalesce(Subquery(venc_por_regiao, output_field=IntegerField()), 0),
         )
         data = []
         for r in regions:
             value = 0
             populacao = r.total_populacao or r.populacao or 0
             meta = r.total_meta or r.meta_votos or 0
+            total_apoiadores = ap_por_regiao.get(r.pk, 0)
+            demandas_vencidas = venc_por_regiao.get(r.pk, 0)
             if metric == 'apoiadores':
-                value = r.total_apoiadores
+                value = total_apoiadores
             elif metric == 'votes_2022':
                 value = r.total_votos_2022 or 0
             elif metric == 'meta_progress':
                 if meta > 0:
-                    value = round((r.total_apoiadores / meta) * 100, 2)
+                    value = round((total_apoiadores / meta) * 100, 2)
             elif metric == 'saturation':
                 if populacao > 0:
-                    value = round((r.total_apoiadores / populacao) * 100, 4)
+                    value = round((total_apoiadores / populacao) * 100, 4)
             elif metric == 'demandas_vencidas':
-                value = r.demandas_vencidas
+                value = demandas_vencidas
             elif metric == 'gap':
                 # Gap = votos 2022 - apoiadores atuais (onde tem voto mas não tem trabalho)
-                value = (r.total_votos_2022 or 0) - r.total_apoiadores
+                value = (r.total_votos_2022 or 0) - total_apoiadores
             data.append({
                 'slug': r.slug,
                 'name': r.sigla,
@@ -815,30 +822,37 @@ class PLNetworkAPI(APIView):
     @method_decorator(cache_page(60 * 15))
     def get(self, request):
         today = timezone.now().date()
-        cities = (
-            Cidade.objects
-            .select_related('regiao')
-            .annotate(
-                # distinct: vários Count sobre relações to-many diferentes
-                # (liderancas, regiao__liderancas, tarefas) — sem distinct, multiplicam.
-                total_apoiadores=Count(
-                    'liderancas', filter=q_apoiadores_aprovados('liderancas'), distinct=True,
-                ),
-                coord_count=Count('regiao__liderancas', filter=Q(regiao__liderancas__papel='coordenador'), distinct=True),
-                cabo_count=Count('liderancas', filter=Q(liderancas__papel='cabo'), distinct=True),
-                total_demandas=Count(
-                    'tarefas', filter=Q(tarefas__excluida_em__isnull=True), distinct=True,
-                ),
-                demandas_vencidas=Count(
+        # Contagens por cidade em queries ISOLADAS (uma relação to-many por query) —
+        # antes eram 6 Count sobre 3 relações no MESMO annotate, gerando fan-out
+        # cartesiano corrigido por distinct (~1s). Mesmas expressões Count → idêntico.
+        lid_counts = {
+            row['id']: row for row in Cidade.objects.values('id').annotate(
+                ap=Count('liderancas', filter=q_apoiadores_aprovados('liderancas'), distinct=True),
+                cabo=Count('liderancas', filter=Q(liderancas__papel='cabo'), distinct=True),
+            )
+        }
+        tar_counts = {
+            row['id']: row for row in Cidade.objects.values('id').annotate(
+                total=Count('tarefas', filter=Q(tarefas__excluida_em__isnull=True), distinct=True),
+                vencidas=Count(
                     'tarefas',
                     filter=Q(tarefas__excluida_em__isnull=True, tarefas__prazo__lt=today)
                     & ~Q(tarefas__fase='concluida'), distinct=True,
                 ),
-                demandas_concluidas=Count(
+                concluidas=Count(
                     'tarefas',
                     filter=Q(tarefas__excluida_em__isnull=True, tarefas__fase='concluida'), distinct=True,
                 ),
             )
+        }
+        coord_counts = dict(
+            Cidade.objects.values_list('id').annotate(
+                c=Count('regiao__liderancas', filter=Q(regiao__liderancas__papel='coordenador'), distinct=True),
+            ).values_list('id', 'c')
+        )
+        cities = (
+            Cidade.objects
+            .select_related('regiao')
             .order_by('regiao__nome', 'nome')
         )
 
@@ -856,19 +870,27 @@ class PLNetworkAPI(APIView):
         raw_results = []
 
         for city in cities:
+            lc = lid_counts.get(city.id, {})
+            tc = tar_counts.get(city.id, {})
+            total_apoiadores = lc.get('ap', 0)
+            cabo_count = lc.get('cabo', 0)
+            coord_count = coord_counts.get(city.id, 0)
+            total_demandas = tc.get('total', 0)
+            demandas_vencidas = tc.get('vencidas', 0)
+            demandas_concluidas = tc.get('concluidas', 0)
             pol = politicos.get(city.id, {'prefeito': 0, 'vice': 0, 'vereador': 0,
                                           'presidente': 0, 'votos_maquina': 0, 'meta_transferir': 0})
             voters = city.eleitores or 0
             votes_2022 = city.votos_referencia_2022 or 0
             penetration = (votes_2022 / voters * 100) if voters > 0 else 0
 
-            coord_score = 100 if (city.coord_count or 0) > 0 else 0
+            coord_score = 100 if (coord_count or 0) > 0 else 0
             ver_score = min(pol['vereador'] * 30, 100)        # cada vereador aliado = 30 pts
             pref_score = 100 if pol['prefeito'] > 0 else 0
             dir_score = 100 if (pol['presidente'] > 0 or city.presidente_diretorio) else 0
-            density = ((city.total_apoiadores or 0) / max(voters, 1)) * 100
+            density = ((total_apoiadores or 0) / max(voters, 1)) * 100
             contact_score = min(density / max(state_density * 2, 0.01) * 100, 100)
-            cabo_score = min((city.cabo_count or 0) * 25, 100)
+            cabo_score = min((cabo_count or 0) * 25, 100)
 
             total_score = round(
                 coord_score * 0.18
@@ -902,19 +924,19 @@ class PLNetworkAPI(APIView):
                 'num_vereadores': city.num_vereadores or 0,
                 'num_vereadores_partido': pol['vereador'],
                 'prefeito_aliado': pol['prefeito'] > 0,
-                'has_coordinator': (city.coord_count or 0) > 0,
+                'has_coordinator': (coord_count or 0) > 0,
                 'diretorio_presidente': city.presidente_diretorio or ('Diretório' if pol['presidente'] else ''),
                 'votos_maquina': pol['votos_maquina'],
-                'apoiadores': city.total_apoiadores or 0,
-                'cabos': city.cabo_count or 0,
+                'apoiadores': total_apoiadores or 0,
+                'cabos': cabo_count or 0,
                 'raw_score': total_score,
                 # Electoral performance
                 'votes_2022': votes_2022,
                 'penetration': round(penetration, 2),
                 # Demands
-                'demandas_total': city.total_demandas,
-                'demandas_vencidas': city.demandas_vencidas,
-                'demandas_concluidas': city.demandas_concluidas,
+                'demandas_total': total_demandas,
+                'demandas_vencidas': demandas_vencidas,
+                'demandas_concluidas': demandas_concluidas,
                 # Diagnostic
                 'diagnostic': diagnostic,
             })
@@ -1391,33 +1413,40 @@ class ZoneRankingAPI(APIView):
         for city in cities:
             zone_cities[city.zona_eleitoral].append(city)
 
-        # Se temos resultados por zona, usar para ranking preciso
+        # Ranking do candidato-base por zona. Antes era 1 query por zona (N+1, §12);
+        # agora UMA agregação por (zona, candidato) e a posição sai em Python.
         zone_ls_positions = {}
         if eleicao_dep:
+            por_zona = defaultdict(list)
+            for cv in (
+                ResultadoZona.objects
+                .filter(eleicao=eleicao_dep)
+                .values('zona', 'candidato_nome', 'is_candidato')
+                .annotate(total_votos=Sum('votos'))
+                .order_by('zona', '-total_votos')
+            ):
+                por_zona[cv['zona']].append(cv)
             for zone_number in zone_cities.keys():
-                # Somar votos por candidato nesta zona
-                cand_votes = (
-                    ResultadoZona.objects
-                    .filter(eleicao=eleicao_dep, zona=zone_number)
-                    .values('candidato_nome', 'is_candidato')
-                    .annotate(total_votos=Sum('votos'))
-                    .order_by('-total_votos')
-                )
-                for i, cv in enumerate(cand_votes, 1):
+                for i, cv in enumerate(por_zona.get(zone_number, []), 1):
                     if cv['is_candidato']:
                         zone_ls_positions[zone_number] = i
                         break
-                if zone_number not in zone_ls_positions:
-                    # Fallback: usar ResultadoCandidato
-                    zone_city_ids = [c.id for c in zone_cities[zone_number]]
-                    cand_votes2 = (
-                        ResultadoCandidato.objects
-                        .filter(eleicao=eleicao_dep, cidade_id__in=zone_city_ids)
-                        .values('candidato_nome', 'is_candidato')
-                        .annotate(total_votos=Sum('votos'))
-                        .order_by('-total_votos')
-                    )
-                    for i, cv in enumerate(cand_votes2, 1):
+
+            # Fallback para zonas sem is_candidato no ResultadoZona: uma agregação
+            # por (zona da cidade, candidato) no ResultadoCandidato (não N+1).
+            faltantes = [z for z in zone_cities.keys() if z not in zone_ls_positions]
+            if faltantes:
+                fb_por_zona = defaultdict(list)
+                for cv in (
+                    ResultadoCandidato.objects
+                    .filter(eleicao=eleicao_dep, cidade__zona_eleitoral__in=faltantes)
+                    .values('cidade__zona_eleitoral', 'candidato_nome', 'is_candidato')
+                    .annotate(total_votos=Sum('votos'))
+                    .order_by('cidade__zona_eleitoral', '-total_votos')
+                ):
+                    fb_por_zona[cv['cidade__zona_eleitoral']].append(cv)
+                for zone_number in faltantes:
+                    for i, cv in enumerate(fb_por_zona.get(zone_number, []), 1):
                         if cv['is_candidato']:
                             zone_ls_positions[zone_number] = i
                             break
