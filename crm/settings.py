@@ -166,12 +166,16 @@ REST_FRAMEWORK = {
 # Cache em memória do processo — usado pelo cache_page das APIs analíticas
 # do mapa. Com múltiplos workers gunicorn cada worker tem o seu, o que é
 # aceitável para dados agregados; trocar por Redis se precisar invalidação.
+# Cache no BANCO (persistente/compartilhado entre workers) — o LocMemCache era
+# por-worker e esvaziava a cada reciclagem, fazendo o mapa (Eleições 2022)
+# recomputar toda hora. Com o cache no banco, o @cache_page computa uma vez e
+# serve rápido a todos. A tabela é criada por `createcachetable` (no release).
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'crm-isadora',
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'crm_cache_table',
         'TIMEOUT': 300,
-        'OPTIONS': {'MAX_ENTRIES': 2000},
+        'OPTIONS': {'MAX_ENTRIES': 5000},
     },
 }
 
