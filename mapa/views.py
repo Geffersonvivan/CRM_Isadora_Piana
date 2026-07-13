@@ -87,6 +87,10 @@ def _nivel_param(request):
 
 class StateMapAPI(APIView):
     """GeoJSON do estado com as regiões do nível pedido (assoc/micro/meso)."""
+    # Geometria estática + contagem de apoiadores que tolera atraso: cache 15min.
+    # O cache_page varia pela URL (inclui ?nivel=), então cada nível é isolado.
+    # Sem cache, os 170kB de geojson eram reconstruídos a cada acesso (memória!).
+    @method_decorator(cache_page(60 * 15))
     def get(self, request):
         nivel = _nivel_param(request)
         cidade_fk, cidades_rel = NIVEL_REL[nivel]
@@ -134,6 +138,7 @@ class StateMapAPI(APIView):
 
 class RegionMapAPI(APIView):
     """GeoJSON de uma região com suas cidades."""
+    @method_decorator(cache_page(60 * 15))  # varia por slug na URL
     def get(self, request, slug):
         region = Regiao.objects.get(slug=slug)
         # As cidades da região vêm da relação do NÍVEL dela (assoc/micro/meso).
@@ -175,6 +180,7 @@ class RegionMapAPI(APIView):
 
 class CityMapAPI(APIView):
     """GeoJSON de uma cidade com seus bairros."""
+    @method_decorator(cache_page(60 * 15))  # varia por slug na URL
     def get(self, request, slug):
         city = Cidade.objects.get(slug=slug)
         bairros = city.bairros.all()
@@ -204,6 +210,7 @@ class CityMapAPI(APIView):
 
 class StateCitiesMapAPI(APIView):
     """GeoJSON de todas as 295 cidades."""
+    @method_decorator(cache_page(60 * 15))  # 170kB de geojson — o mais pesado; cache 15min
     def get(self, request):
         cities = (
             Cidade.objects
@@ -343,6 +350,7 @@ class HeatmapAPI(APIView):
 # ─── API: DASHBOARD ───────────────────────────────────────────────
 
 class DashboardOverviewAPI(APIView):
+    @method_decorator(cache_page(60 * 15))
     def get(self, request):
         ativos = Lideranca.objects.apoiadores_aprovados()
         total_apoiadores = ativos.count()
@@ -3127,6 +3135,7 @@ class HeatLayersAPI(APIView):
     doações, a fronteira de expansão (proximidade geográfica à base forte) e a
     divergência entre força de 2022 e estrutura atual."""
 
+    @method_decorator(cache_page(60 * 15))  # 122kB multi-camada; cálculo pesado — cache 15min
     def get(self, request):
         from math import radians, sin, cos, asin, sqrt
         from liderancas.views import FREQ_PRAZOS  # noqa (mantém consistência de prazos)
