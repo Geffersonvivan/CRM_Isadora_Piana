@@ -91,21 +91,29 @@ WSGI_APPLICATION = 'crm.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+# conn_max_age=0: NÃO reutiliza conexão entre requests. O Postgres do Railway
+# fica atrás de um pooler (PgBouncer) que derruba conexões ociosas; uma conexão
+# persistente já morta faz o PRÓXIMO request PENDURAR até o gunicorn matar o
+# worker por timeout (o "WORKER TIMEOUT / SIGKILL 'out of memory'" enganoso, que
+# na verdade era conexão travada — não RAM). Conexão nova por request, através do
+# pooler, é barata e nunca fica velha.
 DATABASES = {
     'default': dj_database_url.config(
         default=f'sqlite:///{BASE_DIR / "db.sqlite3"}',
-        conn_max_age=600,
+        conn_max_age=0,
     )
 }
 
-# O Postgres do Railway é servido atrás de um pooler (PgBouncer, transaction
-# mode), onde SERVER-SIDE CURSORS quebram — e uma conexão persistente
-# (conn_max_age) que falhe nesse ponto envenena os requests seguintes do mesmo
-# worker. Desligar os cursores server-side torna todo QuerySet.iterator() um
-# fetch client-side, seguro atrás do pooler. Trava para não reincidir o 500 do
-# mapa/dashboard causado pelo .iterator() das Eleições 2022.
 if DATABASES['default'].get('ENGINE') == 'django.db.backends.postgresql':
+    # SERVER-SIDE CURSORS quebram atrás do pooler em transaction mode — desligar
+    # torna todo QuerySet.iterator() um fetch client-side seguro.
     DATABASES['default']['DISABLE_SERVER_SIDE_CURSORS'] = True
+    # Limites de tempo para NUNCA pendurar o worker: connect_timeout barra um
+    # connect travado; statement_timeout (30s) aborta uma query desgovernada no
+    # servidor. Assim uma falha vira erro rápido, não um freeze de 31s.
+    _opts = DATABASES['default'].setdefault('OPTIONS', {})
+    _opts.setdefault('connect_timeout', 10)
+    _opts.setdefault('options', '-c statement_timeout=30000')
 
 
 # Password validation
