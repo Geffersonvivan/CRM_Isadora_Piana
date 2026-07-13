@@ -1,1 +1,1 @@
-web: python manage.py migrate --noinput && python manage.py collectstatic --noinput && python manage.py create_admin && gunicorn crm.wsgi --bind 0.0.0.0:$PORT --threads 4 --timeout 90 --max-requests 2000 --max-requests-jitter 200
+web: python manage.py migrate --noinput && python manage.py collectstatic --noinput && python manage.py create_admin && gunicorn crm.wsgi --bind 0.0.0.0:$PORT --timeout 90 --max-requests 2000 --max-requests-jitter 200
