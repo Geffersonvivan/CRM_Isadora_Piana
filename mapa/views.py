@@ -1,3 +1,4 @@
+import itertools
 import math
 from collections import defaultdict
 
@@ -1834,44 +1835,43 @@ class Elections2022API(APIView):
         if not eleicao:
             return Response({'summary': {}, 'perf_summary': {}, 'cities': [], 'zones': []})
 
-        # Só as linhas da CANDIDATA (uma por cidade, ~295), com posição/total/primeiro
-        # calculados no BANCO via Subquery — em vez de carregar os 264k resultados em
-        # memória (evita OOM e a lentidão do streaming). §12: agregar no banco.
-        _mesma_cidade = ResultadoCandidato.objects.filter(
-            eleicao=eleicao, cidade=OuterRef('cidade'))
-        ls_rows = (
+        # Resultados ordenados por cidade e votos. Streaming com iterator()+groupby:
+        # processa uma cidade por vez (só os candidatos dela em memória) — evita
+        # carregar os 264k resultados de uma vez (pico ~142MB → OOM no dyno).
+        all_results = (
             ResultadoCandidato.objects
-            .filter(eleicao=eleicao, is_candidato=True)
+            .filter(eleicao=eleicao)
             .select_related('cidade__regiao')
-            .annotate(
-                mais_votados=Coalesce(Subquery(
-                    _mesma_cidade.filter(votos__gt=OuterRef('votos'))
-                    .values('cidade').annotate(c=Count('id')).values('c'),
-                    output_field=IntegerField()), 0),
-                total_cand=Coalesce(Subquery(
-                    _mesma_cidade.values('cidade').annotate(c=Count('id')).values('c'),
-                    output_field=IntegerField()), 0),
-                primeiro_votos=Subquery(
-                    _mesma_cidade.order_by('-votos').values('votos')[:1]),
-                primeiro_nome=Subquery(
-                    _mesma_cidade.order_by('-votos').values('candidato_nome')[:1]),
-            )
             .values(
                 'cidade__slug', 'cidade__nome', 'cidade__regiao__sigla',
-                'cidade__regiao__slug', 'cidade__eleitores', 'votos', 'percentual',
-                'mais_votados', 'total_cand', 'primeiro_votos', 'primeiro_nome',
+                'cidade__regiao__slug', 'cidade__eleitores',
+                'candidato_nome', 'votos', 'percentual', 'is_candidato',
             )
+            .order_by('cidade__slug', '-votos')
+            .iterator(chunk_size=5000)
         )
 
         cities = []
         total_ls_votes = 0
         positions = []
 
-        for r in ls_rows:
-            ls_pos = (r['mais_votados'] or 0) + 1  # posição = 1 + quantos tiveram mais votos
-            ls_votes = r['votos']
-            ls_pct = float(r['percentual'])
-            total_cand = r['total_cand'] or 1
+        for slug, _grupo in itertools.groupby(all_results, key=lambda r: r['cidade__slug']):
+            candidates = list(_grupo)  # candidatos apenas desta cidade
+            ls_pos = None
+            ls_votes = 0
+            ls_pct = 0
+            first_name = candidates[0]['candidato_nome'] if candidates else ''
+            first_votes = candidates[0]['votos'] if candidates else 0
+
+            for i, c in enumerate(candidates, 1):
+                if c['is_candidato']:
+                    ls_pos = i
+                    ls_votes = c['votos']
+                    ls_pct = float(c['percentual'])
+                    break
+
+            if ls_pos is None:
+                continue
 
             total_ls_votes += ls_votes
             positions.append(ls_pos)
@@ -1887,22 +1887,23 @@ class Elections2022API(APIView):
             else:
                 perf = 'abaixo'
 
+            info = candidates[0]
             cities.append({
-                'slug': r['cidade__slug'],
-                'name': r['cidade__nome'],
-                'region': r['cidade__regiao__sigla'],
-                'region_slug': r['cidade__regiao__slug'],
-                'voters': r['cidade__eleitores'] or 0,
+                'slug': slug,
+                'name': info['cidade__nome'],
+                'region': info['cidade__regiao__sigla'],
+                'region_slug': info['cidade__regiao__slug'],
+                'voters': info['cidade__eleitores'] or 0,
                 'ls_votes': ls_votes,
                 'ls_position': ls_pos,
                 'ls_pct': ls_pct,
-                'total_candidates': total_cand,
+                'total_candidates': len(candidates),
                 # Percentil da candidata na cidade: posição relativa ao total de
                 # concorrentes (1º de 400 = top 0,25%). Comparável entre cidades de
                 # portes diferentes, ao contrário da posição absoluta. Badge CONTA.
-                'percentil': round(ls_pos / total_cand * 100, 1) if total_cand else None,
-                'first_name': r['primeiro_nome'],
-                'first_votes': r['primeiro_votos'],
+                'percentil': round(ls_pos / len(candidates) * 100, 1) if candidates else None,
+                'first_name': first_name,
+                'first_votes': first_votes,
                 'performance': perf,
             })
 
