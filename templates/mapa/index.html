@@ -754,25 +754,42 @@ window.CAMPANHA = {
     // Todos os modos analíticos agregam cidades por ASSOCIAÇÃO (dados por assoc/
     // cidade). Em micro/meso o mapa cai na visão BASE agregada por região
     // (população/apoiadores/votos — corretos via StateMapAPI). Nenhum modo entra.
-    const MODOS_NIVEL_MULTI = [];
-    function _modoSuportaNivel(mode, nivel) {
-        return nivel === 'associacao' || MODOS_NIVEL_MULTI.includes(mode);
+    // Modos cuja informação agrega por REGIÃO em QUALQUER nível (Assoc/Micro/Meso) —
+    // só esses usam a barra de nível. Validado modo a modo:
+    //   • calor: HeatmapAPI é nível-aware → colore a região em qualquer nível.
+    //   • eleicoes_2022: a tooltip agrega votos/apoiadores/pop (StateMapAPI) em
+    //     qualquer nível — é o "votos por mesorregião".
+    // Vitória e Estratégico ficam de fora: colorem por region_slug de ASSOCIAÇÃO, não
+    // agregam em micro/meso (exigiria backend nível-aware). Roteiros/Transferência/
+    // Concorrência/Perfil são por CIDADE — a barra some para todos esses.
+    const MODOS_COM_NIVEL = ['eleicoes_2022', 'calor'];
+    function _modoSuportaNivel(mode) {
+        return MODOS_COM_NIVEL.includes(mode);
     }
 
-    // Seletor de nível (IBGE): recarrega a camada no nível escolhido e re-aplica o
-    // modo — a menos que o modo não suporte o nível (aí fica na visão base agregada).
+    // Mostra/esconde a barra de nível conforme o modo. Ao esconder, volta a Associações.
+    function _atualizarBarraNivel(mode) {
+        const bar = document.getElementById('nivelBar');
+        if (!bar) return;
+        if (_modoSuportaNivel(mode)) {
+            bar.style.display = '';
+        } else {
+            bar.style.display = 'none';
+            document.querySelectorAll('.nivel-btn').forEach(b =>
+                b.classList.toggle('active', b.dataset.nivel === 'associacao'));
+        }
+    }
+
+    // Seletor de nível: recarrega a geometria no nível escolhido e RE-APLICA o modo,
+    // que PERMANECE ativo. Modo e nível são eixos independentes — trocar de nível
+    // nunca desmarca o modo (corrige o bug em que escolher Meso apagava o modo).
     window.setMapaNivel = function (nivel, btn) {
         document.querySelectorAll('.nivel-btn').forEach(b => b.classList.remove('active'));
         if (btn) btn.classList.add('active');
         if (!window.mapApp) return;
         const mode = window.mapApp.mapMode;
         window.mapApp.loadState(nivel).then(() => {
-            if (_modoSuportaNivel(mode, nivel) && typeof applyMode === 'function') {
-                applyMode(mode);
-            } else {
-                // Base agregada (população/apoiadores/votos) — sem overlay do modo.
-                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-            }
+            if (typeof applyMode === 'function') applyMode(mode);
         });
     };
 
@@ -800,9 +817,11 @@ window.CAMPANHA = {
             currentMode = mode;
             map.mapMode = mode;
             setActiveBtn(mode);
-            // Modo que não suporta o nível atual (micro/meso) → volta a Associações.
+            _atualizarBarraNivel(mode);
+            // Trocar de modo reinicia no nível base (Associações): a cor de cada modo
+            // é calibrada nesse nível; o usuário sobe para Micro/Meso se quiser.
             const nivelAtual = map.currentNivel || 'associacao';
-            if (!_modoSuportaNivel(mode, nivelAtual)) {
+            if (nivelAtual !== 'associacao') {
                 document.querySelectorAll('.nivel-btn').forEach(b =>
                     b.classList.toggle('active', b.dataset.nivel === 'associacao'));
                 map.loadState('associacao').then(() => applyMode(mode));
@@ -3755,6 +3774,7 @@ case 'transferencia':
 
     // ── Init ────────────────────────────────────────────────────
     setActiveBtn(currentMode);
+    _atualizarBarraNivel(currentMode);   // esconde a barra de nível se abrir num modo city-level
     map.mapMode = currentMode;
     map.loadState().then(() => {
         applyMode(currentMode);
