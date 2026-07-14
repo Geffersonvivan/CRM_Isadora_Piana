@@ -12,3 +12,7 @@ openpyxl==3.1.5
 
 requests==2.34.2
 anthropic==0.112.0
+
+# Backup diário → Google Drive (comando backup_to_drive)
+google-api-python-client==2.149.0
+google-auth==2.35.0
