@@ -305,36 +305,44 @@ class HeatmapAPI(APIView):
 
     def _city_level(self, metric):
         today = timezone.now().date()
-        cities = Cidade.objects.select_related('regiao').annotate(
-            # distinct: dois Count sobre relações to-many diferentes (liderancas/tarefas)
-            total_apoiadores=Count(
-                'liderancas', filter=q_apoiadores_aprovados('liderancas'), distinct=True,
-            ),
-            demandas_vencidas=Count(
-                'tarefas',
-                filter=Q(tarefas__excluida_em__isnull=True, tarefas__prazo__lt=today)
-                & ~Q(tarefas__fase='concluida'), distinct=True,
-            ),
+        # Contagens isoladas por relação (uma to-many por query) — evita o fan-out
+        # cartesiano de liderancas × tarefas no mesmo annotate. Mesmas expressões.
+        ap_por_cidade = dict(
+            Cidade.objects.values_list('id').annotate(
+                c=Count('liderancas', filter=q_apoiadores_aprovados('liderancas'), distinct=True),
+            ).values_list('id', 'c')
         )
+        venc_por_cidade = dict(
+            Cidade.objects.values_list('id').annotate(
+                c=Count(
+                    'tarefas',
+                    filter=Q(tarefas__excluida_em__isnull=True, tarefas__prazo__lt=today)
+                    & ~Q(tarefas__fase='concluida'), distinct=True,
+                ),
+            ).values_list('id', 'c')
+        )
+        cities = Cidade.objects.select_related('regiao')
         data = []
         for c in cities:
             value = 0
             voters = c.eleitores or 0
             pop = c.populacao or 0
+            total_apoiadores = ap_por_cidade.get(c.id, 0)
+            demandas_vencidas = venc_por_cidade.get(c.id, 0)
             if metric == 'apoiadores':
-                value = c.total_apoiadores
+                value = total_apoiadores
             elif metric == 'votes_2022':
                 value = c.votos_referencia_2022 or 0
             elif metric == 'meta_progress':
                 if c.meta_votos > 0:
-                    value = round((c.total_apoiadores / c.meta_votos) * 100, 2)
+                    value = round((total_apoiadores / c.meta_votos) * 100, 2)
             elif metric == 'saturation':
                 if pop > 0:
-                    value = round((c.total_apoiadores / pop) * 100, 4)
+                    value = round((total_apoiadores / pop) * 100, 4)
             elif metric == 'demandas_vencidas':
-                value = c.demandas_vencidas
+                value = demandas_vencidas
             elif metric == 'gap':
-                value = (c.votos_referencia_2022 or 0) - c.total_apoiadores
+                value = (c.votos_referencia_2022 or 0) - total_apoiadores
             elif metric == 'penetration':
                 if voters > 0:
                     value = round((c.votos_referencia_2022 or 0) / voters * 100, 2)
@@ -599,34 +607,44 @@ class StrategicAnalysisAPI(APIView):
     @method_decorator(cache_page(60))  # cache curto: reflete cadastros de políticos quase na hora
     def get(self, request):
         today = timezone.now().date()
-        cities = (
-            Cidade.objects
-            .select_related('regiao')
-            .annotate(
-                # distinct=True é obrigatório: são vários Count() sobre relações
-                # to-many diferentes (liderancas, tarefas, compromissos) na mesma
-                # query — sem distinct, o JOIN cartesiano multiplica as contagens
-                # (ex.: 1 apoiador virava 53). CLAUDE.md §12/§3.
-                total_apoiadores=Count(
-                    'liderancas', filter=q_apoiadores_aprovados('liderancas'), distinct=True,
-                ),
-                total_demandas=Count(
-                    'tarefas',
-                    filter=Q(tarefas__excluida_em__isnull=True), distinct=True,
-                ),
-                demandas_vencidas=Count(
+        # Contagens por cidade em queries ISOLADAS (uma relação to-many por query).
+        # Antes eram 7 Count(distinct) sobre 4 relações (liderancas, tarefas,
+        # compromissos, regiao__liderancas) no MESMO annotate: JOIN cartesiano que,
+        # com compromissos reais em produção (a cópia tinha 0), EXPLODE a query —
+        # travava o modo Estratégico. Mesmas expressões Count → resultado idêntico.
+        lid_counts = {
+            row['id']: row for row in Cidade.objects.values('id').annotate(
+                ap=Count('liderancas', filter=q_apoiadores_aprovados('liderancas'), distinct=True),
+                cabo=Count('liderancas', filter=Q(liderancas__papel='cabo'), distinct=True),
+            )
+        }
+        tar_counts = {
+            row['id']: row for row in Cidade.objects.values('id').annotate(
+                total=Count('tarefas', filter=Q(tarefas__excluida_em__isnull=True), distinct=True),
+                vencidas=Count(
                     'tarefas',
                     filter=Q(tarefas__excluida_em__isnull=True, tarefas__prazo__lt=today)
                     & ~Q(tarefas__fase='concluida'), distinct=True,
                 ),
-                demandas_concluidas=Count(
+                concluidas=Count(
                     'tarefas',
                     filter=Q(tarefas__excluida_em__isnull=True, tarefas__fase='concluida'), distinct=True,
                 ),
-                total_compromissos=Count('compromissos', distinct=True),
-                cabo_count=Count('liderancas', filter=Q(liderancas__papel='cabo'), distinct=True),
-                coord_count=Count('regiao__liderancas', filter=Q(regiao__liderancas__papel='coordenador'), distinct=True),
             )
+        }
+        comp_counts = dict(
+            Cidade.objects.values_list('id').annotate(
+                c=Count('compromissos', distinct=True),
+            ).values_list('id', 'c')
+        )
+        coord_counts = dict(
+            Cidade.objects.values_list('id').annotate(
+                c=Count('regiao__liderancas', filter=Q(regiao__liderancas__papel='coordenador'), distinct=True),
+            ).values_list('id', 'c')
+        )
+        cities = (
+            Cidade.objects
+            .select_related('regiao')
             .order_by('regiao__nome', 'nome')
         )
 
@@ -679,6 +697,15 @@ class StrategicAnalysisAPI(APIView):
         }
 
         for city in cities:
+            lc = lid_counts.get(city.id, {})
+            tc = tar_counts.get(city.id, {})
+            total_apoiadores = lc.get('ap', 0)
+            cabo_count = lc.get('cabo', 0)
+            coord_count = coord_counts.get(city.id, 0)
+            total_demandas = tc.get('total', 0)
+            demandas_vencidas = tc.get('vencidas', 0)
+            demandas_concluidas = tc.get('concluidas', 0)
+            total_compromissos = comp_counts.get(city.id, 0)
             voters = city.eleitores or 0
             votes = city.votos_referencia_2022 or 0
             penetration = (votes / voters * 100) if voters > 0 else 0
@@ -689,7 +716,7 @@ class StrategicAnalysisAPI(APIView):
                                           'presidente': 0, 'votos_maquina': 0, 'meta_transferir': 0})
             tem_diretorio = pol['presidente'] > 0 or bool(city.presidente_diretorio)
             aliados = pol['prefeito'] + pol['vice'] + pol['vereador'] + (1 if tem_diretorio else 0)
-            cabos = city.cabo_count or 0
+            cabos = cabo_count or 0
             meta = city.meta_votos or int(round(max(votes * GROWTH, voters * TARGET_PEN) / 10) * 10)
             gap = max(0, meta - votes)
 
@@ -724,12 +751,12 @@ class StrategicAnalysisAPI(APIView):
             summary[cls] += 1
 
             # PL Network score (same formula as PLNetworkAPI)
-            coord_s = 100 if (city.coord_count or 0) > 0 else 0
+            coord_s = 100 if (coord_count or 0) > 0 else 0
             ver_s = min(ver_pct * 2, 100)
             dir_s = 100 if city.presidente_diretorio else 0
-            density = ((city.total_apoiadores or 0) / max(voters, 1)) * 100
+            density = ((total_apoiadores or 0) / max(voters, 1)) * 100
             contact_s = min(density / max(state_density * 2, 0.01) * 100, 100)
-            cabo_s = min((city.cabo_count or 0) * 25, 100)
+            cabo_s = min((cabo_count or 0) * 25, 100)
             pl_network_score = round(
                 coord_s * 0.25 + ver_s * 0.25 + dir_s * 0.20 + contact_s * 0.15 + cabo_s * 0.15
             )
@@ -752,12 +779,12 @@ class StrategicAnalysisAPI(APIView):
 
             # CRM activity
             crm = {
-                'demandas_total': city.total_demandas,
-                'demandas_vencidas': city.demandas_vencidas,
-                'demandas_concluidas': city.demandas_concluidas,
-                'compromissos': city.total_compromissos,
-                'cabos': city.cabo_count or 0,
-                'has_coordinator': (city.coord_count or 0) > 0,
+                'demandas_total': total_demandas,
+                'demandas_vencidas': demandas_vencidas,
+                'demandas_concluidas': demandas_concluidas,
+                'compromissos': total_compromissos,
+                'cabos': cabo_count or 0,
+                'has_coordinator': (coord_count or 0) > 0,
             }
 
             # Alertas estratégicos
@@ -770,9 +797,9 @@ class StrategicAnalysisAPI(APIView):
                 alertas.append('recrutar_lideranca')
             if pl_network_score >= 40 and penetration < avg_penetration:
                 alertas.append('estrutura_sem_conversao')
-            if city.demandas_vencidas > 0:
+            if demandas_vencidas > 0:
                 alertas.append('demandas_atrasadas')
-            if not (city.coord_count or 0) > 0:
+            if not (coord_count or 0) > 0:
                 alertas.append('sem_coordenador')
 
             entry = {
@@ -791,7 +818,7 @@ class StrategicAnalysisAPI(APIView):
                 'classification': cls,
                 'alignment': alignment,
                 'score': score,
-                'apoiadores': city.total_apoiadores,
+                'apoiadores': total_apoiadores,
                 'pl_network_score': pl_network_score,
                 'crm': crm,
                 'alertas': alertas,
