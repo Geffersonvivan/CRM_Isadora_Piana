@@ -78,19 +78,13 @@
         </div>
         {% endif %}
 
-        {% if user.perfil == 'admin' or user.is_superuser or 'liderancas' in user.secoes_permitidas or 'equipes' in user.secoes_permitidas or 'equipes:mobilizacao' in user.secoes_permitidas %}
+        {% if user.perfil == 'admin' or user.is_superuser or 'liderancas' in user.secoes_permitidas %}
         <div class="sidebar-group">
             <div class="sidebar-group-label">Rede</div>
             {% if user.perfil == 'admin' or user.is_superuser or 'liderancas' in user.secoes_permitidas %}
             <a class="sidebar-link{% if 'liderancas:lideranca' in request.resolver_match.view_name %} active{% endif %}" href="{% url 'liderancas:lideranca_list' %}" title="Lideranças">
                 <span class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>{% if leads_pendentes_count %}<span class="pend-dot"></span>{% endif %}</span>
                 <span class="sidebar-label">Lideranças{% if leads_pendentes_count %} <sup class="pend-sup">{{ leads_pendentes_count }}</sup>{% endif %}</span>
-            </a>
-            {% endif %}
-            {% if user.perfil == 'admin' or user.is_superuser or 'equipes' in user.secoes_permitidas or 'equipes:mobilizacao' in user.secoes_permitidas %}
-            <a class="sidebar-link vert-coral{% if 'liderancas:mobilizacao' in request.resolver_match.view_name %} active{% endif %}" href="{% url 'liderancas:mobilizacao_list' %}" title="Mobilização">
-                <span class="icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>{% if voluntarios_pendentes_count %}<span class="pend-dot"></span>{% endif %}</span>
-                <span class="sidebar-label">Mobilização{% if voluntarios_pendentes_count %} <sup class="pend-sup">{{ voluntarios_pendentes_count }}</sup>{% endif %}</span>
             </a>
             {% endif %}
         </div>
