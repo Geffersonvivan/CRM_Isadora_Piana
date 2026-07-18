@@ -3,7 +3,7 @@ from datetime import date, datetime
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db.models import Q, F
+from django.db.models import Q, F, Count
 from django.http import JsonResponse
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_POST
@@ -14,7 +14,7 @@ from core.views import api_cidades as core_api_cidades
 from usuarios.views import secao_required
 from liderancas.models import Cidade, Regiao, Lideranca
 from usuarios.models import Usuario
-from .models import Tarefa, Comentario, TarefaHistorico, AnexoComentario
+from .models import Tarefa, Comentario, TarefaHistorico, AnexoComentario, ItemChecklist
 from notificacoes.views import (
     criar_notificacoes_mencao, criar_notificacao_resposta,
     criar_notificacao_atribuicao, criar_notificacao_participante,
@@ -38,6 +38,17 @@ def _user_can_access(user, tarefa):
         return True
     areas = getattr(user, 'areas_tarefas', None) or []
     return bool(areas) and tarefa.tipo in areas
+
+
+def _serialize_item_checklist(i):
+    """Serializa um ItemChecklist para o front."""
+    return {
+        'id': i.id,
+        'texto': i.texto,
+        'concluido': i.concluido,
+        'ordem': i.ordem,
+        'vira_tarefa_id': i.vira_tarefa_id or None,
+    }
 
 
 def _filtrar_por_usuario(queryset, user):
@@ -220,7 +231,10 @@ def tarefa_delete(request, pk):
 def lista(request):
     tarefas_qs = _tarefas_ativas().select_related(
         'responsavel', 'regiao', 'cidade', 'compromisso'
-    ).prefetch_related('participantes', 'cabos')
+    ).prefetch_related('participantes', 'cabos').annotate(
+        chk_total=Count('itens_checklist', distinct=True),
+        chk_done=Count('itens_checklist', filter=Q(itens_checklist__concluido=True), distinct=True),
+    )
 
     tarefas_qs = _filtrar_por_usuario(tarefas_qs, request.user)
     # Ranqueado por prazo: as que vencem antes no topo; sem prazo vão para o fim.
@@ -514,6 +528,10 @@ def api_tarefa_detail(request, pk):
     # Histórico
     historico = tarefa.historico.select_related('usuario').order_by('-created_at')[:50]
 
+    # Checklist
+    itens_checklist = list(tarefa.itens_checklist.all())
+    checklist_concluidas = sum(1 for i in itens_checklist if i.concluido)
+
     return JsonResponse({
         'id': tarefa.id,
         'titulo': tarefa.titulo,
@@ -567,7 +585,158 @@ def api_tarefa_detail(request, pk):
             }
             for h in historico
         ],
+        'checklist': [_serialize_item_checklist(i) for i in itens_checklist],
+        'checklist_total': len(itens_checklist),
+        'checklist_concluidas': checklist_concluidas,
     })
+
+
+# ── Checklist da tarefa ──────────────────────────────────────────
+
+def _checklist_payload(tarefa):
+    itens = list(tarefa.itens_checklist.all())
+    return {
+        'ok': True,
+        'checklist': [_serialize_item_checklist(i) for i in itens],
+        'total': len(itens),
+        'concluidas': sum(1 for i in itens if i.concluido),
+    }
+
+
+@secao_required('demandas:tarefas')
+def api_checklist_listar(request, pk):
+    tarefa = get_object_or_404(Tarefa, pk=pk)
+    if not _user_can_access(request.user, tarefa):
+        return JsonResponse({'ok': False, 'error': 'Sem permissão'}, status=403)
+    return JsonResponse(_checklist_payload(tarefa))
+
+
+@secao_required('demandas:tarefas')
+@require_POST
+def api_checklist_criar(request, pk):
+    tarefa = get_object_or_404(Tarefa, pk=pk)
+    if not _user_can_access(request.user, tarefa):
+        return JsonResponse({'ok': False, 'error': 'Sem permissão'}, status=403)
+    try:
+        texto = (json.loads(request.body).get('texto') or '').strip()
+    except (json.JSONDecodeError, AttributeError):
+        return JsonResponse({'ok': False, 'error': 'Corpo inválido'}, status=400)
+    if not texto:
+        return JsonResponse({'ok': False, 'error': 'Texto obrigatório'}, status=400)
+    ultima = tarefa.itens_checklist.order_by('-ordem').first()
+    ordem = (ultima.ordem + 1) if ultima else 0
+    item = ItemChecklist.objects.create(
+        tarefa=tarefa, texto=texto[:300], ordem=ordem, criado_por=request.user,
+    )
+    TarefaHistorico.objects.create(
+        tarefa=tarefa, usuario=request.user, campo='checklist',
+        valor_anterior='', valor_novo=f'Item adicionado: {item.texto[:60]}',
+    )
+    return JsonResponse({'ok': True, 'item': _serialize_item_checklist(item),
+                         **_checklist_payload(tarefa)})
+
+
+@secao_required('demandas:tarefas')
+@require_POST
+def api_checklist_toggle(request, item_id):
+    item = get_object_or_404(ItemChecklist.objects.select_related('tarefa'), pk=item_id)
+    if not _user_can_access(request.user, item.tarefa):
+        return JsonResponse({'ok': False, 'error': 'Sem permissão'}, status=403)
+    item.concluido = not item.concluido
+    if item.concluido:
+        item.concluido_em = timezone.now()
+        item.concluido_por = request.user
+        TarefaHistorico.objects.create(
+            tarefa=item.tarefa, usuario=request.user, campo='checklist',
+            valor_anterior='', valor_novo=f'Concluído: {item.texto[:60]}',
+        )
+    else:
+        item.concluido_em = None
+        item.concluido_por = None
+    item.save(update_fields=['concluido', 'concluido_em', 'concluido_por', 'updated_at'])
+    return JsonResponse({'ok': True, 'concluido': item.concluido,
+                         **_checklist_payload(item.tarefa)})
+
+
+@secao_required('demandas:tarefas')
+@require_POST
+def api_checklist_editar(request, item_id):
+    item = get_object_or_404(ItemChecklist.objects.select_related('tarefa'), pk=item_id)
+    if not _user_can_access(request.user, item.tarefa):
+        return JsonResponse({'ok': False, 'error': 'Sem permissão'}, status=403)
+    try:
+        texto = (json.loads(request.body).get('texto') or '').strip()
+    except (json.JSONDecodeError, AttributeError):
+        return JsonResponse({'ok': False, 'error': 'Corpo inválido'}, status=400)
+    if not texto:
+        return JsonResponse({'ok': False, 'error': 'Texto obrigatório'}, status=400)
+    item.texto = texto[:300]
+    item.save(update_fields=['texto', 'updated_at'])
+    return JsonResponse({'ok': True, 'item': _serialize_item_checklist(item)})
+
+
+@secao_required('demandas:tarefas')
+@require_POST
+def api_checklist_excluir(request, item_id):
+    item = get_object_or_404(ItemChecklist.objects.select_related('tarefa'), pk=item_id)
+    tarefa = item.tarefa
+    if not _user_can_access(request.user, tarefa):
+        return JsonResponse({'ok': False, 'error': 'Sem permissão'}, status=403)
+    item.delete()
+    return JsonResponse(_checklist_payload(tarefa))
+
+
+@secao_required('demandas:tarefas')
+@require_POST
+def api_checklist_reordenar(request, pk):
+    tarefa = get_object_or_404(Tarefa, pk=pk)
+    if not _user_can_access(request.user, tarefa):
+        return JsonResponse({'ok': False, 'error': 'Sem permissão'}, status=403)
+    try:
+        ordem_ids = json.loads(request.body).get('ordem') or []
+    except (json.JSONDecodeError, AttributeError):
+        return JsonResponse({'ok': False, 'error': 'Corpo inválido'}, status=400)
+    itens = {i.id: i for i in tarefa.itens_checklist.all()}
+    to_update = []
+    for pos, iid in enumerate(ordem_ids):
+        it = itens.get(int(iid))
+        if it and it.ordem != pos:
+            it.ordem = pos
+            to_update.append(it)
+    if to_update:
+        ItemChecklist.objects.bulk_update(to_update, ['ordem'])
+    return JsonResponse(_checklist_payload(tarefa))
+
+
+@secao_required('demandas:tarefas')
+@require_POST
+def api_checklist_virar_tarefa(request, item_id):
+    """Converte o item do checklist numa Tarefa própria (herda área/território/
+    responsável da tarefa-mãe). O item continua no checklist, ligado à nova tarefa."""
+    item = get_object_or_404(ItemChecklist.objects.select_related('tarefa'), pk=item_id)
+    origem = item.tarefa
+    if not _user_can_access(request.user, origem):
+        return JsonResponse({'ok': False, 'error': 'Sem permissão'}, status=403)
+    if item.vira_tarefa_id:
+        return JsonResponse({'ok': False, 'error': 'Item já virou tarefa'}, status=400)
+    nova = Tarefa.objects.create(
+        titulo=item.texto[:200],
+        tipo=origem.tipo,
+        fase='a_fazer',
+        prioridade=origem.prioridade,
+        responsavel=origem.responsavel,
+        regiao=origem.regiao,
+        cidade=origem.cidade,
+        cadastrado_por=request.user,
+    )
+    item.vira_tarefa = nova
+    item.save(update_fields=['vira_tarefa', 'updated_at'])
+    TarefaHistorico.objects.create(
+        tarefa=origem, usuario=request.user, campo='checklist',
+        valor_anterior='', valor_novo=f'Item virou tarefa: {item.texto[:60]}',
+    )
+    return JsonResponse({'ok': True, 'nova_tarefa_id': nova.id,
+                         'item': _serialize_item_checklist(item)})
 
 
 @secao_required('demandas:tarefas')

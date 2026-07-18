@@ -32,6 +32,10 @@ CAMPANHA = {
     # Só a Isadora usa este layout; as outras marcas seguem a lista padrão.
     'LIDERANCA_INLINE_EDIT': True,
 
+    # Aba "Checklist" na modal de tarefa (itens marcáveis + barra de progresso,
+    # converter item em tarefa). Só a Isadora por ora.
+    'TAREFA_CHECKLIST': True,
+
     # Dashboard "Meta de Votos" no modelo da planilha (intenção de voto, funil de
     # vaquinha/doação, ranking por atendente) em vez do modelo de rede
     # (coordenador→cabo→replicador). Só a Isadora usa a base da planilha central.

@@ -28,6 +28,7 @@ def campanha(request):
             'lideranca_inline_edit': c.get('LIDERANCA_INLINE_EDIT', False),
             'mapa_niveis_ibge': c.get('MAPA_NIVEIS_IBGE', False),
             'cidade_primeiro': c.get('CIDADE_PRIMEIRO', False),
+            'tarefa_checklist': c.get('TAREFA_CHECKLIST', False),
             'cores': c['CORES'],
             # Aliases planos para contextos onde var() do CSS não resolve
             # (meta theme-color, atributos SVG, cores de canvas/Chart.js).

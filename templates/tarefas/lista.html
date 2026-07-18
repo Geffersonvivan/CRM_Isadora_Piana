@@ -575,6 +575,43 @@
     }
     .modal-tab-content.active { display: flex; }
 
+    /* Checklist */
+    .chk-wrap { padding: 16px 20px; overflow-y: auto; flex: 1; }
+    .chk-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .chk-count { font-size: 0.72rem; font-weight: 700; color: #676879; white-space: nowrap; }
+    .chk-count.done { color: #047857; }
+    .chk-progress { flex: 1; height: 6px; background: #ecedf0; border-radius: 3px; overflow: hidden; }
+    .chk-progress-fill { height: 100%; width: 0; background: #00c875; border-radius: 3px; transition: width .3s ease; }
+    .chk-list { display: flex; flex-direction: column; gap: 1px; margin-bottom: 12px; }
+    .chk-item { display: flex; align-items: center; gap: 8px; padding: 6px 6px; border-radius: 6px; transition: background .1s; }
+    .chk-item:hover { background: #f5f6f8; }
+    .chk-item.dragging { opacity: .45; }
+    .chk-drag { cursor: grab; color: #c5c7d0; display: flex; flex-shrink: 0; }
+    .chk-drag:active { cursor: grabbing; }
+    .chk-cb { width: 16px; height: 16px; border-radius: 4px; cursor: pointer; accent-color: #00c875; flex-shrink: 0; margin: 0; }
+    .chk-txt { flex: 1; font-size: 0.85rem; color: #323338; cursor: text; word-break: break-word; line-height: 1.35; }
+    .chk-item.done .chk-txt { text-decoration: line-through; color: #94a3b8; }
+    .chk-txt-input { flex: 1; font-size: 0.85rem; border: 1px solid #0073ea; border-radius: 5px; padding: 4px 7px; outline: none; font-family: inherit; }
+    .chk-tag { font-size: 0.66rem; font-weight: 600; color: #0073ea; background: #e8f1fd; padding: 1px 7px; border-radius: 10px; text-decoration: none; white-space: nowrap; }
+    .chk-actions { display: flex; gap: 1px; opacity: 0; transition: opacity .12s; flex-shrink: 0; }
+    .chk-item:hover .chk-actions { opacity: 1; }
+    .chk-act { border: none; background: none; cursor: pointer; color: #9ca3af; padding: 4px; border-radius: 5px; display: flex; }
+    .chk-act:hover { background: #ecedf0; color: #676879; }
+    .chk-act.danger:hover { background: #fde8e8; color: #e11d48; }
+    .chk-add { display: flex; gap: 6px; align-items: center; }
+    .chk-add-input { flex: 1; padding: 8px 11px; border: 1px dashed #d0d4e4; border-radius: 6px; font-size: 0.85rem; outline: none; font-family: inherit; }
+    .chk-add-input:focus { border-color: #0073ea; border-style: solid; }
+    .chk-add-btn { width: 32px; height: 32px; border-radius: 6px; border: none; background: #0073ea; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .chk-add-btn:hover { background: #0060c0; }
+    .chk-empty { font-size: 0.82rem; color: #9ca3af; text-align: center; padding: 16px; }
+    /* Badge de progresso do checklist no card/linha do board */
+    .chk-card-badge {
+        display: inline-flex; align-items: center; gap: 3px; margin-left: 8px;
+        font-size: 0.66rem; font-weight: 600; color: #676879;
+        background: #ecedf0; padding: 1px 7px 1px 5px; border-radius: 10px; vertical-align: middle;
+    }
+    .chk-card-badge.done { background: #d1fae5; color: #047857; }
+
     /* Chat / Updates */
     .chat-compose {
         padding: 16px 20px 8px; flex-shrink: 0;
@@ -968,6 +1005,7 @@
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                         </span>
                         <span class="cell-task-name" onclick="abrirTarefa({{ t.id }})">{{ t.titulo }}</span>
+                        {% if campanha.tarefa_checklist and t.chk_total %}<span class="chk-card-badge{% if t.chk_done == t.chk_total %} done{% endif %}" title="Checklist"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> {{ t.chk_done }}/{{ t.chk_total }}</span>{% endif %}
                         {% if t.compromisso_id %}
                         <span class="cell-agenda-badge" title="Agendado: {{ t.compromisso.data_hora_inicio|date:'d/m/Y H:i' }}">
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -1268,6 +1306,7 @@
             <div class="modal-right">
                 <div class="modal-tabs">
                     <button class="modal-tab active" data-tab="updates" onclick="switchTab('updates')">Atualizações <span class="modal-tab-count" id="tabCountUpdates">0</span></button>
+                    {% if campanha.tarefa_checklist %}<button class="modal-tab" data-tab="checklist" onclick="switchTab('checklist')">Checklist <span class="modal-tab-count" id="tabCountChecklist">0</span></button>{% endif %}
                     <button class="modal-tab" data-tab="history" onclick="switchTab('history')">Histórico <span class="modal-tab-count" id="tabCountHistory">0</span></button>
                 </div>
                 <div class="modal-tab-content active" id="tabUpdates">
@@ -1293,6 +1332,24 @@
                         </div>
                     </div>
                 </div>
+                {% if campanha.tarefa_checklist %}
+                <div class="modal-tab-content" id="tabChecklist">
+                    <div class="chk-wrap">
+                        <div class="chk-head">
+                            <span class="chk-count" id="chkCount">Concluídos 0 de 0</span>
+                            <div class="chk-progress"><div class="chk-progress-fill" id="chkProgressFill"></div></div>
+                        </div>
+                        <div class="chk-list" id="chkList"></div>
+                        <div class="chk-add">
+                            <input type="text" class="chk-add-input" id="chkAddInput" placeholder="Adicionar item ao checklist…" maxlength="300"
+                                   onkeydown="if(event.key==='Enter'){event.preventDefault();addItemChecklist();}">
+                            <button class="chk-add-btn" title="Adicionar" onclick="addItemChecklist()">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
                 <div class="modal-tab-content" id="tabHistory">
                     <div class="history-list" id="historyList">
                         <div class="history-empty">Nenhuma alteração registrada.</div>
@@ -2507,6 +2564,144 @@ function renderModal(d) {
 
     // History
     renderHistory(d.historico);
+
+    // Checklist
+    renderChecklistItems(d.checklist || [], d.checklist_total || 0, d.checklist_concluidas || 0);
+}
+
+// ── Checklist ────────────────────────────────────────────────────
+function renderChecklistItems(itens, total, concluidas) {
+    const badge = document.getElementById('tabCountChecklist');
+    const count = document.getElementById('chkCount');
+    const fill = document.getElementById('chkProgressFill');
+    const list = document.getElementById('chkList');
+    if (badge) badge.textContent = total;
+    if (count) {
+        count.textContent = `Concluídos ${concluidas} de ${total}`;
+        count.className = 'chk-count' + (total > 0 && concluidas === total ? ' done' : '');
+    }
+    if (fill) fill.style.width = (total > 0 ? Math.round(concluidas / total * 100) : 0) + '%';
+    if (!list) return;
+    if (!itens.length) { list.innerHTML = '<div class="chk-empty">Nenhum item ainda. Adicione abaixo.</div>'; return; }
+    list.innerHTML = itens.map(chkItemHtml).join('');
+    // reflete no card do board
+    updateCardChecklist(modalTarefaId, total, concluidas);
+}
+
+function chkItemHtml(i) {
+    const tag = i.vira_tarefa_id
+        ? `<a class="chk-tag" href="/tarefas/?open=${i.vira_tarefa_id}" title="Abrir a tarefa criada">virou tarefa</a>`
+        : `<button class="chk-act" title="Transformar em tarefa" onclick="virarTarefaChecklist(${i.id})"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></button>`;
+    return `<div class="chk-item ${i.concluido ? 'done' : ''}" draggable="true" data-item-id="${i.id}">
+        <span class="chk-drag" title="Arrastar para reordenar"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></span>
+        <input type="checkbox" class="chk-cb" ${i.concluido ? 'checked' : ''} onchange="toggleItemChecklist(${i.id})">
+        <span class="chk-txt" ondblclick="editItemChecklist(${i.id}, this)" title="Duplo clique para editar">${escapeHtml(i.texto)}</span>
+        <span class="chk-actions">${tag}<button class="chk-act danger" title="Excluir" onclick="deleteItemChecklist(${i.id})"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></span>
+    </div>`;
+}
+
+function _chkFetch(url, body) {
+    const opts = { method: 'POST', credentials: 'same-origin', headers: { 'X-CSRFToken': csrfToken } };
+    if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+    return fetch(url, opts).then(r => r.json());
+}
+
+function addItemChecklist() {
+    const input = document.getElementById('chkAddInput');
+    const texto = input.value.trim();
+    if (!texto || !modalTarefaId) return;
+    input.disabled = true;
+    _chkFetch(`/tarefas/api/${modalTarefaId}/checklist/criar/`, { texto })
+        .then(d => {
+            input.disabled = false;
+            if (d.ok) { input.value = ''; input.focus(); renderChecklistItems(d.checklist, d.total, d.concluidas); }
+            else alert(d.error || 'Erro ao adicionar item.');
+        })
+        .catch(() => { input.disabled = false; });
+}
+
+function toggleItemChecklist(id) {
+    _chkFetch(`/tarefas/api/checklist-item/${id}/toggle/`)
+        .then(d => { if (d.ok) renderChecklistItems(d.checklist, d.total, d.concluidas); });
+}
+
+function deleteItemChecklist(id) {
+    _chkFetch(`/tarefas/api/checklist-item/${id}/excluir/`)
+        .then(d => { if (d.ok) renderChecklistItems(d.checklist, d.total, d.concluidas); });
+}
+
+function virarTarefaChecklist(id) {
+    if (!confirm('Transformar este item numa tarefa própria? Ela herda área, território e responsável desta tarefa.')) return;
+    _chkFetch(`/tarefas/api/checklist-item/${id}/virar-tarefa/`)
+        .then(d => {
+            if (d.ok) { carregarModal(modalTarefaId); if (typeof reloadList === 'function') reloadList(); }
+            else alert(d.error || 'Não foi possível transformar em tarefa.');
+        });
+}
+
+function editItemChecklist(id, el) {
+    const old = el.textContent;
+    const inp = document.createElement('input');
+    inp.className = 'chk-txt-input'; inp.value = old; inp.maxLength = 300;
+    el.replaceWith(inp); inp.focus(); inp.select();
+    let done = false;
+    function save() {
+        if (done) return; done = true;
+        const texto = inp.value.trim();
+        if (!texto || texto === old) { carregarModal(modalTarefaId); return; }
+        _chkFetch(`/tarefas/api/checklist-item/${id}/editar/`, { texto })
+            .then(() => carregarModal(modalTarefaId));
+    }
+    inp.addEventListener('blur', save);
+    inp.addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
+        if (e.key === 'Escape') { done = true; carregarModal(modalTarefaId); }
+    });
+}
+
+// Reordenar por arrastar (delegação no container, que é estático)
+(function initChklistDnd() {
+    const list = document.getElementById('chkList');
+    if (!list) return;
+    let dragEl = null;
+    list.addEventListener('dragstart', e => {
+        const it = e.target.closest('.chk-item');
+        if (!it) return;
+        dragEl = it; it.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move';
+    });
+    list.addEventListener('dragend', () => {
+        if (!dragEl) return;
+        dragEl.classList.remove('dragging'); dragEl = null;
+        const ids = [...list.querySelectorAll('.chk-item')].map(el => el.dataset.itemId);
+        if (ids.length && modalTarefaId) _chkFetch(`/tarefas/api/${modalTarefaId}/checklist/reordenar/`, { ordem: ids });
+    });
+    list.addEventListener('dragover', e => {
+        e.preventDefault();
+        if (!dragEl) return;
+        const after = [...list.querySelectorAll('.chk-item:not(.dragging)')].reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = e.clientY - box.top - box.height / 2;
+            return (offset < 0 && offset > closest.offset) ? { offset, element: child } : closest;
+        }, { offset: -Infinity }).element;
+        if (after == null) list.appendChild(dragEl); else list.insertBefore(dragEl, after);
+    });
+})();
+
+// Contador de checklist no card do board (task 15)
+function updateCardChecklist(tarefaId, total, concluidas) {
+    if (!tarefaId) return;
+    const row = document.querySelector(`tr[data-id="${tarefaId}"] .cell-task-name`);
+    if (!row) return;
+    let badge = row.parentElement.querySelector('.chk-card-badge');
+    if (total === 0) { if (badge) badge.remove(); return; }
+    if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'chk-card-badge';
+        row.insertAdjacentElement('afterend', badge);
+    }
+    const done = total > 0 && concluidas === total;
+    badge.innerHTML = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> ${concluidas}/${total}`;
+    badge.classList.toggle('done', done);
 }
 
 function countAllComments(comments) {
@@ -3407,6 +3602,8 @@ function switchTab(tab) {
     document.querySelectorAll('.modal-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
     document.getElementById('tabUpdates').classList.toggle('active', tab === 'updates');
     document.getElementById('tabHistory').classList.toggle('active', tab === 'history');
+    const chk = document.getElementById('tabChecklist');
+    if (chk) chk.classList.toggle('active', tab === 'checklist');
 }
 
 /* Modal inline field editing — reuses the list popovers */

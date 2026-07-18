@@ -32,4 +32,12 @@ urlpatterns = [
     path('api/excluir-permanente/', views.api_tarefa_excluir_permanente, name='api_tarefa_excluir_permanente'),
     path('api/<int:pk>/agendar/', views.api_tarefa_agendar, name='api_tarefa_agendar'),
     path('api/<int:pk>/desagendar/', views.api_tarefa_desagendar, name='api_tarefa_desagendar'),
+    # Checklist da tarefa
+    path('api/<int:pk>/checklist/', views.api_checklist_listar, name='api_checklist_listar'),
+    path('api/<int:pk>/checklist/criar/', views.api_checklist_criar, name='api_checklist_criar'),
+    path('api/<int:pk>/checklist/reordenar/', views.api_checklist_reordenar, name='api_checklist_reordenar'),
+    path('api/checklist-item/<int:item_id>/toggle/', views.api_checklist_toggle, name='api_checklist_toggle'),
+    path('api/checklist-item/<int:item_id>/editar/', views.api_checklist_editar, name='api_checklist_editar'),
+    path('api/checklist-item/<int:item_id>/excluir/', views.api_checklist_excluir, name='api_checklist_excluir'),
+    path('api/checklist-item/<int:item_id>/virar-tarefa/', views.api_checklist_virar_tarefa, name='api_checklist_virar_tarefa'),
 ]

@@ -220,3 +220,46 @@ class TarefaHistorico(models.Model):
         return f'{self.tarefa} — {self.campo} ({self.created_at:%d/%m/%Y %H:%M})'
 
 
+class ItemChecklist(models.Model):
+    """Item marcável de uma tarefa (checklist). Sub-item leve — NÃO é uma Tarefa
+    (não entra no board). Pode ser convertido em Tarefa depois (vira_tarefa)."""
+    tarefa = models.ForeignKey(
+        Tarefa,
+        on_delete=models.CASCADE,
+        related_name='itens_checklist',
+    )
+    texto = models.CharField(max_length=300)
+    concluido = models.BooleanField(default=False)
+    ordem = models.PositiveIntegerField(default=0)
+    concluido_em = models.DateTimeField(null=True, blank=True)
+    concluido_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='itens_checklist_concluidos',
+    )
+    criado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='itens_checklist_criados',
+    )
+    # Quando o item é convertido em uma Tarefa própria, guardamos o vínculo.
+    vira_tarefa = models.ForeignKey(
+        Tarefa,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='origem_item_checklist',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Item de Checklist'
+        verbose_name_plural = 'Itens de Checklist'
+        ordering = ['ordem', 'created_at']
+
+    def __str__(self):
+        return f'{self.tarefa} — {self.texto[:40]}'
+
+
