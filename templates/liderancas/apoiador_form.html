@@ -26,7 +26,9 @@
         {# Loop único (mesma convenção do _form_fields.html) — inclui os campos da PLANILHA CENTRAL e evita drift. #}
         <div class="form-grid">
             {% for field in form.visible_fields %}
-            {% if field.field.widget.input_type == 'checkbox' %}
+            {% if campanha.cidade_primeiro and field.name == 'regiao' %}
+            {# Cidade-primeiro: a região é derivada da cidade — não renderiza o select. #}
+            {% elif field.field.widget.input_type == 'checkbox' %}
             <div class="form-group">
                 <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
                 <label class="switch" for="{{ field.id_for_label }}">{{ field }}<span class="switch-track"></span></label>
@@ -41,6 +43,14 @@
                 {% endif %}
                 {{ field.errors }}
             </div>
+            {% if campanha.cidade_primeiro and field.name == 'cidade' %}
+            <div class="form-group">
+                <label>Região</label>
+                <input type="text" id="id_regiao_display" class="form-input" readonly
+                       placeholder="Região (automática)"
+                       value="{% if form.instance.pk and form.instance.cidade_id %}{{ form.instance.cidade.regiao }}{% endif %}">
+            </div>
+            {% endif %}
             {% endif %}
             {% endfor %}
         </div>
@@ -53,11 +63,12 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="/static/js/liderancas-common.js?v=5"></script>
+<script src="/static/js/liderancas-common.js?v=6"></script>
 {% if form.meso_display %}
 {# Território derivado (Isadora): ilha cidade -> [assoc, micro, meso]. #}
 <script id="cidadeRegioes" type="application/json">{% autoescape off %}{ {% for c in form.cidade.field.queryset %}"{{ c.pk }}":["{{ c.regiao.sigla|default:''|escapejs }}","{{ c.microrregiao.nome|default:''|escapejs }}","{{ c.mesorregiao.nome|default:''|escapejs }}"]{% if not forloop.last %},{% endif %}{% endfor %} }{% endautoescape %}</script>
 {% endif %}
+{% include 'includes/_cidade_regiao_map.html' %}
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     LiderancasCommon.initPhoneMask();

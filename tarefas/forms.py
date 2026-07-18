@@ -1,10 +1,11 @@
 from django import forms
+from core.forms import CidadePrimeiroFormMixin
 from liderancas.models import Regiao, Cidade
 from usuarios.models import Usuario
 from .models import Tarefa, Comentario
 
 
-class TarefaForm(forms.ModelForm):
+class TarefaForm(CidadePrimeiroFormMixin, forms.ModelForm):
     regiao = forms.ModelChoiceField(
         queryset=Regiao.objects.all().order_by('sigla'),
         required=False,
@@ -87,6 +88,11 @@ class TarefaForm(forms.ModelForm):
                     self.fields['cidade'].queryset = Cidade.objects.none()
             else:
                 self.fields['cidade'].queryset = Cidade.objects.none()
+        self.aplicar_cidade_primeiro()
+
+    def clean(self):
+        cleaned = super().clean()
+        return self.derivar_regiao(cleaned)
 
 
 class ComentarioForm(forms.ModelForm):

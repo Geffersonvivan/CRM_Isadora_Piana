@@ -1,5 +1,6 @@
 import re
 from django import forms
+from core.forms import CidadePrimeiroFormMixin
 from usuarios.models import Usuario
 from .models import Lideranca, Voluntario, Cidade, Regiao, InteracaoLog
 
@@ -31,7 +32,7 @@ class DuplicateCheckMixin:
                 self.add_error('email', f'Email já cadastrado para: {dup.nome}')
 
 
-class CoordenadorRegionalForm(DuplicateCheckMixin, forms.ModelForm):
+class CoordenadorRegionalForm(CidadePrimeiroFormMixin, DuplicateCheckMixin, forms.ModelForm):
     regiao = forms.ModelChoiceField(
         queryset=Regiao.objects.all(),
         label='Região',
@@ -73,9 +74,11 @@ class CoordenadorRegionalForm(DuplicateCheckMixin, forms.ModelForm):
                 self.fields['cidade'].queryset = Cidade.objects.filter(regiao_id=regiao_id)
             else:
                 self.fields['cidade'].queryset = Cidade.objects.none()
+        self.aplicar_cidade_primeiro()
 
     def clean(self):
         super().clean()
+        self.derivar_regiao(self.cleaned_data)
         self._check_duplicates(Lideranca.objects.filter(papel='coordenador'))
 
         cidade = self.cleaned_data.get('cidade')
@@ -94,7 +97,7 @@ class CoordenadorRegionalForm(DuplicateCheckMixin, forms.ModelForm):
         return instance
 
 
-class CaboEleitoralForm(DuplicateCheckMixin, forms.ModelForm):
+class CaboEleitoralForm(CidadePrimeiroFormMixin, DuplicateCheckMixin, forms.ModelForm):
     regiao = forms.ModelChoiceField(
         queryset=Regiao.objects.all(),
         label='Região',
@@ -135,9 +138,11 @@ class CaboEleitoralForm(DuplicateCheckMixin, forms.ModelForm):
                 self.fields['cidade'].queryset = Cidade.objects.filter(regiao_id=regiao_id)
             else:
                 self.fields['cidade'].queryset = Cidade.objects.none()
+        self.aplicar_cidade_primeiro()
 
     def clean(self):
         super().clean()
+        self.derivar_regiao(self.cleaned_data)
         self._check_duplicates(Lideranca.objects.filter(papel='cabo'))
 
         cidade = self.cleaned_data.get('cidade')
@@ -160,7 +165,7 @@ class CaboEleitoralForm(DuplicateCheckMixin, forms.ModelForm):
         return instance
 
 
-class ApoiadorForm(DuplicateCheckMixin, forms.ModelForm):
+class ApoiadorForm(CidadePrimeiroFormMixin, DuplicateCheckMixin, forms.ModelForm):
     regiao = forms.ModelChoiceField(
         queryset=Regiao.objects.all(),
         label='Região',
@@ -304,6 +309,9 @@ class ApoiadorForm(DuplicateCheckMixin, forms.ModelForm):
                 [self.instance.tipo] if self.instance.tipo else [])
         if self.instance.pk and self.instance.cidade_id and 'regiao' in self.fields:
             self.fields['regiao'].initial = self.instance.cidade.regiao_id
+        # Sorgatto (cidade-primeiro): cidade completa + região derivada. No-op na
+        # Isadora (layout inline já é cidade-primeiro por conta própria).
+        self.aplicar_cidade_primeiro()
 
     def get_secoes(self):
         """Campos agrupados em seções (layout Isadora). None nas outras marcas —
@@ -350,6 +358,7 @@ class ApoiadorForm(DuplicateCheckMixin, forms.ModelForm):
 
     def clean(self):
         super().clean()
+        self.derivar_regiao(self.cleaned_data)
         self._check_duplicates(Lideranca.objects.filter(papel='apoiador'))
 
         cidade = self.cleaned_data.get('cidade')
@@ -374,7 +383,7 @@ class ApoiadorForm(DuplicateCheckMixin, forms.ModelForm):
         return instance
 
 
-class VoluntarioForm(forms.ModelForm):
+class VoluntarioForm(CidadePrimeiroFormMixin, forms.ModelForm):
     regiao = forms.ModelChoiceField(
         queryset=Regiao.objects.all().order_by('sigla'),
         label='Região',
@@ -421,6 +430,11 @@ class VoluntarioForm(forms.ModelForm):
                 self.fields['cidade'].queryset = Cidade.objects.none()
         elif not (self.instance.pk and self.instance.cidade_id):
             self.fields['cidade'].queryset = Cidade.objects.none()
+        self.aplicar_cidade_primeiro()
+
+    def clean(self):
+        cleaned = super().clean()
+        return self.derivar_regiao(cleaned)
 
     def save(self, commit=True):
         instance = super().save(commit=False)

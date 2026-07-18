@@ -1,0 +1,8 @@
+{% comment %}
+Lookup cidade → região (id + rótulo) para o fluxo cidade-primeiro (Sorgatto).
+Requer `form` com o campo `cidade` no contexto. O JS initCidadePrimeiro
+(liderancas-common.js) consome este island para preencher a região derivada.
+{% endcomment %}
+{% if campanha.cidade_primeiro %}<script id="cidadeRegioesMap" type="application/json">{% autoescape off %}{
+{% for c in form.cidade.field.queryset %}"{{ c.pk }}":{"rid":{{ c.regiao_id }},"nome":"{{ c.regiao|escapejs }}"}{% if not forloop.last %},{% endif %}
+{% endfor %}}{% endautoescape %}</script>{% endif %}

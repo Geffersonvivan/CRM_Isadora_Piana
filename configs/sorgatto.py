@@ -33,6 +33,9 @@ CAMPANHA = {
     'DASHBOARD_VOTOS_PLANILHA': False,
     'PWA_CADASTRO_CONTATO': False,
     'MAPA_NIVEIS_IBGE': False,
+    # Agenda: no Novo Compromisso a cidade é o ponto de partida (busca nos 295
+    # municípios) e a região é preenchida/derivada automaticamente dela.
+    'CIDADE_PRIMEIRO': True,
 
     'CORES': {
         '--navy': '#1e40af',        # azul PL (marca)

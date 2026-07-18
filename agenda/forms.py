@@ -4,6 +4,7 @@ from datetime import datetime, date, time
 from django import forms
 from django.forms import inlineformset_factory
 from django.utils import timezone
+from core.forms import CidadePrimeiroFormMixin
 from liderancas.models import Cidade
 from liderancas.models import Regiao, Lideranca
 from .models import Compromisso, Evento, EventoAnexo, Roteiro, RoteiroPonto
@@ -127,7 +128,16 @@ class CompromissoForm(forms.ModelForm):
             self.fields['hora_fim'].initial = fim.strftime('%H:%M')
 
         # City queryset
-        if self.instance.pk and self.instance.cidade_id:
+        from django.conf import settings
+        self.cidade_primeiro = settings.CAMPANHA.get('CIDADE_PRIMEIRO', False)
+        if self.cidade_primeiro:
+            # Fluxo cidade-primeiro: a cidade é o ponto de partida (select com as
+            # 295, buscável no front) e a região deixa de ser input do usuário —
+            # é derivada da cidade em clean(). O campo região vira só-leitura.
+            self.fields['cidade'].queryset = Cidade.objects.select_related(
+                'regiao').order_by('nome')
+            self.fields['regiao'].required = False
+        elif self.instance.pk and self.instance.cidade_id:
             self.fields['cidade'].queryset = Cidade.objects.filter(
                 regiao=self.instance.cidade.regiao
             )
@@ -142,6 +152,13 @@ class CompromissoForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
+
+        # Cidade-primeiro: a região é derivada da cidade (não é input do usuário).
+        if getattr(self, 'cidade_primeiro', False):
+            cidade = cleaned.get('cidade')
+            if cidade:
+                cleaned['regiao'] = cidade.regiao
+
         dt = cleaned.get('data')
         hi = cleaned.get('hora_inicio')
         hf = cleaned.get('hora_fim')
@@ -190,7 +207,7 @@ class RoteiroForm(forms.ModelForm):
         self.fields['data'].input_formats = ['%Y-%m-%d']
 
 
-class EventoForm(forms.ModelForm):
+class EventoForm(CidadePrimeiroFormMixin, forms.ModelForm):
     regiao = forms.ModelChoiceField(
         queryset=Regiao.objects.all().order_by('sigla'),
         label='Região',
@@ -256,6 +273,8 @@ class EventoForm(forms.ModelForm):
                 self.fields['cidade'].queryset = Cidade.objects.filter(regiao_id=regiao_id)
             else:
                 self.fields['cidade'].queryset = Cidade.objects.none()
+        # Sorgatto: cidade completa + região (só filtro, não persistida no Evento).
+        self.aplicar_cidade_primeiro()
 
 
 RoteiroPontoFormSet = inlineformset_factory(

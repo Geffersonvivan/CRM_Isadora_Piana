@@ -32,6 +32,20 @@
                 {{ form.email }}
                 {{ form.email.errors }}
             </div>
+            {% if campanha.cidade_primeiro %}
+            <div class="form-group">
+                <label for="id_cidade">Cidade Base *</label>
+                {{ form.cidade }}
+                {{ form.cidade.errors }}
+            </div>
+            <div class="form-group">
+                <label>Região</label>
+                <input type="text" id="id_regiao_display" class="form-input" readonly
+                       placeholder="Região (automática)"
+                       value="{% if form.instance.pk and form.instance.cidade_id %}{{ form.instance.cidade.regiao }}{% endif %}">
+            </div>
+            {% include 'includes/_cidade_regiao_map.html' %}
+            {% else %}
             <div class="form-group">
                 <label for="id_regiao">Região *</label>
                 {{ form.regiao }}
@@ -42,6 +56,7 @@
                 {{ form.cidade }}
                 {{ form.cidade.errors }}
             </div>
+            {% endif %}
             <div class="form-group">
                 <label for="id_instagram">Instagram</label>
                 {{ form.instagram }}
@@ -72,7 +87,7 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="/static/js/liderancas-common.js?v=3"></script>
+<script src="/static/js/liderancas-common.js?v=6"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     LiderancasCommon.initPhoneMask();

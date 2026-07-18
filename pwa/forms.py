@@ -1,5 +1,6 @@
 from django.conf import settings
 from django import forms
+from core.forms import CidadePrimeiroFormMixin
 from liderancas.models import Lideranca, Cidade, Regiao, Voluntario
 from usuarios.models import Usuario
 
@@ -67,7 +68,7 @@ class ApoiadorPWAForm(forms.ModelForm):
         return instance
 
 
-class ReplicadorForm(forms.Form):
+class ReplicadorForm(CidadePrimeiroFormMixin, forms.Form):
     nome = forms.CharField(
         max_length=200,
         widget=forms.TextInput(attrs={'class': 'pwa-input', 'placeholder': 'Nome completo'}),
@@ -108,6 +109,8 @@ class ReplicadorForm(forms.Form):
                 self.fields['cidade'].queryset = Cidade.objects.none()
         else:
             self.fields['cidade'].queryset = Cidade.objects.none()
+        # Sorgatto: cidade completa + região opcional (só filtro, não persistida).
+        self.aplicar_cidade_primeiro()
 
     def save(self, convidado_por):
         dados = self.cleaned_data

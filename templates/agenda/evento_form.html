@@ -42,6 +42,20 @@
                 {{ form.horario_fim }}
                 {{ form.horario_fim.errors }}
             </div>
+            {% if campanha.cidade_primeiro %}
+            <div class="form-group">
+                <label for="id_cidade" data-tip="Cidade|Conecta o evento ao mapa e aos contatos do CRM daquele município.">Cidade *</label>
+                {{ form.cidade }}
+                {{ form.cidade.errors }}
+            </div>
+            <div class="form-group">
+                <label>Região</label>
+                <input type="text" id="id_regiao_display" class="form-input" readonly
+                       placeholder="Região (automática)"
+                       value="{% if form.instance.pk and form.instance.cidade_id %}{{ form.instance.cidade.regiao }}{% endif %}">
+            </div>
+            {% include 'includes/_cidade_regiao_map.html' %}
+            {% else %}
             <div class="form-group">
                 <label for="id_regiao">Região</label>
                 {{ form.regiao }}
@@ -52,6 +66,7 @@
                 {{ form.cidade }}
                 {{ form.cidade.errors }}
             </div>
+            {% endif %}
             <div class="form-group full">
                 <label for="id_local">Local / Endereço</label>
                 {{ form.local }}

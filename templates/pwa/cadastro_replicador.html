@@ -17,6 +17,19 @@
             {{ form.nome.errors }}
         </div>
 
+        {% if campanha.cidade_primeiro %}
+        <div class="pwa-form-group">
+            <label class="pwa-label">Cidade *</label>
+            {{ form.cidade }}
+            {{ form.cidade.errors }}
+        </div>
+
+        <div class="pwa-form-group">
+            <label class="pwa-label">Região</label>
+            <input type="text" id="id_regiao_display" class="pwa-input" readonly placeholder="Região (automática)">
+        </div>
+        {% include 'includes/_cidade_regiao_map.html' %}
+        {% else %}
         <div class="pwa-form-group">
             <label class="pwa-label">Região</label>
             {{ form.regiao }}
@@ -27,6 +40,7 @@
             {{ form.cidade }}
             {{ form.cidade.errors }}
         </div>
+        {% endif %}
 
         <div class="pwa-form-group">
             <label class="pwa-label">Telefone</label>
@@ -48,6 +62,23 @@
 
 {% block extra_js %}
 <script>
+{% if campanha.cidade_primeiro %}
+// Cidade-primeiro: a região é preenchida a partir da cidade (lookup embutido).
+(function () {
+    var island = document.getElementById('cidadeRegioesMap');
+    var cid = document.getElementById('id_cidade');
+    var disp = document.getElementById('id_regiao_display');
+    if (!island || !cid) return;
+    var mapa = {};
+    try { mapa = JSON.parse(island.textContent || '{}'); } catch (e) { return; }
+    function preencher() {
+        var info = mapa[cid.value];
+        if (disp) disp.value = info ? info.nome : '';
+    }
+    cid.addEventListener('change', preencher);
+    preencher();
+})();
+{% else %}
 document.getElementById('id_regiao').addEventListener('change', function() {
     const regiaoId = this.value;
     const cidadeSelect = document.getElementById('id_cidade');
@@ -64,5 +95,6 @@ document.getElementById('id_regiao').addEventListener('change', function() {
             });
         });
 });
+{% endif %}
 </script>
 {% endblock %}

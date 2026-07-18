@@ -363,6 +363,31 @@
         input.addEventListener('blur', function () { setTimeout(function () { list.hidden = true; }, 150); });
     }
 
+    // ===== Cidade-primeiro (Sorgatto): cidade buscável → região derivada =====
+    // Genérico para qualquer form: cidade vira o ponto de partida (combo buscável)
+    // e a região é preenchida a partir do lookup #cidadeRegioesMap. Preenche o
+    // display read-only (#id_regiao_display) e/ou o <select name="regiao"> (se o
+    // form ainda o submete, escondido). Idempotente via data-attr no #id_cidade.
+    function initCidadePrimeiro(scope) {
+        var root = (scope && document.querySelector(scope)) || document;
+        var island = root.querySelector('#cidadeRegioesMap') || document.getElementById('cidadeRegioesMap');
+        var cid = root.querySelector('#id_cidade');
+        if (!island || !cid || cid.dataset.cpWired) return;
+        cid.dataset.cpWired = '1';
+        initCidadeSearch(scope);
+        var mapa;
+        try { mapa = JSON.parse(island.textContent || '{}'); } catch (e) { return; }
+        var disp = root.querySelector('#id_regiao_display');
+        var regSel = root.querySelector('select[name="regiao"]');
+        function preencher() {
+            var info = mapa[cid.value];
+            if (disp) disp.value = info ? info.nome : '';
+            if (regSel && info && info.rid) regSel.value = info.rid;
+        }
+        cid.addEventListener('change', preencher);
+        preencher();
+    }
+
     // Expose
     window.LiderancasCommon = {
         initPhoneMask: initPhoneMask,
@@ -371,6 +396,7 @@
         initRegiaoCustomDropdown: initRegiaoCustomDropdown,
         initCidadeDerivados: initCidadeDerivados,
         initCidadeSearch: initCidadeSearch,
+        initCidadePrimeiro: initCidadePrimeiro,
     };
 
     // Auto-init em todos os selects de região (uma vez só)
@@ -403,6 +429,20 @@
             document.addEventListener('DOMContentLoaded', _boot);
         } else {
             _boot();
+        }
+    }
+
+    // Auto-init cidade-primeiro (Sorgatto): liga busca+derivação da região assim
+    // que a ilha #cidadeRegioesMap aparece — funciona na página cheia e no modal.
+    if (!window.__cpAutoInit) {
+        window.__cpAutoInit = true;
+        function _cpStart() { if (document.getElementById('cidadeRegioesMap')) initCidadePrimeiro(); }
+        var _cpObs = new MutationObserver(function () { _cpStart(); });
+        function _cpBoot() { _cpStart(); _cpObs.observe(document.body, { childList: true, subtree: true }); }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', _cpBoot);
+        } else {
+            _cpBoot();
         }
     }
 })();

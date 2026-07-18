@@ -1194,14 +1194,14 @@ function initModalContatos() {
     const form = document.getElementById('compromisso-modal-form');
     if (!form) return;
 
-    const regiao = form.querySelector('[name="regiao"]');
     const cidade = form.querySelector('[name="cidade"]');
+    if (!cidade) return;
+    const regiao = form.querySelector('[name="regiao"]');          // ausente no fluxo cidade-primeiro (Sorgatto)
+    const regiaoDisplay = form.querySelector('#id_regiao_display');
     const panel = document.getElementById('contatos-panel');
     const coordList = document.getElementById('coord-list');
     const caboList = document.getElementById('cabo-list');
     const apoiadorList = document.getElementById('apoiador-list');
-
-    if (!regiao || !cidade) return;
 
     // IDs já vinculados ao compromisso (edição) — pré-marca os checkboxes
     let selecionados = { coordenadores: [], cabos: [], apoiadores: [] };
@@ -1265,37 +1265,64 @@ function initModalContatos() {
             });
     }
 
-    regiao.addEventListener('change', () => {
-        const rid = regiao.value;
-        cidade.innerHTML = '<option value="">---------</option>';
-        caboList.innerHTML = '<span class="contato-empty">Selecione uma cidade...</span>';
-        apoiadorList.innerHTML = '<span class="contato-empty">Selecione uma cidade...</span>';
-        if (!rid) { panel.style.display = 'none'; return; }
-        fetch(`/liderancas/api/cidades/${rid}/`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(r => r.json())
-            .then(cidades => {
-                cidades.forEach(c => {
-                    const opt = document.createElement('option');
-                    opt.value = c.id;
-                    opt.textContent = c.nome;
-                    cidade.appendChild(opt);
+    if (regiao) {
+        // ----- Fluxo clássico: região → filtra cidade -----
+        regiao.addEventListener('change', () => {
+            const rid = regiao.value;
+            cidade.innerHTML = '<option value="">---------</option>';
+            caboList.innerHTML = '<span class="contato-empty">Selecione uma cidade...</span>';
+            apoiadorList.innerHTML = '<span class="contato-empty">Selecione uma cidade...</span>';
+            if (!rid) { panel.style.display = 'none'; return; }
+            fetch(`/liderancas/api/cidades/${rid}/`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(r => r.json())
+                .then(cidades => {
+                    cidades.forEach(c => {
+                        const opt = document.createElement('option');
+                        opt.value = c.id;
+                        opt.textContent = c.nome;
+                        cidade.appendChild(opt);
+                    });
                 });
-            });
-        loadCoords(rid);
-    });
+            loadCoords(rid);
+        });
 
-    cidade.addEventListener('change', () => {
-        loadCabos(cidade.value);
-        loadApoiadores(cidade.value);
-    });
-
-    // Se editando, carregar contatos
-    if (regiao.value) {
-        loadCoords(regiao.value);
-        if (cidade.value) {
+        cidade.addEventListener('change', () => {
             loadCabos(cidade.value);
             loadApoiadores(cidade.value);
+        });
+
+        // Se editando, carregar contatos
+        if (regiao.value) {
+            loadCoords(regiao.value);
+            if (cidade.value) {
+                loadCabos(cidade.value);
+                loadApoiadores(cidade.value);
+            }
         }
+    } else {
+        // ----- Fluxo cidade-primeiro (Sorgatto): cidade → região derivada -----
+        // Busca na cidade + preenchimento da região ficam no helper compartilhado
+        // (initCidadePrimeiro, auto-init). Aqui só o painel de contatos do CRM.
+        let mapa = {};
+        const island = form.querySelector('#cidadeRegioesMap');
+        if (island) { try { mapa = JSON.parse(island.textContent || '{}'); } catch (e) {} }
+
+        function carregarContatos() {
+            const info = mapa[cidade.value];
+            if (info && info.rid) {
+                loadCoords(info.rid);
+                loadCabos(cidade.value);
+                loadApoiadores(cidade.value);
+            } else {
+                panel.style.display = 'none';
+                coordList.innerHTML = '<span class="contato-empty">Selecione uma cidade...</span>';
+                caboList.innerHTML = '<span class="contato-empty">Selecione uma cidade...</span>';
+                apoiadorList.innerHTML = '<span class="contato-empty">Selecione uma cidade...</span>';
+            }
+        }
+
+        cidade.addEventListener('change', carregarContatos);
+        if (cidade.value) carregarContatos();  // edição/pré-preenchimento
     }
 }
 

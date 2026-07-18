@@ -1,4 +1,5 @@
 from django import forms
+from core.forms import CidadePrimeiroFormMixin
 from .models import Usuario
 from liderancas.models import Cidade, Regiao
 
@@ -57,7 +58,7 @@ AREAS_TAREFAS_CHOICES = [
 ]
 
 
-class UsuarioCreateForm(forms.ModelForm):
+class UsuarioCreateForm(CidadePrimeiroFormMixin, forms.ModelForm):
     password1 = forms.CharField(label='Senha', widget=forms.PasswordInput(attrs={
         'class': 'form-input',
     }))
@@ -121,6 +122,11 @@ class UsuarioCreateForm(forms.ModelForm):
                     self.fields['cidade'].queryset = Cidade.objects.none()
             else:
                 self.fields['cidade'].queryset = Cidade.objects.none()
+        self.aplicar_cidade_primeiro()
+
+    def clean(self):
+        cleaned = super().clean()
+        return self.derivar_regiao(cleaned)
 
     def clean_password2(self):
         p1 = self.cleaned_data.get('password1')
@@ -139,7 +145,7 @@ class UsuarioCreateForm(forms.ModelForm):
         return user
 
 
-class UsuarioEditForm(forms.ModelForm):
+class UsuarioEditForm(CidadePrimeiroFormMixin, forms.ModelForm):
     password = forms.CharField(
         label='Nova senha (deixe em branco para manter)',
         widget=forms.PasswordInput(attrs={'class': 'form-input'}),
@@ -206,6 +212,11 @@ class UsuarioEditForm(forms.ModelForm):
         if self.instance.pk:
             self.fields['secoes'].initial = self.instance.secoes_permitidas
             self.fields['areas'].initial = self.instance.areas_tarefas
+        self.aplicar_cidade_primeiro()
+
+    def clean(self):
+        cleaned = super().clean()
+        return self.derivar_regiao(cleaned)
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -219,7 +230,7 @@ class UsuarioEditForm(forms.ModelForm):
         return user
 
 
-class UsuarioPWACreateForm(forms.ModelForm):
+class UsuarioPWACreateForm(CidadePrimeiroFormMixin, forms.ModelForm):
     password1 = forms.CharField(label='Senha', widget=forms.PasswordInput(attrs={'class': 'form-input'}))
     password2 = forms.CharField(label='Confirmar senha', widget=forms.PasswordInput(attrs={'class': 'form-input'}))
 
@@ -249,6 +260,11 @@ class UsuarioPWACreateForm(forms.ModelForm):
                     self.fields['cidade'].queryset = Cidade.objects.filter(regiao_id=regiao_id).order_by('nome')
                 except (ValueError, TypeError):
                     pass
+        self.aplicar_cidade_primeiro()
+
+    def clean(self):
+        cleaned = super().clean()
+        return self.derivar_regiao(cleaned)
 
     def clean_password2(self):
         p1 = self.cleaned_data.get('password1')
@@ -269,7 +285,7 @@ class UsuarioPWACreateForm(forms.ModelForm):
         return user
 
 
-class UsuarioPWAEditForm(forms.ModelForm):
+class UsuarioPWAEditForm(CidadePrimeiroFormMixin, forms.ModelForm):
     password = forms.CharField(
         label='Nova senha (deixe em branco para manter)',
         widget=forms.PasswordInput(attrs={'class': 'form-input'}),
@@ -306,6 +322,11 @@ class UsuarioPWAEditForm(forms.ModelForm):
                     self.fields['cidade'].queryset = Cidade.objects.filter(regiao_id=regiao_id).order_by('nome')
                 except (ValueError, TypeError):
                     pass
+        self.aplicar_cidade_primeiro()
+
+    def clean(self):
+        cleaned = super().clean()
+        return self.derivar_regiao(cleaned)
 
     def save(self, commit=True):
         user = super().save(commit=False)

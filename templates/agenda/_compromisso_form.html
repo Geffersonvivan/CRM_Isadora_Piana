@@ -45,11 +45,26 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
             </div>
             <div class="gcal-fields gcal-fields-inline">
+                {% if campanha.cidade_primeiro %}
+                <div class="gcal-field-md" data-tip="Cidade|Onde acontece. Digite para buscar entre os 295 municípios; a região é preenchida automaticamente.">{{ form.cidade }}</div>
+                <div class="gcal-field-md" data-tip="Região|Preenchida automaticamente a partir da cidade.">
+                    <input type="text" id="id_regiao_display" class="form-input" readonly
+                           placeholder="Região (automática)"
+                           value="{% if form.instance.pk and form.instance.cidade_id %}{{ form.instance.cidade.regiao }}{% endif %}">
+                </div>
+                {% else %}
                 <div class="gcal-field-md" data-tip="Região|Filtra as cidades e os contatos do CRM. Escolha a região antes da cidade.">{{ form.regiao }}</div>
                 <div class="gcal-field-md" data-tip="Cidade|Onde acontece. Conecta o compromisso ao mapa, aos cabos/apoiadores e à urgência de visita do município.">{{ form.cidade }}</div>
+                {% endif %}
             </div>
         </div>
         {{ form.regiao.errors }}{{ form.cidade.errors }}
+        {% if campanha.cidade_primeiro %}
+        {# Lookup cidade → região (id + rótulo): a região é derivada da cidade no front. #}
+        <script id="cidadeRegioesMap" type="application/json">{% autoescape off %}{
+{% for c in form.cidade.field.queryset %}"{{ c.pk }}":{"rid":{{ c.regiao_id }},"nome":"{{ c.regiao|escapejs }}"}{% if not forloop.last %},{% endif %}
+{% endfor %}}{% endautoescape %}</script>
+        {% endif %}
 
         <!-- Endereço -->
         <div class="gcal-row" data-tip="Endereço|Onde acontece o encontro (rua, número, ponto de referência).">
