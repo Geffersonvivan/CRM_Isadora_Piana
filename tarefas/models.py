@@ -1,5 +1,7 @@
 from django.conf import settings
 from django.db import models
+from django.db.models.signals import pre_save, post_save
+from django.dispatch import receiver
 from django.utils import timezone
 
 
@@ -90,6 +92,15 @@ class Tarefa(models.Model):
         null=True, blank=True,
         related_name='tarefas',
         verbose_name='Compromisso vinculado',
+    )
+    # Follow-up atrelado a um contato/apoiador específico da planilha. Vínculo pelo
+    # pk (id interno), não por telefone/nome — some com ambiguidade de homônimos.
+    contato = models.ForeignKey(
+        'liderancas.Lideranca',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='follow_ups',
+        verbose_name='Contato (follow-up)',
     )
 
     cadastrado_por = models.ForeignKey(
@@ -261,5 +272,36 @@ class ItemChecklist(models.Model):
 
     def __str__(self):
         return f'{self.tarefa} — {self.texto[:40]}'
+
+
+# ── Follow-up: fecha o ciclo no histórico do contato ─────────────
+# Quando uma tarefa vinculada a um contato (follow-up) é concluída, registra
+# uma interação na Lideranca. Só dispara para tarefas com contato — as demais
+# marcas nunca preenchem esse FK, então isto é naturalmente exclusivo da Isadora.
+
+@receiver(pre_save, sender=Tarefa)
+def _tarefa_captura_fase_antiga(sender, instance, **kwargs):
+    if instance.pk:
+        instance._old_fase = (
+            Tarefa.objects.filter(pk=instance.pk)
+            .values_list('fase', flat=True).first()
+        )
+    else:
+        instance._old_fase = None
+
+
+@receiver(post_save, sender=Tarefa)
+def _tarefa_followup_interacao(sender, instance, created, **kwargs):
+    if created or not instance.contato_id:
+        return
+    if instance.fase != 'concluida' or getattr(instance, '_old_fase', None) == 'concluida':
+        return
+    from liderancas.models import InteracaoLog
+    InteracaoLog.objects.create(
+        lideranca_id=instance.contato_id,
+        tipo='outro',
+        descricao=f'Follow-up concluído: {instance.titulo}',
+        registrado_por=instance.atualizado_por or instance.cadastrado_por,
+    )
 
 

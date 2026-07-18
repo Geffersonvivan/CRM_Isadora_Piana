@@ -43,6 +43,18 @@
         border: none; border-radius: 3px; box-shadow: none; accent-color: #3b82f6; cursor: pointer;
     }
 
+    /* Banner "Follow-ups de <contato>" no board */
+    .fup-filter-banner { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; padding: 9px 14px;
+        background: color-mix(in srgb, var(--navy) 8%, #fff); border: 1px solid color-mix(in srgb, var(--navy) 28%, #e2e8f0);
+        border-radius: 10px; font-size: 0.85rem; color: #2B2B2B; }
+    .fup-filter-banner svg { color: var(--navy); flex-shrink: 0; }
+    .fup-filter-banner .fup-clear { margin-left: auto; font-size: 0.78rem; color: #64748b; text-decoration: none; }
+    .fup-filter-banner .fup-clear:hover { color: #e11d48; }
+    .modal-fup-chip { display: inline-flex; align-items: center; gap: 5px; margin-right: 10px; padding: 2px 9px;
+        background: color-mix(in srgb, var(--navy) 10%, #fff); border: 1px solid color-mix(in srgb, var(--navy) 28%, #e2e8f0);
+        border-radius: 999px; color: var(--navy); font-weight: 600; }
+    .modal-fup-chip svg { flex-shrink: 0; }
+
     /* Monday-style table */
     .monday-group { margin-bottom: 24px; }
     .monday-group-header {
@@ -978,6 +990,14 @@
         <option value="all" {% if per_page == 'all' %}selected{% endif %}>Todas ({{ total_tarefas }})</option>
     </select>
 </div>
+
+{% if contato_filtro %}
+<div class="fup-filter-banner">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    Follow-ups de <strong>{{ contato_filtro.nome }}</strong>{% if contato_filtro.telefone %} · {{ contato_filtro.telefone }}{% endif %}
+    <a href="{% url 'tarefas:lista' %}" class="fup-clear">✕ limpar</a>
+</div>
+{% endif %}
 
 <div class="monday-group">
     <div class="monday-group-header">
@@ -2577,7 +2597,14 @@ function renderModal(d) {
     setupTextareaState('obs', d.observacoes);
 
     // Meta
-    let metaHtml = `<span>Criada em ${d.created_at}`;
+    let metaHtml = '';
+    if (d.contato_nome) {
+        const wa = d.contato_telefone
+            ? ` · <a href="https://wa.me/55${d.contato_telefone.replace(/\D/g,'')}" target="_blank" rel="noopener" style="color:#0d9488;text-decoration:none;">${escapeHtml(d.contato_telefone)}</a>`
+            : '';
+        metaHtml += `<span class="modal-fup-chip"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> Follow-up de <strong>${escapeHtml(d.contato_nome)}</strong>${wa}</span>`;
+    }
+    metaHtml += `<span>Criada em ${d.created_at}`;
     if (d.cadastrado_por) metaHtml += ` por ${d.cadastrado_por}`;
     metaHtml += '</span>';
     document.getElementById('modalMeta').innerHTML = metaHtml;

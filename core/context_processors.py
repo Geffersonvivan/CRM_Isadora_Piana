@@ -29,6 +29,7 @@ def campanha(request):
             'mapa_niveis_ibge': c.get('MAPA_NIVEIS_IBGE', False),
             'cidade_primeiro': c.get('CIDADE_PRIMEIRO', False),
             'tarefa_checklist': c.get('TAREFA_CHECKLIST', False),
+            'follow_up': c.get('FOLLOW_UP', False),
             'cores': c['CORES'],
             # Aliases planos para contextos onde var() do CSS não resolve
             # (meta theme-color, atributos SVG, cores de canvas/Chart.js).

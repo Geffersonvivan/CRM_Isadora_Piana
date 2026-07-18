@@ -6,6 +6,11 @@
     .btn-secondary { background: #e5e7eb; color: #374151; border: none; }
     .btn-secondary:hover { background: #d1d5db; }
     .help-text { font-size: 0.72rem; color: #94a3b8; margin-top: 2px; }
+    .followup-banner { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding: 10px 14px;
+        background: color-mix(in srgb, var(--navy) 8%, #fff); border: 1px solid color-mix(in srgb, var(--navy) 30%, #e2e8f0);
+        border-radius: 10px; font-size: 0.88rem; color: #2B2B2B; }
+    .followup-banner svg { color: var(--navy); flex-shrink: 0; }
+    .followup-banner a { color: #0d9488; text-decoration: none; }
 </style>
 {% endblock %}
 
@@ -17,6 +22,13 @@
 <div class="form-card">
     <form method="post">
         {% csrf_token %}
+        {{ form.contato }}
+        {% if contato %}
+        <div class="followup-banner">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>
+            Follow-up de <strong>{{ contato.nome }}</strong>{% if contato.telefone %} · <a href="https://wa.me/55{{ contato.telefone|cut:' '|cut:'('|cut:')'|cut:'-' }}" target="_blank" rel="noopener">{{ contato.telefone }}</a>{% endif %}
+        </div>
+        {% endif %}
         <div class="form-grid">
             <div class="form-group full">
                 <label for="id_titulo">Título *</label>

@@ -156,7 +156,10 @@ def lideranca_list(request):
     qs = Lideranca.objects.select_related(
         'cidade', 'cidade__regiao', 'cidade__microrregiao', 'cidade__mesorregiao',
         'regiao', 'coordenador_responsavel', 'cadastrado_por', 'atendente_user',
-    ).annotate(ultima_interacao=Max('interacoes__data'))
+    ).annotate(
+        ultima_interacao=Max('interacoes__data'),
+        follow_ups_total=Count('follow_ups', distinct=True),
+    )
 
     # Aprovação: por padrão esconde rejeitados; filtro explícito mostra o estado pedido
     if aprovacao in ('pendente', 'aprovado', 'rejeitado'):
@@ -927,10 +930,13 @@ def apoiador_edit(request, pk):
             return redirect('liderancas:apoiador_list')
     else:
         form = ApoiadorForm(instance=apoiador, user=request.user)
+    follow_ups = apoiador.follow_ups.filter(
+        excluida_em__isnull=True).order_by('-created_at')
     if _ajax(request):
-        return render(request, 'liderancas/_form_fields.html', {'form': form})
+        return render(request, 'liderancas/_form_fields.html', {'form': form, 'follow_ups': follow_ups})
     return render(request, 'liderancas/apoiador_form.html', {
         'form': form,
+        'follow_ups': follow_ups,
         'titulo': f'Editar: {apoiador}',
     })
 

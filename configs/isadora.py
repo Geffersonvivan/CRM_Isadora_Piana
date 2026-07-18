@@ -36,6 +36,10 @@ CAMPANHA = {
     # converter item em tarefa). Só a Isadora por ora.
     'TAREFA_CHECKLIST': True,
 
+    # Follow-up: tarefa atrelada a um contato da planilha ("Criar follow-up" na
+    # linha, selo de contagem, painel na ficha). Só a Isadora por ora.
+    'FOLLOW_UP': True,
+
     # Dashboard "Meta de Votos" no modelo da planilha (intenção de voto, funil de
     # vaquinha/doação, ranking por atendente) em vez do modelo de rede
     # (coordenador→cabo→replicador). Só a Isadora usa a base da planilha central.

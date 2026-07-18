@@ -113,6 +113,7 @@ def _anotar_coordenadores_cabos(tarefas):
 @secao_required('demandas:tarefas')
 def tarefa_create(request):
     is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest'
+    contato_obj = None
     if request.method == 'POST':
         form = TarefaForm(request.POST, user=request.user)
         if form.is_valid():
@@ -141,13 +142,23 @@ def tarefa_create(request):
         initial = {}
         if request.GET.get('prazo'):
             initial['prazo'] = request.GET['prazo']
+        # ?contato=ID (vindo da planilha de lideranças): follow-up atrelado ao contato
+        if request.GET.get('contato'):
+            contato_obj = Lideranca.objects.filter(pk=request.GET['contato']).first()
+            if contato_obj:
+                initial['contato'] = contato_obj.pk
+                initial['titulo'] = f'Follow-up — {contato_obj.nome}'
+                if contato_obj.cidade_id:
+                    initial['cidade'] = contato_obj.cidade_id
+                    initial['regiao'] = contato_obj.cidade.regiao_id
         form = TarefaForm(initial=initial, user=request.user)
         if is_ajax:
-            html = render_to_string('tarefas/_tarefa_form.html', {'form': form, 'action': request.path}, request=request)
+            html = render_to_string('tarefas/_tarefa_form.html', {'form': form, 'action': request.path, 'contato': contato_obj}, request=request)
             return JsonResponse({'html': html})
     return render(request, 'tarefas/tarefa_form.html', {
         'form': form,
-        'titulo': 'Nova Tarefa',
+        'titulo': 'Novo follow-up' if contato_obj else 'Nova Tarefa',
+        'contato': contato_obj,
     })
 
 
@@ -258,6 +269,13 @@ def lista(request):
     if resp_ids:
         tarefas_qs = tarefas_qs.filter(responsavel_id__in=resp_ids)
 
+    # Follow-ups de um contato específico (?contato=ID vindo da planilha)
+    contato_filtro = None
+    if request.GET.get('contato'):
+        contato_filtro = Lideranca.objects.filter(pk=request.GET['contato']).first()
+        if contato_filtro:
+            tarefas_qs = tarefas_qs.filter(contato=contato_filtro)
+
     # Ranqueado por prazo: as que vencem antes no topo; sem prazo vão para o fim.
     # Empate mantém a ordem manual (ordem) e a prioridade como desempate.
     tarefas_qs = tarefas_qs.order_by(F('prazo').asc(nulls_last=True), 'ordem', '-prioridade')
@@ -309,6 +327,7 @@ def lista(request):
         'regioes': regioes,
         'form': TarefaForm(user=request.user),
         'filtros_sel': {'fase': f_fase, 'area': f_area, 'prio': f_prio, 'resp': f_resp},
+        'contato_filtro': contato_filtro,
     })
 
 
@@ -499,7 +518,7 @@ def api_comentario_excluir(request, pk):
 @secao_required('demandas:tarefas')
 def api_tarefa_detail(request, pk):
     tarefa = get_object_or_404(Tarefa.objects.select_related(
-        'responsavel', 'regiao', 'cidade', 'cadastrado_por', 'atualizado_por', 'compromisso'
+        'responsavel', 'regiao', 'cidade', 'cadastrado_por', 'atualizado_por', 'compromisso', 'contato'
     ), pk=pk)
     if not _user_can_access(request.user, tarefa):
         return JsonResponse({'ok': False, 'error': 'Sem permissão'}, status=403)
@@ -593,6 +612,9 @@ def api_tarefa_detail(request, pk):
         'created_at': tarefa.created_at.strftime('%d/%m/%Y %H:%M'),
         'updated_at': tarefa.updated_at.strftime('%d/%m/%Y %H:%M') if tarefa.updated_at else '',
         'atualizado_por': tarefa.atualizado_por.get_full_name() if tarefa.atualizado_por else '',
+        'contato_id': tarefa.contato_id or '',
+        'contato_nome': tarefa.contato.nome if tarefa.contato else '',
+        'contato_telefone': tarefa.contato.telefone if tarefa.contato else '',
         'compromisso_id': tarefa.compromisso_id or '',
         'compromisso_titulo': tarefa.compromisso.titulo if tarefa.compromisso else '',
         'compromisso_data': tarefa.compromisso.data_hora_inicio.strftime('%d/%m/%Y %H:%M') if tarefa.compromisso else '',

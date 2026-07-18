@@ -1,6 +1,6 @@
 from django import forms
 from core.forms import CidadePrimeiroFormMixin
-from liderancas.models import Regiao, Cidade
+from liderancas.models import Regiao, Cidade, Lideranca
 from usuarios.models import Usuario
 from .models import Tarefa, Comentario
 
@@ -12,6 +12,11 @@ class TarefaForm(CidadePrimeiroFormMixin, forms.ModelForm):
         label='Região',
         widget=forms.Select(attrs={'class': 'form-input', 'id': 'id_regiao'}),
     )
+    # Contato do follow-up (oculto) — preenchido via ?contato=ID a partir da planilha.
+    contato = forms.ModelChoiceField(
+        queryset=Lideranca.objects.all(), required=False,
+        widget=forms.HiddenInput(),
+    )
 
     class Meta:
         model = Tarefa
@@ -19,6 +24,7 @@ class TarefaForm(CidadePrimeiroFormMixin, forms.ModelForm):
             'titulo', 'descricao', 'tipo', 'prioridade',
             'responsavel', 'participantes',
             'regiao', 'cidade', 'prazo', 'link', 'link_reuniao', 'observacoes',
+            'contato',
         ]
         widgets = {
             'titulo': forms.TextInput(attrs={'class': 'form-input'}),
