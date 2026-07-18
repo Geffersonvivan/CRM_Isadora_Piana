@@ -179,6 +179,13 @@ class ApoiadorForm(CidadePrimeiroFormMixin, DuplicateCheckMixin, forms.ModelForm
         choices=[c for c in Lideranca.TIPO_CHOICES if c[0] != 'pwa'],
         widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check'}),
     )
+    # "Em que você quer ajudar?" — múltipla, agrupada por frente (só layout Isadora).
+    formas_ajuda = forms.MultipleChoiceField(
+        label='Em que você quer ajudar?',
+        required=False,
+        choices=Lideranca.FORMAS_AJUDA_CHOICES,
+        widget=forms.CheckboxSelectMultiple,
+    )
 
     field_order = [
         'nome', 'telefone', 'email', 'regiao', 'cidade', 'uf',
@@ -187,7 +194,8 @@ class ApoiadorForm(CidadePrimeiroFormMixin, DuplicateCheckMixin, forms.ModelForm
         'prioridade', 'grau_influencia', 'frequencia_relacionamento', 'status',
         # PLANILHA CENTRAL — atendimento & relacionamento
         'atendente', 'contato_feito', 'data_contato', 'canal_atendimento',
-        'intencao_voto', 'quem_e_eleitor', 'filiado_partido', 'segmentos', 'idade',
+        'intencao_voto', 'quem_e_eleitor', 'filiado_partido', 'segmentos',
+        'formas_ajuda', 'quer_trabalho_remunerado', 'idade',
         'vaquinha_enviada', 'doou', 'material_entregue', 'endereco',
         'observacoes',
     ]
@@ -203,6 +211,7 @@ class ApoiadorForm(CidadePrimeiroFormMixin, DuplicateCheckMixin, forms.ModelForm
             'status',
             # PLANILHA CENTRAL ISA
             'atendente', 'atendente_user', 'contato_feito', 'data_contato', 'canal_atendimento',
+            'quer_trabalho_remunerado',
             'intencao_voto', 'quem_e_eleitor', 'filiado_partido', 'segmentos', 'idade',
             'vaquinha_enviada', 'doou', 'material_entregue', 'endereco',
             'observacoes',
@@ -286,6 +295,8 @@ class ApoiadorForm(CidadePrimeiroFormMixin, DuplicateCheckMixin, forms.ModelForm
                 self.fields['assoc_display'].initial = c.regiao.sigla if c.regiao_id else ''
                 self.fields['micro_display'].initial = c.microrregiao.nome if c.microrregiao_id else ''
                 self.fields['meso_display'].initial = c.mesorregiao.nome if c.mesorregiao_id else ''
+            if self.instance.pk:
+                self.fields['formas_ajuda'].initial = self.instance.formas_ajuda or []
             # Seções do form (design em capítulos) — agrupam por como a campanha
             # pensa um apoiador: quem é, como classificamos, status de atendimento.
             self._secoes = [
@@ -295,13 +306,17 @@ class ApoiadorForm(CidadePrimeiroFormMixin, DuplicateCheckMixin, forms.ModelForm
                 ('Classificação', ['atendente_user', 'intencao_voto', 'nivel',
                                    'quem_e_eleitor', 'origem_contato', 'filiado_partido',
                                    'segmentos']),
+                ('Como quer ajudar', ['formas_ajuda', 'quer_trabalho_remunerado']),
                 ('Atendimento', ['contato_feito', 'data_contato', 'canal_atendimento',
                                  'vaquinha_enviada', 'doou', 'material_entregue']),
                 ('Observações', ['observacoes']),
             ]
         else:
-            # Outras marcas mantêm o form clássico — sem o seletor de usuário.
+            # Outras marcas mantêm o form clássico — sem o seletor de usuário nem
+            # o campo "em que quer ajudar" (exclusivo do layout Isadora).
             self.fields.pop('atendente_user', None)
+            self.fields.pop('formas_ajuda', None)
+            self.fields.pop('quer_trabalho_remunerado', None)
 
         if 'tipos' in self.fields and self.instance.pk:
             # Pré-seleciona as categorias já gravadas (fallback ao tipo único legado)
@@ -378,6 +393,8 @@ class ApoiadorForm(CidadePrimeiroFormMixin, DuplicateCheckMixin, forms.ModelForm
         # apagar as categorias já gravadas ao editar).
         if 'tipos' in self.fields:
             instance.tipos = self.cleaned_data.get('tipos') or []
+        if 'formas_ajuda' in self.fields:
+            instance.formas_ajuda = self.cleaned_data.get('formas_ajuda') or []
         if commit:
             instance.save()
         return instance

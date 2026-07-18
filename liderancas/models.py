@@ -405,6 +405,38 @@ class Lideranca(SoftDeleteMixin, models.Model):
         default=list, blank=True, verbose_name='Níveis',
         help_text='Um ou mais níveis; o primeiro é o principal.',
     )
+    # "Em que você quer ajudar?" — oferta de contribuição do apoiador (múltipla).
+    # Agrupado por frente; alimenta o plano de campo (vira coluna/filtro na planilha).
+    FORMAS_AJUDA_CHOICES = [
+        ('Rua / território', [
+            ('entregar_material', 'Entregar material porta a porta'),
+            ('adesivar_carro', 'Adesivar meu carro (perfurado)'),
+            ('ceder_transporte', 'Ceder carro / transporte'),
+            ('colar_material', 'Colar / afixar material'),
+            ('levar_eventos', 'Levar gente para eventos'),
+        ]),
+        ('Digital', [
+            ('compartilhar_redes', 'Compartilhar / comentar nas redes'),
+            ('grupo_mobilizacao', 'Entrar em grupo de mobilização'),
+            ('produzir_conteudo', 'Produzir conteúdo (foto/vídeo/design)'),
+        ]),
+        ('Relacional / influência', [
+            ('abrir_portas', 'Abrir portas (empresários, lideranças)'),
+            ('cabo_dia', 'Ser cabo eleitoral no dia (fiscal / apoio)'),
+            ('emprestar_espaco', 'Emprestar espaço (ponto de apoio)'),
+        ]),
+        ('Recurso', [
+            ('doar_vaquinha', 'Doar (vaquinha)'),
+        ]),
+    ]
+    formas_ajuda = models.JSONField(
+        default=list, blank=True, verbose_name='Formas de ajuda',
+        help_text='Em que o apoiador quer ajudar (múltipla escolha).',
+    )
+    # Flag SEPARADA — muda a natureza da relação (remunerado ≠ voluntário).
+    quer_trabalho_remunerado = models.BooleanField(
+        default=False, verbose_name='Quer trabalhar (remunerado)',
+    )
     uf = models.CharField(
         max_length=2, blank=True, default='SC', verbose_name='UF',
     )                                                       # planilha: UF

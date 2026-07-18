@@ -11,6 +11,22 @@
     .switch .switch-track::after { content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: left .18s; }
     .switch input:checked + .switch-track { background: var(--navy); }
     .switch input:checked + .switch-track::after { left: 20px; }
+
+    /* "Em que você quer ajudar?" — cards agrupados por frente */
+    .ajuda-title { display: block; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #2B2B2B; margin-bottom: 14px; }
+    .ajuda-hint { font-weight: 400; text-transform: none; letter-spacing: 0; color: #6b6257; }
+    .ajuda-group { margin-bottom: 16px; }
+    .ajuda-group:last-child { margin-bottom: 0; }
+    .ajuda-group-h { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: #2B2B2B; margin-bottom: 9px; }
+    .ajuda-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); gap: 8px; }
+    .ajuda-opt { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid #e3e6ea; border-radius: 8px; background: #f4f5f7; cursor: pointer; font-size: 0.88rem; color: #2B2B2B; line-height: 1.3; transition: all .15s; }
+    .ajuda-opt:hover { border-color: var(--navy); }
+    .ajuda-opt input { position: absolute; opacity: 0; width: 0; height: 0; }
+    .ajuda-box { width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid #9aa0a6; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #fff; }
+    .ajuda-box svg { opacity: 0; }
+    .ajuda-opt:has(input:checked) { background: color-mix(in srgb, var(--navy) 10%, #fff); border-color: var(--navy); }
+    .ajuda-opt:has(input:checked) .ajuda-box { background: var(--navy); border-color: var(--navy); }
+    .ajuda-opt:has(input:checked) .ajuda-box svg { opacity: 1; }
 </style>
 {% endblock %}
 
@@ -26,7 +42,26 @@
         {# Loop único (mesma convenção do _form_fields.html) — inclui os campos da PLANILHA CENTRAL e evita drift. #}
         <div class="form-grid">
             {% for field in form.visible_fields %}
-            {% if campanha.cidade_primeiro and field.name == 'regiao' %}
+            {% if field.name == 'formas_ajuda' %}
+            <div class="form-group full ajuda-field">
+                <span class="ajuda-title">Em que você quer ajudar? <span class="ajuda-hint">(pode marcar vários)</span></span>
+                {% for group_name, opts in field.field.choices %}
+                <div class="ajuda-group">
+                    <div class="ajuda-group-h">{{ group_name }}</div>
+                    <div class="ajuda-opts">
+                        {% for val, label in opts %}
+                        <label class="ajuda-opt">
+                            <input type="checkbox" name="{{ field.html_name }}" value="{{ val }}"{% if field.value and val in field.value %} checked{% endif %}>
+                            <span class="ajuda-box"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg></span>
+                            <span>{{ label }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+                {{ field.errors }}
+            </div>
+            {% elif campanha.cidade_primeiro and field.name == 'regiao' %}
             {# Cidade-primeiro: a região é derivada da cidade — não renderiza o select. #}
             {% elif field.field.widget.input_type == 'checkbox' %}
             <div class="form-group">
