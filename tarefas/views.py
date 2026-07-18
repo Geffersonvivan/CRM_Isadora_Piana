@@ -40,6 +40,11 @@ def _user_can_access(user, tarefa):
     return bool(areas) and tarefa.tipo in areas
 
 
+def _multi(request, key):
+    """Lê um parâmetro multi-valor da query (separado por vírgula), sem vazios."""
+    return [v for v in (x.strip() for x in request.GET.get(key, '').split(',')) if v]
+
+
 def _serialize_item_checklist(i):
     """Serializa um ItemChecklist para o front."""
     return {
@@ -237,6 +242,22 @@ def lista(request):
     )
 
     tarefas_qs = _filtrar_por_usuario(tarefas_qs, request.user)
+
+    # Filtros multi-seleção (server-side): OU dentro do filtro, E entre filtros.
+    f_fase = _multi(request, 'fase')
+    f_area = _multi(request, 'area')
+    f_prio = _multi(request, 'prio')
+    f_resp = _multi(request, 'resp')
+    if f_fase:
+        tarefas_qs = tarefas_qs.filter(fase__in=f_fase)
+    if f_area:
+        tarefas_qs = tarefas_qs.filter(tipo__in=f_area)
+    if f_prio:
+        tarefas_qs = tarefas_qs.filter(prioridade__in=f_prio)
+    resp_ids = [int(x) for x in f_resp if x.isdigit()]
+    if resp_ids:
+        tarefas_qs = tarefas_qs.filter(responsavel_id__in=resp_ids)
+
     # Ranqueado por prazo: as que vencem antes no topo; sem prazo vão para o fim.
     # Empate mantém a ordem manual (ordem) e a prioridade como desempate.
     tarefas_qs = tarefas_qs.order_by(F('prazo').asc(nulls_last=True), 'ordem', '-prioridade')
@@ -287,6 +308,7 @@ def lista(request):
         'prioridade_choices': Tarefa.PRIORIDADE_CHOICES,
         'regioes': regioes,
         'form': TarefaForm(user=request.user),
+        'filtros_sel': {'fase': f_fase, 'area': f_area, 'prio': f_prio, 'resp': f_resp},
     })
 
 

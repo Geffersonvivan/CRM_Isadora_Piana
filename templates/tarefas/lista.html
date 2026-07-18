@@ -23,6 +23,26 @@
     .filters-bar input::placeholder { color: #94a3b8; }
     .filters-bar select:focus, .filters-bar input:focus { outline: none; border-color: #3b82f6; background: #fff; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
 
+    /* Filtros multi-seleção (dropdown de checkbox) */
+    .fdrop { position: relative; }
+    .fdrop-btn { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 0.8rem; background: #f8fafc; min-width: 140px; color: #475569; cursor: pointer; transition: all 0.15s; font-family: inherit; }
+    .fdrop-btn:hover { border-color: #cbd5e1; }
+    .fdrop.open .fdrop-btn { border-color: #3b82f6; background: #fff; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+    .fdrop-label { flex: 1; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .fdrop-label.sel { color: #1e293b; font-weight: 600; }
+    .fdrop-caret { flex-shrink: 0; }
+    .fdrop-menu { position: absolute; z-index: 60; top: calc(100% + 4px); left: 0; min-width: 210px; background: #fff; border: 1.5px solid #e2e8f0; border-radius: 10px; box-shadow: 0 12px 30px rgba(0,0,0,.12); padding: 6px; display: none; }
+    .fdrop.open .fdrop-menu { display: block; }
+    .fdrop-menu-scroll { max-height: 300px; overflow-y: auto; }
+    .fdrop-opt { display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: 7px; font-size: 0.82rem; color: #334155; cursor: pointer; }
+    .fdrop-opt:hover { background: #f1f5f9; }
+    /* Sobrescreve a regra global .filters-bar input (que deixaria o checkbox largo). */
+    .filters-bar .fdrop-opt input[type="checkbox"] {
+        width: 15px; height: 15px; min-width: 0; padding: 0; margin: 0; flex-shrink: 0;
+        appearance: auto; -webkit-appearance: checkbox; background-image: none;
+        border: none; border-radius: 3px; box-shadow: none; accent-color: #3b82f6; cursor: pointer;
+    }
+
     /* Monday-style table */
     .monday-group { margin-bottom: 24px; }
     .monday-group-header {
@@ -915,33 +935,41 @@
 </div>
 
 <div class="filters-bar">
-    <input type="text" id="filtroBusca" placeholder="Buscar tarefa..." oninput="filtrarLinhas()">
-    <select id="filtroFase" onchange="filtrarLinhas()">
-        <option value="">Todas as fases</option>
-        {% for val, label in fase_choices %}
-        <option value="{{ val }}">{{ label }}</option>
-        {% endfor %}
-    </select>
+    <input type="text" id="filtroBusca" placeholder="Buscar tarefa..." oninput="filtrarBusca()">
+    <div class="fdrop" id="fdropFase" data-empty="Todas as fases">
+        <button type="button" class="fdrop-btn" onclick="toggleFdrop('fdropFase', event)"><span class="fdrop-label">Todas as fases</span><svg class="fdrop-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <div class="fdrop-menu">
+            {% for val, label in fase_choices %}
+            <label class="fdrop-opt"><input type="checkbox" value="{{ val }}"{% if val in filtros_sel.fase %} checked{% endif %} onchange="onFdropChange('fdropFase')"><span>{{ label }}</span></label>
+            {% endfor %}
+        </div>
+    </div>
     {% if tipo_choices|length > 1 %}
-    <select id="filtroArea" onchange="filtrarLinhas()">
-        <option value="">Todas as áreas</option>
-        {% for val, label in tipo_choices %}
-        <option value="{{ val }}">{{ label }}</option>
-        {% endfor %}
-    </select>
+    <div class="fdrop" id="fdropArea" data-empty="Todas as áreas">
+        <button type="button" class="fdrop-btn" onclick="toggleFdrop('fdropArea', event)"><span class="fdrop-label">Todas as áreas</span><svg class="fdrop-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <div class="fdrop-menu">
+            {% for val, label in tipo_choices %}
+            <label class="fdrop-opt"><input type="checkbox" value="{{ val }}"{% if val in filtros_sel.area %} checked{% endif %} onchange="onFdropChange('fdropArea')"><span>{{ label }}</span></label>
+            {% endfor %}
+        </div>
+    </div>
     {% endif %}
-    <select id="filtroResponsavel" onchange="filtrarLinhas()">
-        <option value="">Todos responsáveis</option>
-        {% for u in usuarios %}
-        <option value="{{ u.id }}">{{ u.get_full_name|default:u.username }}</option>
-        {% endfor %}
-    </select>
-    <select id="filtroPrioridade" onchange="filtrarLinhas()">
-        <option value="">Todas prioridades</option>
-        {% for val, label in prioridade_choices %}
-        <option value="{{ val }}">{{ label }}</option>
-        {% endfor %}
-    </select>
+    <div class="fdrop" id="fdropResp" data-empty="Todos responsáveis">
+        <button type="button" class="fdrop-btn" onclick="toggleFdrop('fdropResp', event)"><span class="fdrop-label">Todos responsáveis</span><svg class="fdrop-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <div class="fdrop-menu fdrop-menu-scroll">
+            {% for u in usuarios %}
+            <label class="fdrop-opt"><input type="checkbox" value="{{ u.id }}"{% if u.id|stringformat:'s' in filtros_sel.resp %} checked{% endif %} onchange="onFdropChange('fdropResp')"><span>{{ u.get_full_name|default:u.username }}</span></label>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="fdrop" id="fdropPrio" data-empty="Todas prioridades">
+        <button type="button" class="fdrop-btn" onclick="toggleFdrop('fdropPrio', event)"><span class="fdrop-label">Todas prioridades</span><svg class="fdrop-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <div class="fdrop-menu">
+            {% for val, label in prioridade_choices %}
+            <label class="fdrop-opt"><input type="checkbox" value="{{ val }}"{% if val in filtros_sel.prio %} checked{% endif %} onchange="onFdropChange('fdropPrio')"><span>{{ label }}</span></label>
+            {% endfor %}
+        </div>
+    </div>
     <button class="btn btn-outline btn-sm" onclick="limparFiltros()">Limpar</button>
     <select id="perPage" onchange="changePerPage(this.value)" style="margin-left:auto;font-size:0.78rem;padding:6px 10px;border:1px solid #d0d4e4;border-radius:8px;color:#475569;cursor:pointer;">
         <option value="25" {% if per_page == '25' %}selected{% endif %}>25 por página</option>
@@ -3756,52 +3784,79 @@ function salvarTextareaBlur(key) {
 document.getElementById('modalDescricao').addEventListener('blur', () => salvarTextareaBlur('descricao'));
 document.getElementById('modalObs').addEventListener('blur', () => salvarTextareaBlur('obs'));
 
-function filtrarLinhas() {
-    const busca = document.getElementById('filtroBusca').value.toLowerCase();
-    const fase = document.getElementById('filtroFase').value;
-    const resp = document.getElementById('filtroResponsavel').value;
-    const prio = document.getElementById('filtroPrioridade').value;
-    const areaEl = document.getElementById('filtroArea');
-    const area = areaEl ? areaEl.value : '';
-    document.querySelectorAll('#tableBody tr[data-id]').forEach(row => {
-        let v = true;
-        if (busca && !row.dataset.titulo.includes(busca)) v = false;
-        if (fase && row.dataset.fase !== fase) v = false;
-        if (resp && row.dataset.responsavel !== resp) v = false;
-        if (prio && row.dataset.prioridade !== prio) v = false;
-        if (area && row.dataset.tipo !== area) v = false;
-        row.style.display = v ? '' : 'none';
-    });
-    // Persist to URL
-    const params = new URLSearchParams();
-    if (busca) params.set('busca', busca);
-    if (fase) params.set('fase', fase);
-    if (resp) params.set('resp', resp);
-    if (prio) params.set('prio', prio);
-    if (area) params.set('area', area);
-    const qs = params.toString();
-    const newUrl = window.location.pathname + (qs ? '?' + qs : '');
-    history.replaceState(null, '', newUrl);
+// ── Filtros multi (server-side): OU dentro, E entre. Aplica ao fechar o dropdown. ──
+const FDROP_KEYS = { fdropFase: 'fase', fdropArea: 'area', fdropResp: 'resp', fdropPrio: 'prio' };
+let fdropDirty = false;
+
+function fdropRefreshLabel(id) {
+    const d = document.getElementById(id); if (!d) return;
+    const checked = [...d.querySelectorAll('input:checked')];
+    const label = d.querySelector('.fdrop-label');
+    if (!checked.length) { label.textContent = d.dataset.empty; label.classList.remove('sel'); return; }
+    const first = checked[0].closest('.fdrop-opt').querySelector('span').textContent.trim();
+    label.textContent = checked.length === 1 ? first : `${first} +${checked.length - 1}`;
+    label.classList.add('sel');
 }
-function limparFiltros() {
-    document.getElementById('filtroBusca').value = '';
-    document.getElementById('filtroFase').value = '';
-    document.getElementById('filtroResponsavel').value = '';
-    document.getElementById('filtroPrioridade').value = '';
-    const areaEl = document.getElementById('filtroArea');
-    if (areaEl) areaEl.value = '';
-    filtrarLinhas();
+function onFdropChange(id) { fdropRefreshLabel(id); fdropDirty = true; }
+
+function toggleFdrop(id, ev) {
+    if (ev) ev.stopPropagation();
+    const d = document.getElementById(id);
+    if (d.classList.contains('open')) {
+        d.classList.remove('open');
+        if (fdropDirty) { fdropDirty = false; aplicarFiltros(); }
+    } else {
+        document.querySelectorAll('.fdrop.open').forEach(x => x.classList.remove('open'));
+        d.classList.add('open');
+    }
 }
-// Restore filters from URL on load
-(function() {
+// Clicar fora: fecha os dropdowns e aplica se algo mudou
+document.addEventListener('click', function (e) {
+    if (e.target.closest('.fdrop')) return;
+    const anyOpen = document.querySelector('.fdrop.open');
+    document.querySelectorAll('.fdrop.open').forEach(x => x.classList.remove('open'));
+    if (anyOpen && fdropDirty) { fdropDirty = false; aplicarFiltros(); }
+});
+
+function _fdropVals(id) {
+    const d = document.getElementById(id);
+    return d ? [...d.querySelectorAll('input:checked')].map(i => i.value) : [];
+}
+function aplicarFiltros() {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('busca')) document.getElementById('filtroBusca').value = params.get('busca');
-    if (params.get('fase')) document.getElementById('filtroFase').value = params.get('fase');
-    if (params.get('resp')) document.getElementById('filtroResponsavel').value = params.get('resp');
-    if (params.get('prio')) document.getElementById('filtroPrioridade').value = params.get('prio');
-    const areaEl = document.getElementById('filtroArea');
-    if (areaEl && params.get('area')) areaEl.value = params.get('area');
-    if (params.toString()) filtrarLinhas();
+    const set = (k, vals) => { if (vals.length) params.set(k, vals.join(',')); else params.delete(k); };
+    for (const [id, key] of Object.entries(FDROP_KEYS)) set(key, _fdropVals(id));
+    const busca = document.getElementById('filtroBusca').value.trim();
+    if (busca) params.set('busca', busca); else params.delete('busca');
+    params.delete('page');  // ao filtrar, volta pra primeira página
+    window.location.search = params.toString();
+}
+
+function limparFiltros() {
+    const params = new URLSearchParams();
+    const pp = new URLSearchParams(window.location.search).get('per_page');
+    if (pp) params.set('per_page', pp);
+    window.location.search = params.toString();
+}
+
+// Busca: filtro instantâneo no cliente sobre as linhas já carregadas (dentro do
+// recorte que o servidor já filtrou). Persiste na URL sem recarregar.
+function filtrarBusca() {
+    const q = document.getElementById('filtroBusca').value.toLowerCase();
+    document.querySelectorAll('#tableBody tr[data-id]').forEach(row => {
+        row.style.display = (!q || row.dataset.titulo.includes(q)) ? '' : 'none';
+    });
+    const params = new URLSearchParams(window.location.search);
+    if (q) params.set('busca', q); else params.delete('busca');
+    const qs = params.toString();
+    history.replaceState(null, '', window.location.pathname + (qs ? '?' + qs : ''));
+}
+
+// Na carga: restaura a busca (client) e ajusta os rótulos dos dropdowns
+(function () {
+    const busca = new URLSearchParams(window.location.search).get('busca');
+    if (busca) { document.getElementById('filtroBusca').value = busca; filtrarBusca(); }
+    Object.keys(FDROP_KEYS).forEach(fdropRefreshLabel);
 })();
 
 /* ── Inline create ── */
