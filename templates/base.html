@@ -411,6 +411,11 @@ setInterval(fetchNotifCount, 30000);
 </style>
 <script>
 (function () {
+  // Guarda: se o script rodar 2x (cache/duplo-include), só o 1º liga os listeners
+  // — evita balão de tooltip duplicado. Remove um #ajTip órfão de execução anterior.
+  if (window.__ajTipInit) return;
+  window.__ajTipInit = true;
+  document.querySelectorAll('#ajTip').forEach(function (n) { n.remove(); });
   let tip = null;
   function el() {
     if (!tip) { tip = document.createElement('div'); tip.id = 'ajTip'; document.body.appendChild(tip); }

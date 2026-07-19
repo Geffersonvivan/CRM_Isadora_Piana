@@ -50,10 +50,16 @@
     .fup-filter-banner svg { color: var(--navy); flex-shrink: 0; }
     .fup-filter-banner .fup-clear { margin-left: auto; font-size: 0.78rem; color: #64748b; text-decoration: none; }
     .fup-filter-banner .fup-clear:hover { color: #e11d48; }
-    .modal-fup-chip { display: inline-flex; align-items: center; gap: 5px; margin-right: 10px; padding: 2px 9px;
+    .modal-fup-chip { display: inline-flex; align-items: flex-start; gap: 6px; flex-basis: 100%; max-width: 100%;
+        box-sizing: border-box; margin: 0 0 6px; padding: 5px 11px;
         background: color-mix(in srgb, var(--navy) 10%, #fff); border: 1px solid color-mix(in srgb, var(--navy) 28%, #e2e8f0);
-        border-radius: 999px; color: var(--navy); font-weight: 600; }
-    .modal-fup-chip svg { flex-shrink: 0; }
+        border-radius: 12px; color: var(--navy); font-weight: 600; white-space: normal; }
+    .modal-fup-chip svg { flex-shrink: 0; margin-top: 2px; }
+    .modal-fup-txt { white-space: normal; word-break: break-word; line-height: 1.4; }
+    .modal-fup-name { color: var(--navy); font-weight: 700; text-decoration: none; }
+    .modal-fup-name:hover { text-decoration: underline; }
+    .modal-fup-tel { color: #0d9488; text-decoration: none; white-space: nowrap; }
+    .modal-fup-tel:hover { text-decoration: underline; }
 
     /* Monday-style table */
     .monday-group { margin-bottom: 24px; }
@@ -2600,9 +2606,12 @@ function renderModal(d) {
     let metaHtml = '';
     if (d.contato_nome) {
         const wa = d.contato_telefone
-            ? ` · <a href="https://wa.me/55${d.contato_telefone.replace(/\D/g,'')}" target="_blank" rel="noopener" style="color:#0d9488;text-decoration:none;">${escapeHtml(d.contato_telefone)}</a>`
+            ? `<a class="modal-fup-tel" href="https://wa.me/55${d.contato_telefone.replace(/\D/g,'')}" target="_blank" rel="noopener">${escapeHtml(d.contato_telefone)}</a>`
             : '';
-        metaHtml += `<span class="modal-fup-chip"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg> Follow-up de <strong>${escapeHtml(d.contato_nome)}</strong>${wa}</span>`;
+        const nome = d.contato_url
+            ? `<a class="modal-fup-name" href="${d.contato_url}" title="Abrir a ficha do contato">${escapeHtml(d.contato_nome)}</a>`
+            : `<strong>${escapeHtml(d.contato_nome)}</strong>`;
+        metaHtml += `<span class="modal-fup-chip"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span class="modal-fup-txt">Follow-up de ${nome}${wa ? ' · ' + wa : ''}</span></span>`;
     }
     metaHtml += `<span>Criada em ${d.created_at}`;
     if (d.cadastrado_por) metaHtml += ` por ${d.cadastrado_por}`;

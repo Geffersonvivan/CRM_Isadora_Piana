@@ -6,6 +6,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q, F, Count
 from django.http import JsonResponse
 from django.template.loader import render_to_string
+from django.urls import reverse, NoReverseMatch
 from django.views.decorators.http import require_POST
 from django.views.decorators.cache import never_cache
 from django.contrib.auth.decorators import login_required
@@ -43,6 +44,16 @@ def _user_can_access(user, tarefa):
 def _multi(request, key):
     """Lê um parâmetro multi-valor da query (separado por vírgula), sem vazios."""
     return [v for v in (x.strip() for x in request.GET.get(key, '').split(',')) if v]
+
+
+def _lideranca_edit_url(contato):
+    """URL da ficha/edição do contato conforme o papel (apoiador/coordenador/cabo)."""
+    if not contato:
+        return ''
+    try:
+        return reverse(f'liderancas:{contato.papel}_edit', args=[contato.pk])
+    except NoReverseMatch:
+        return ''
 
 
 def _serialize_item_checklist(i):
@@ -159,6 +170,7 @@ def tarefa_create(request):
         'form': form,
         'titulo': 'Novo follow-up' if contato_obj else 'Nova Tarefa',
         'contato': contato_obj,
+        'contato_url': _lideranca_edit_url(contato_obj),
     })
 
 
@@ -615,6 +627,7 @@ def api_tarefa_detail(request, pk):
         'contato_id': tarefa.contato_id or '',
         'contato_nome': tarefa.contato.nome if tarefa.contato else '',
         'contato_telefone': tarefa.contato.telefone if tarefa.contato else '',
+        'contato_url': _lideranca_edit_url(tarefa.contato),
         'compromisso_id': tarefa.compromisso_id or '',
         'compromisso_titulo': tarefa.compromisso.titulo if tarefa.compromisso else '',
         'compromisso_data': tarefa.compromisso.data_hora_inicio.strftime('%d/%m/%Y %H:%M') if tarefa.compromisso else '',
