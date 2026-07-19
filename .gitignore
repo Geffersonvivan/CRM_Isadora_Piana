@@ -50,3 +50,11 @@ Auditoria_CRM/
 
 # Grafo de conhecimento gerado (graphify)
 graphify-out/
+
+# Credencial de service account do Google (backup ao Drive) — NUNCA commitar
+crm-base-eleitoral-*.json
+*service-account*.json
+*-sa.json
+# OAuth do backup ao Drive — NUNCA commitar (segredos)
+.drive_oauth.json
+client_secret*.json

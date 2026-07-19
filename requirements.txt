@@ -16,3 +16,4 @@ anthropic==0.112.0
 # Backup diário → Google Drive (comando backup_to_drive)
 google-api-python-client==2.149.0
 google-auth==2.35.0
+google-auth-oauthlib==1.2.1  # fluxo OAuth local (get_drive_token, uma vez)

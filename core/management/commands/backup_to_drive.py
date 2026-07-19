@@ -18,8 +18,14 @@ Uso:
   python manage.py backup_to_drive --output /tmp/b.json.gz
 
 Config do Drive (env), opcional — sem ela, só gera o arquivo local:
-  GOOGLE_SERVICE_ACCOUNT_JSON = conteúdo do JSON da service account (ou caminho do arquivo)
-  DRIVE_FOLDER_ID             = ID da pasta do Drive compartilhada com a service account
+  DRIVE_FOLDER_ID = ID da pasta destino no Drive.
+  Credencial — uma das duas:
+   (A) OAuth do usuário (Drive pessoal/Gmail — sobe na cota do usuário):
+       GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_CLIENT_SECRET / GOOGLE_OAUTH_REFRESH_TOKEN
+       (gere o refresh token uma vez com `python manage.py get_drive_token`).
+   (B) Service account (só funciona em Drive Compartilhado/Workspace):
+       GOOGLE_SERVICE_ACCOUNT_JSON = conteúdo do JSON (ou caminho do arquivo).
+  Se as duas estiverem setadas, o OAuth (A) tem prioridade.
 """
 import gzip
 import io
@@ -69,37 +75,50 @@ class Command(BaseCommand):
         if opts.get('no_upload'):
             return
 
-        cred = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON', '')
         folder = os.environ.get('DRIVE_FOLDER_ID', '')
-        if not cred or not folder:
+        oauth_rt = os.environ.get('GOOGLE_OAUTH_REFRESH_TOKEN', '')
+        sa_cred = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON', '')
+        if not folder or not (oauth_rt or sa_cred):
             self.stdout.write(self.style.WARNING(
-                'GOOGLE_SERVICE_ACCOUNT_JSON/DRIVE_FOLDER_ID não configurados — '
-                'arquivo gerado localmente, sem upload ao Drive.'
+                'Sem credencial de Drive (GOOGLE_OAUTH_REFRESH_TOKEN ou '
+                'GOOGLE_SERVICE_ACCOUNT_JSON) + DRIVE_FOLDER_ID — arquivo gerado '
+                'localmente, sem upload ao Drive.'
             ))
             return
 
         try:
-            file_id = self._upload_drive(destino, os.path.basename(destino), cred, folder)
+            file_id = self._upload_drive(destino, os.path.basename(destino), folder)
             self.stdout.write(self.style.SUCCESS(f'Enviado ao Google Drive (fileId={file_id}).'))
         except Exception as e:
             # Não estourar o job de backup por falha de upload: o arquivo local existe.
             self.stderr.write(self.style.ERROR(f'Falha no upload ao Drive: {type(e).__name__}: {e}'))
             raise
 
-    def _upload_drive(self, path, nome, cred_raw, folder_id):
+    def _drive_credentials(self):
+        """OAuth do usuário (prioridade — sobe na cota dele; necessário em Drive
+        pessoal/Gmail) ou service account (para Drives Compartilhados/Workspace)."""
+        scopes = ['https://www.googleapis.com/auth/drive']
+        rt = os.environ.get('GOOGLE_OAUTH_REFRESH_TOKEN', '')
+        if rt:
+            from google.oauth2.credentials import Credentials
+            return Credentials(
+                None,
+                refresh_token=rt,
+                token_uri='https://oauth2.googleapis.com/token',
+                client_id=os.environ.get('GOOGLE_OAUTH_CLIENT_ID'),
+                client_secret=os.environ.get('GOOGLE_OAUTH_CLIENT_SECRET'),
+                scopes=scopes,
+            )
         from google.oauth2 import service_account
+        cred_raw = os.environ.get('GOOGLE_SERVICE_ACCOUNT_JSON', '')
+        info = json.load(open(cred_raw)) if os.path.isfile(cred_raw) else json.loads(cred_raw)
+        return service_account.Credentials.from_service_account_info(info, scopes=scopes)
+
+    def _upload_drive(self, path, nome, folder_id):
         from googleapiclient.discovery import build
         from googleapiclient.http import MediaFileUpload
 
-        # cred pode ser o JSON inline (env grande) ou um caminho de arquivo.
-        if os.path.isfile(cred_raw):
-            info = json.load(open(cred_raw))
-        else:
-            info = json.loads(cred_raw)
-        creds = service_account.Credentials.from_service_account_info(
-            info, scopes=['https://www.googleapis.com/auth/drive.file'],
-        )
-        service = build('drive', 'v3', credentials=creds, cache_discovery=False)
+        service = build('drive', 'v3', credentials=self._drive_credentials(), cache_discovery=False)
         meta = {'name': nome, 'parents': [folder_id]}
         media = MediaFileUpload(path, mimetype='application/gzip', resumable=False)
         f = service.files().create(
