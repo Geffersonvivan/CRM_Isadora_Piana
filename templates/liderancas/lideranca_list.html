@@ -7,8 +7,10 @@
     .actions .btn-icon { width: 28px; height: 28px; padding: 0; border: 1px solid #d1d5db; border-radius: 6px; background: #fff; color: #6b7280; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all 0.15s; position: relative; }
     .actions .btn-icon:hover { background: #e6edf8; color: var(--navy); border-color: var(--navy); }
     .actions .btn-icon svg { width: 14px; height: 14px; }
-    .actions .btn-icon::after { content: attr(data-tip); position: absolute; top: 100%; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; font-size: 0.65rem; padding: 3px 7px; border-radius: 4px; white-space: nowrap; pointer-events: none; z-index: 10; opacity: 0; transition: opacity 0.1s; margin-top: 4px; }
-    .actions .btn-icon:hover::after { opacity: 1; }
+    /* Tooltip por CSS (::after) removido: o balão global #ajTip (data-tip) já cobre.
+       Ter os dois juntos causava TOOLTIP DUPLICADO em todos os botões de ação. */
+    .actions .btn-icon.is-disabled { opacity: .4; cursor: not-allowed; }
+    .actions .btn-icon.is-disabled:hover { background: #fff; color: #6b7280; border-color: #d1d5db; }
     .obs-link { color: var(--navy); cursor: pointer; text-decoration: underline dotted; }
 
     /* Abas-contador por papel */
@@ -527,7 +529,11 @@
                         {% else %}<a href="{% url 'liderancas:apoiador_edit' o.pk %}" class="btn-icon" data-tip="Editar" onclick="return openFormModal(this.href, 'Editar Apoiador')">{% endif %}
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></a>
                         {% if campanha.follow_up %}
+                        {% if o.follow_ups_abertos %}
+                        <span class="btn-icon is-disabled" data-tip="Já existe follow-up em aberto para este contato"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
+                        {% else %}
                         <a href="{% url 'tarefas:tarefa_create' %}?contato={{ o.pk }}" class="btn-icon" data-tip="Criar follow-up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></a>
+                        {% endif %}
                         {% if o.follow_ups_total %}<a href="{% url 'tarefas:lista' %}?contato={{ o.pk }}" class="btn-icon" data-tip="Ver {{ o.follow_ups_total }} follow-up(s)" style="width:auto;padding:0 7px;gap:3px;font-size:0.72rem;font-weight:700;color:#0d9488;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>{{ o.follow_ups_total }}</a>{% endif %}
                         {% endif %}
                         <button type="button" class="btn-icon" data-tip="Registrar interação" onclick="openInteracao('{{ o.papel }}', {{ o.pk }}, '{{ o.nome|escapejs }}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>

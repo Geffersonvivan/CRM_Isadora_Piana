@@ -50,12 +50,13 @@
     .fup-filter-banner svg { color: var(--navy); flex-shrink: 0; }
     .fup-filter-banner .fup-clear { margin-left: auto; font-size: 0.78rem; color: #64748b; text-decoration: none; }
     .fup-filter-banner .fup-clear:hover { color: #e11d48; }
-    .modal-fup-chip { display: inline-flex; align-items: flex-start; gap: 6px; flex-basis: 100%; max-width: 100%;
+    .modal-meta-row .modal-fup-chip { display: inline-flex; align-items: flex-start; gap: 6px; flex-basis: 100%; max-width: 100%;
         box-sizing: border-box; margin: 0 0 6px; padding: 5px 11px;
         background: color-mix(in srgb, var(--navy) 10%, #fff); border: 1px solid color-mix(in srgb, var(--navy) 28%, #e2e8f0);
         border-radius: 12px; color: var(--navy); font-weight: 600; white-space: normal; }
     .modal-fup-chip svg { flex-shrink: 0; margin-top: 2px; }
-    .modal-fup-txt { white-space: normal; word-break: break-word; line-height: 1.4; }
+    /* .modal-meta-row span { white-space: nowrap } tem especificidade maior — por isso o prefixo. */
+    .modal-meta-row .modal-fup-txt { white-space: normal; word-break: break-word; line-height: 1.4; flex: 1; min-width: 0; }
     .modal-fup-name { color: var(--navy); font-weight: 700; text-decoration: none; }
     .modal-fup-name:hover { text-decoration: underline; }
     .modal-fup-tel { color: #0d9488; text-decoration: none; white-space: nowrap; }

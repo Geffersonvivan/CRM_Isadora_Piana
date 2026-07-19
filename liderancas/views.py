@@ -158,7 +158,16 @@ def lideranca_list(request):
         'regiao', 'coordenador_responsavel', 'cadastrado_por', 'atendente_user',
     ).annotate(
         ultima_interacao=Max('interacoes__data'),
-        follow_ups_total=Count('follow_ups', distinct=True),
+        follow_ups_total=Count(
+            'follow_ups',
+            filter=Q(follow_ups__excluida_em__isnull=True), distinct=True,
+        ),
+        # Follow-ups em ABERTO (não concluídos) — travam o botão "Criar follow-up".
+        follow_ups_abertos=Count(
+            'follow_ups',
+            filter=Q(follow_ups__excluida_em__isnull=True) & ~Q(follow_ups__fase='concluida'),
+            distinct=True,
+        ),
     )
 
     # Aprovação: por padrão esconde rejeitados; filtro explícito mostra o estado pedido
