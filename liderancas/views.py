@@ -552,6 +552,16 @@ def api_lideranca_patch(request, pk):
     elif field in BOOLEANOS:
         setattr(obj, field, bool(value))
         display = 'Sim' if value else 'Não'
+        # "Contato feito" sincroniza a data do contato:
+        # marcar preenche hoje só se estiver vazia (preserva a 1ª data);
+        # desmarcar limpa a data.
+        if field == 'contato_feito':
+            from django.utils import timezone
+            if value:
+                if not obj.data_contato:
+                    obj.data_contato = timezone.localdate()
+            else:
+                obj.data_contato = None
     elif field == 'atendente_user':
         if value in (None, '', 0):
             obj.atendente_user = None
@@ -568,7 +578,12 @@ def api_lideranca_patch(request, pk):
 
     obj.atualizado_por = request.user
     obj.save()
-    return JsonResponse({'ok': True, 'value': value if not isinstance(value, bool) else value, 'display': display})
+    return JsonResponse({
+        'ok': True,
+        'value': value if not isinstance(value, bool) else value,
+        'display': display,
+        'data_contato': obj.data_contato.strftime('%d/%m/%Y') if obj.data_contato else None,
+    })
 
 
 # ==================== COORDENADORES ====================

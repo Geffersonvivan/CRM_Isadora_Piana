@@ -696,9 +696,15 @@
 
     window.ilToggle = function (el, pk, field) {
         var novo = !el.classList.contains('on');
-        ilPatch(pk, field, novo, null, null, function () {
+        ilPatch(pk, field, novo, null, null, function (d) {
             el.classList.toggle('on', novo);
             el.innerHTML = novo ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>' : '';
+            // "Contato feito" sincroniza a célula "Data contato" na mesma linha.
+            if (field === 'contato_feito') {
+                var row = el.closest('tr');
+                var dataCell = row && row.querySelector('.col-datacontato');
+                if (dataCell) dataCell.textContent = (d && d.data_contato) ? d.data_contato : '-';
+            }
         });
     };
 
