@@ -717,7 +717,7 @@
             return r.json().catch(function () { throw new Error('HTTP ' + r.status); });
         }).then(function (d) {
             if (!d.ok) { alert(d.error || 'Erro ao salvar'); return; }
-            if (onOk) { onOk(); return; }
+            if (onOk) { onOk(d); return; }
             // repinta a célula de escolha/atendente
             var span = cell.querySelector('[data-il]');
             if (!span) return;
