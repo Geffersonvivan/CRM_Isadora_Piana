@@ -564,7 +564,7 @@
             <tr {% if o.aprovacao == 'pendente' %}class="tr-pendente"{% elif o.aprovacao == 'rejeitado' %}class="tr-rejeitado"{% endif %}>
                 <td class="col-check"><input type="checkbox" class="row-check bulk-check" form="bulkForm" name="selected_ids" value="{{ o.pk }}" onchange="updateBulk()"></td>
                 {% for c in colunas %}
-                    {% if c == 'nome' %}<td class="col-nome" style="min-width:150px;">{{ o.nome }}{% if o.aprovacao != 'aprovado' %}<span class="apr-badge apr-{{ o.aprovacao }}">{{ o.get_aprovacao_display }}</span>{% endif %}</td>
+                    {% if c == 'nome' %}<td class="col-nome" style="min-width:195px;">{{ o.nome }}{% if o.aprovacao != 'aprovado' %}<span class="apr-badge apr-{{ o.aprovacao }}">{{ o.get_aprovacao_display }}</span>{% endif %}</td>
                     {% elif c == 'papel' %}<td class="nw"><span class="papel-badge papel-{{ o.papel }}">{{ o.get_papel_display }}</span></td>
                     {% elif c == 'telefone' %}<td class="nw">{{ o.telefone|whatsapp_link }}</td>
                     {% elif c == 'email' %}<td class="col-email">{{ o.email|default:"-" }}</td>
