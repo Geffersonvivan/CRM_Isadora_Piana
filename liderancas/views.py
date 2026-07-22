@@ -86,6 +86,53 @@ LIDERANCA_CSV_HEADER = ['Nome', 'Papel', 'Telefone', 'Email', 'Cidade', 'Região
                         'Frequência', 'Status', 'Instagram', 'Observações']
 
 
+def _sim_nao(v):
+    return 'Sim' if v else 'Não'
+
+
+# Mapa coluna -> (rótulo CSV, extrator de valor). Espelha a lista visual
+# (templates/liderancas/lideranca_list.html) para que o export CSV traga
+# exatamente as colunas que a marca mostra (COLUNAS_LIDERANCA). Assim o CSV da
+# Isadora (planilha central) exporta todos os campos, não só os 14 fixos.
+LIDERANCA_CSV_COLS = {
+    'nome': ('Nome', lambda o: o.nome),
+    'papel': ('Papel', lambda o: o.get_papel_display()),
+    'telefone': ('Telefone', lambda o: o.telefone),
+    'email': ('E-mail', lambda o: o.email),
+    'instagram': ('Instagram', lambda o: o.instagram),
+    'cidade': ('Cidade', lambda o: o.cidade.nome if o.cidade_id else ''),
+    'associacao': ('Associação', lambda o: o.cidade.regiao.sigla if o.cidade_id and o.cidade.regiao_id else ''),
+    'microrregiao': ('Microrregião', lambda o: o.cidade.microrregiao.nome if o.cidade_id and o.cidade.microrregiao_id else ''),
+    'mesorregiao': ('Mesorregião', lambda o: o.cidade.mesorregiao.nome if o.cidade_id and o.cidade.mesorregiao_id else ''),
+    'regiao': ('Região', lambda o: o.cidade.regiao.sigla if o.cidade_id and o.cidade.regiao_id else ''),
+    'coordenador_responsavel': ('Coordenador Responsável', lambda o: o.coordenador_responsavel.nome if o.papel == 'cabo' and o.coordenador_responsavel_id else ''),
+    'tipo': ('Categoria / Cargo', lambda o: (o.get_tipos_display() + (' · ' + o.get_cargo_display() if o.cargo else '')) if o.papel == 'apoiador' else ''),
+    'prioridade': ('Prioridade', lambda o: o.get_prioridade_display()),
+    'intencao_voto': ('Voto', lambda o: o.get_intencao_voto_display() if o.intencao_voto else ''),
+    'frequencia_relacionamento': ('Frequência', lambda o: o.get_frequencia_relacionamento_display()),
+    'votos_referencia': ('Votos', lambda o: o.votos_referencia if o.papel == 'apoiador' else ''),
+    'ultima_interacao': ('Histórico do atendimento', lambda o: o.ultima_interacao.strftime('%d/%m/%Y') if getattr(o, 'ultima_interacao', None) else ''),
+    'cadastrado_por': ('Cadastrado por', lambda o: (o.cadastrado_por.get_full_name() or o.cadastrado_por.username) if o.cadastrado_por_id else ''),
+    'uf': ('UF', lambda o: o.uf),
+    'nivel': ('Nível', lambda o: o.get_nivel_display() if o.nivel else ''),
+    'atendente': ('Atendente', lambda o: (o.atendente_user.get_full_name() or o.atendente_user.username) if o.atendente_user_id else (o.atendente or '')),
+    'contato_feito': ('Contato feito', lambda o: _sim_nao(o.contato_feito)),
+    'data_contato': ('Data contato', lambda o: o.data_contato.strftime('%d/%m/%Y') if o.data_contato else ''),
+    'canal_atendimento': ('Canal', lambda o: o.get_canal_atendimento_display() if o.canal_atendimento else ''),
+    'quem_e_eleitor': ('Quem é o eleitor', lambda o: o.quem_e_eleitor),
+    'origem_contato': ('Como chegou', lambda o: o.origem_contato),
+    'filiado_partido': ('Filiado partido', lambda o: o.filiado_partido),
+    'segmentos': ('Segmentos', lambda o: o.segmentos),
+    'idade': ('Idade', lambda o: o.idade if o.idade is not None else ''),
+    'vaquinha_enviada': ('Vaquinha', lambda o: _sim_nao(o.vaquinha_enviada)),
+    'doou': ('Doou', lambda o: _sim_nao(o.doou)),
+    'material_entregue': ('Material', lambda o: _sim_nao(o.material_entregue)),
+    'facebook': ('Facebook', lambda o: o.facebook),
+    'endereco': ('Endereço', lambda o: o.endereco),
+    'observacoes': ('Observações', lambda o: o.observacoes),
+}
+
+
 def _busca_q(busca):
     """Q de busca em nome/email/cidade/observações (sem acento no Postgres) + telefone."""
     from django.db import connection
@@ -102,6 +149,16 @@ def _liderancas_csv(qs, filename):
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     response.charset = 'utf-8-sig'
     writer = csv.writer(response)
+
+    # Marca em modo planilha (Isadora): CSV espelha as colunas da lista.
+    if settings.CAMPANHA.get('LIDERANCA_INLINE_EDIT', False):
+        cols = [c for c in settings.CAMPANHA['COLUNAS_LIDERANCA'] if c in LIDERANCA_CSV_COLS]
+        writer.writerow([LIDERANCA_CSV_COLS[c][0] for c in cols])
+        for o in qs:
+            writer.writerow([LIDERANCA_CSV_COLS[c][1](o) for c in cols])
+        return response
+
+    # Demais marcas: cabeçalho fixo histórico.
     writer.writerow(LIDERANCA_CSV_HEADER)
     for o in qs:
         writer.writerow([
@@ -453,8 +510,11 @@ def lideranca_bulk_action(request):
     qs = Lideranca.objects.filter(pk__in=ids)
 
     if action == 'export_csv':
-        return _liderancas_csv(qs.select_related('cidade', 'cidade__regiao', 'coordenador_responsavel'),
-                               'liderancas_selecionados.csv')
+        qs_csv = qs.select_related(
+            'cidade', 'cidade__regiao', 'cidade__microrregiao', 'cidade__mesorregiao',
+            'coordenador_responsavel', 'atendente_user', 'cadastrado_por',
+        ).annotate(ultima_interacao=Max('interacoes__data'))
+        return _liderancas_csv(qs_csv, 'liderancas_selecionados.csv')
     elif action == 'delete':
         n = 0
         for o in qs:
