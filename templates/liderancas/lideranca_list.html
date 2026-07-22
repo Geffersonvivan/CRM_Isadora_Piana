@@ -161,6 +161,69 @@
     .int-table th { font-size: 0.68rem; text-transform: uppercase; color: #64748b; font-weight: 600; padding: 10px 14px; text-align: left; border-bottom: 2px solid #e2e8f0; }
     .int-table td { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; color: #374151; }
 </style>
+{% if inline_edit %}
+<style>
+    /* ===================================================================
+       APPLE DESIGN — camada aditiva, SOMENTE Isadora (inline_edit=True).
+       Tudo em var(--navy)/var(--ouro): respeita a paleta da marca.
+       Sorgatto/Gilson (inline_edit=False) não recebem nada disto.
+       =================================================================== */
+
+    /* §15 Tipografia — números tabulares alinham datas/telefone/idade/UF */
+    .table-scroll .col-datacontato, .table-scroll .col-idade,
+    .table-scroll .col-uf, .table-scroll .col-votos { font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+
+    /* §12 Superfície mais macia + cabeçalho translúcido (já é sticky top) */
+    .table-scroll { border: 1px solid rgba(0,0,0,.06); border-radius: 14px;
+        box-shadow: 0 22px 55px -34px rgba(20,20,45,.40), 0 2px 8px -5px rgba(20,20,45,.12); }
+    .table-scroll thead th { background: rgba(238,241,246,.82);
+        backdrop-filter: blur(12px) saturate(160%); -webkit-backdrop-filter: blur(12px) saturate(160%);
+        border-bottom: 1px solid rgba(0,0,0,.07); }
+
+    /* Hover da linha na cor da marca (suave), com fallback neutro */
+    .table-scroll tbody tr { transition: background .16s ease; }
+    .table-scroll tbody tr:hover { background: rgba(0,0,0,.035); }
+    @supports (background: color-mix(in srgb, red, blue)) {
+        .table-scroll tbody tr:hover { background: color-mix(in srgb, var(--navy) 7%, #fff); }
+    }
+
+    /* §1 Response — feedback físico no pointer-down */
+    .il-check, .il-badge, .il-atend, .voto-badge, .btn-icon, .papel-tab, .tool-btn, .chip {
+        transition: transform .12s cubic-bezier(.34,1.4,.64,1), background .15s, border-color .15s, box-shadow .15s; }
+    .il-check:active, .il-badge:active, .il-atend:active, .voto-badge:active { transform: scale(.92); }
+    .btn-icon:active, .tool-btn:active, .papel-tab:active { transform: scale(.96); }
+    .il-cell:active .il-badge { transform: scale(.94); }
+    .il-check { will-change: transform; }
+
+    /* Acessibilidade — foco visível na cor da marca */
+    .il-check:focus-visible, .btn-icon:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+
+    /* §7/§12 Coluna Nome congelada — âncora de identidade ao rolar na horizontal.
+       Fica em left:0; as colunas anteriores (checkbox) deslizam sob ela. */
+    .table-scroll th.col-nome, .table-scroll td.col-nome { position: sticky; left: 0; background: #fff; }
+    .table-scroll thead th.col-nome { z-index: 6; background: #eef1f6; backdrop-filter: none; -webkit-backdrop-filter: none; }
+    .table-scroll tbody td.col-nome { z-index: 5; }
+    /* O congelado acompanha o fundo da linha (zebra / hover / moderação) */
+    .table-scroll tbody tr:nth-child(even) td.col-nome { background: #f8fafc; }
+    .table-scroll tbody tr:hover td.col-nome { background: #eef4ff; }
+    @supports (background: color-mix(in srgb, red, blue)) {
+        .table-scroll tbody tr:hover td.col-nome { background: color-mix(in srgb, var(--navy) 8%, #fff); }
+    }
+    .table-scroll tr.tr-pendente td.col-nome { background: #fff5f5; }
+    .table-scroll tr.tr-pendente:hover td.col-nome { background: #ffecec; }
+    .table-scroll tr.tr-rejeitado td.col-nome { background: #f9fafb; }
+    /* §12 scroll-edge: sombra à direita da coluna congelada quando há conteúdo rolado sob ela */
+    .table-scroll.is-scrolled-x th.col-nome, .table-scroll.is-scrolled-x td.col-nome { box-shadow: 10px 0 14px -10px rgba(20,20,45,.30); }
+
+    /* §14 Reduced motion / transparency */
+    @media (prefers-reduced-motion: reduce) {
+        .table-scroll *, .il-check, .il-badge { transition-duration: .001ms !important; }
+    }
+    @media (prefers-reduced-transparency: reduce) {
+        .table-scroll thead th { background: #eef1f6 !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+    }
+</style>
+{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -436,7 +499,7 @@
                 {# Seleção e Ações são estruturais; o resto segue a ordem da config. #}
                 <th class="col-check"><input type="checkbox" id="checkAll" class="row-check" onchange="toggleAll(this)"></th>
                 {% for c in colunas %}
-                    {% if c == 'nome' %}{% sortable_th "nome" "Nome" "" %}
+                    {% if c == 'nome' %}{% sortable_th "nome" "Nome" "" "col-nome" %}
                     {% elif c == 'papel' %}{% sortable_th "papel" "Papel" "" %}
                     {% elif c == 'telefone' %}<th>Telefone</th>
                     {% elif c == 'email' %}<th class="col-email">E-mail</th>
@@ -483,7 +546,7 @@
             <tr {% if o.aprovacao == 'pendente' %}class="tr-pendente"{% elif o.aprovacao == 'rejeitado' %}class="tr-rejeitado"{% endif %}>
                 <td class="col-check"><input type="checkbox" class="row-check bulk-check" form="bulkForm" name="selected_ids" value="{{ o.pk }}" onchange="updateBulk()"></td>
                 {% for c in colunas %}
-                    {% if c == 'nome' %}<td style="min-width:150px;">{{ o.nome }}{% if o.aprovacao != 'aprovado' %}<span class="apr-badge apr-{{ o.aprovacao }}">{{ o.get_aprovacao_display }}</span>{% endif %}</td>
+                    {% if c == 'nome' %}<td class="col-nome" style="min-width:150px;">{{ o.nome }}{% if o.aprovacao != 'aprovado' %}<span class="apr-badge apr-{{ o.aprovacao }}">{{ o.get_aprovacao_display }}</span>{% endif %}</td>
                     {% elif c == 'papel' %}<td class="nw"><span class="papel-badge papel-{{ o.papel }}">{{ o.get_papel_display }}</span></td>
                     {% elif c == 'telefone' %}<td class="nw">{{ o.telefone|whatsapp_link }}</td>
                     {% elif c == 'email' %}<td class="col-email">{{ o.email|default:"-" }}</td>
@@ -699,11 +762,25 @@
         ilPatch(pk, field, novo, null, null, function (d) {
             el.classList.toggle('on', novo);
             el.innerHTML = novo ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><polyline points="20 6 9 17 4 12"/></svg>' : '';
+            var semAnim = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            // §3/§4 Apple: pop tipo mola ao marcar (feedback físico)
+            if (novo && !semAnim && el.animate) {
+                el.animate([{ transform: 'scale(.7)' }, { transform: 'scale(1.15)' }, { transform: 'scale(1)' }],
+                    { duration: 340, easing: 'cubic-bezier(.34,1.56,.64,1)' });
+            }
             // "Contato feito" sincroniza a célula "Data contato" na mesma linha.
             if (field === 'contato_feito') {
                 var row = el.closest('tr');
                 var dataCell = row && row.querySelector('.col-datacontato');
-                if (dataCell) dataCell.textContent = (d && d.data_contato) ? d.data_contato : '-';
+                if (dataCell) {
+                    dataCell.textContent = (d && d.data_contato) ? d.data_contato : '-';
+                    // §12 Apple: a data materializa (blur+escala+opacidade juntos)
+                    if (d && d.data_contato && !semAnim && dataCell.animate) {
+                        dataCell.animate([{ opacity: 0, transform: 'scale(.82)', filter: 'blur(3px)' },
+                                          { opacity: 1, transform: 'scale(1)', filter: 'blur(0)' }],
+                            { duration: 420, easing: 'cubic-bezier(.2,.8,.2,1)' });
+                    }
+                }
             }
         });
     };
@@ -735,8 +812,18 @@
     }
 
     function esc(s) { var e = document.createElement('div'); e.textContent = s; return e.innerHTML; }
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ilPaintAtendentes);
-    else ilPaintAtendentes();
+
+    // §12 Apple: liga a sombra da coluna congelada só quando há rolagem horizontal
+    function ilScrollShadow() {
+        var sc = document.querySelector('.table-scroll');
+        if (!sc) return;
+        var upd = function () { sc.classList.toggle('is-scrolled-x', sc.scrollLeft > 2); };
+        sc.addEventListener('scroll', upd, { passive: true });
+        upd();
+    }
+    function ilInit() { ilPaintAtendentes(); ilScrollShadow(); }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ilInit);
+    else ilInit();
 })();
 </script>
 {% endif %}

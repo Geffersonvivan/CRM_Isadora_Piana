@@ -81,10 +81,10 @@ CAMPANHA = {
     # na mesma ordem. A coluna "Class" (nº de sequência da planilha) não vira coluna;
     # "HISTÓRICO DO ATENDIMENTO" é a annotation `ultima_interacao` (via InteracaoLog).
     'COLUNAS_LIDERANCA': [
+        'nome',               # NOME — trazido p/ frente e congelado (âncora ao rolar)
         'atendente',          # ATENDENTE
         'intencao_voto',      # VOTO
         'nivel',              # NÍVEL
-        'nome',               # NOME
         'cidade',             # CIDADE
         'associacao',         # ASSOCIAÇÃO (sigla, derivada da cidade)
         'microrregiao',       # MICRORREGIÃO (IBGE, derivada da cidade)

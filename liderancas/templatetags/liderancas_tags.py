@@ -8,8 +8,9 @@ register = template.Library()
 
 
 @register.simple_tag(takes_context=True)
-def sortable_th(context, field, label, width=''):
-    """Renderiza um <th> clicável para ordenação."""
+def sortable_th(context, field, label, width='', css_class=''):
+    """Renderiza um <th> clicável para ordenação. `css_class` (opcional) permite
+    marcar a coluna (ex.: 'col-nome' para congelá-la na planilha da Isadora)."""
     request = context.get('request')
     current_sort = context.get('current_sort', '')
     current_dir = context.get('current_dir', 'asc')
@@ -30,7 +31,8 @@ def sortable_th(context, field, label, width=''):
     params['dir'] = new_dir
     url = '?' + params.urlencode()
     width_attr = f' style="width:{width};{style_extra}"' if width else (f' style="{style_extra}"' if style_extra else '')
-    return mark_safe(f'<th{width_attr}><a href="{url}" style="color:inherit;text-decoration:none;">{label}{arrow}</a></th>')
+    class_attr = f' class="{css_class}"' if css_class else ''
+    return mark_safe(f'<th{class_attr}{width_attr}><a href="{url}" style="color:inherit;text-decoration:none;">{label}{arrow}</a></th>')
 
 
 @register.filter
